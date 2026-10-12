@@ -1,194 +1,196 @@
 # Forma — Specification
 
-Version 0.1. Status: draft.
+Version 0.2. Current milestone: the workout module.
 
 ## 1. Purpose
 
-Forma is a phone app for one user. The app logs workouts, meals, and notes. The user asks questions about their own history. The app answers from local data. The app does not use the network.
+Forma is a local-first fitness service for one user.
+The first milestone records workouts.
+A mobile app will act as a thin client of the service.
+Nutrition will follow later.
 
-## 2. Goals
+## 2. Current scope
 
-- Log workouts: exercises, sets, reps, weight, and RPE.
-- Log meals: foods, grams, and macros.
-- Log free-text notes and voice notes.
-- Answer questions about the history, for example "what did I bench last week".
-- Answer questions about notes, for example "when did my knee hurt".
-- Keep all data on the device.
-- Work in airplane mode.
+- Use the supplied exercise catalog.
+- Preserve the supplied workout groups and exercise order.
+- Create workout records.
+- Add, edit, and delete sets.
+- Retrieve workout records and filter history by date.
+- Store records locally in SQLite.
+- Test the core without React Native.
 
-## 3. Non-goals
+This milestone has no mobile screens, nutrition module, standalone notes module, or models.
+Workout notes remain a field of a workout record.
+The catalog has no edit API in this milestone.
 
-- No cloud service in version 1.
-- No account and no sync in version 1.
-- No Jev and no other hosted decision API.
-- No text generation for numbers. Code computes every number.
-- No multi-user support.
-- No social features.
-- No reference knowledge base in version 1. This version answers about your own history only.
+## 3. Architecture
 
-## 4. Constraints
+`@forma/core` defines domain rules and capability contracts in plain TypeScript.
+The core does not import React, Expo, a SQLite driver, or native handles.
 
-- The target is a phone. Android is first. iOS is second.
-- The runtime is fully on-device.
-- No data leaves the device.
-- The app must fit in the free memory of a mid-range phone.
-- Run the models in bfloat16 or float32. Do not use float16.
+`@forma/adapters` implements the core ports.
+The first adapter uses SQLite in Node.
+A future Android adapter will use OP-SQLite.
 
-## 5. Key user questions
+Each host constructs adapters and injects them into `createFormaService`.
+Clients use the same public service API.
+The service does not require a server.
 
-| Question | Data source |
-| --- | --- |
-| What did I bench last week? | SQL over `sets` and `exercises` |
-| What is my best squat? | SQL over `sets` and `exercises` |
-| How much protein did I eat this week? | SQL over `foods` |
-| How many calories on Tuesday? | SQL over `foods` |
-| When did my knee hurt? | SQL over `notes` fields, then vector search |
-| Which notes mention poor sleep? | Vector search over `notes` |
-| Show meals like this photo. | Vector search over meal photo vectors |
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the API and port contracts.
 
-## 6. Data model
+## 4. Exercise catalog
 
-The store is SQLite. The vector store is `sqlite-vec`. Keep the two parts apart.
+The catalog has 19 distinct exercises and 20 group memberships.
+Triceps Pushdowns uses one exercise ID in both groups.
+Preacher Curl and Preacher Curl Machine remain separate exercises.
+Lateral Raises and Cable Lateral Raises remain separate exercises.
 
-### 6.1 Tables
+### Upper
 
-**exercises** — `id`, `name`, `muscle_group`, `equipment`, `aliases`.
-The `aliases` field holds short names, for example `RDL` for `Romanian deadlift`.
+1. Incline Dumbbell Press
+2. Lat Pulldown
+3. Cable Row
+4. Cable Pullover
+5. Lateral Raises
+6. Triceps Pushdowns
+7. Preacher Curl Machine
 
-**workouts** — `id`, `date`, `duration_min`, `notes`.
+### Lower
 
-**sets** — `id`, `workout_id`, `exercise_id`, `reps`, `weight_kg`, `rpe`, `position`.
+1. Hack Squat
+2. Bulgarian Split Squat
+3. Calf Raises
+4. Hammer Curls
+5. Leg Extensions
+6. Leg Curls
 
-**meals** — `id`, `date`, `meal_type`, `notes`, `photo_path`.
+### Arms & Shoulders
 
-**foods** — `id`, `meal_id`, `name`, `grams`, `kcal`, `protein_g`, `carbs_g`, `fat_g`.
+1. Preacher Curl
+2. Dumbbell Overhead Triceps Extension
+3. Cable Lateral Raises
+4. Cable Biceps Curl
+5. Triceps Pushdowns
+6. Overhead Shoulder Press
+7. Upright Row
 
-**notes** — `id`, `date`, `kind`, `text`, `audio_path`.
-The `kind` field is one of `workout`, `meal`, `pain`, `sleep`, `other`.
+The core preserves these names and this order.
+Hammer Curls stays in Lower.
+An exercise name states equipment only when it explicitly names that equipment.
+Other equipment values remain `null`.
+Muscle groups remain `null` until the user supplies them.
 
-**note_extract** — `note_id`, `body_part`, `mentions_pain`, `severity`, `is_personal_best`.
-This table holds the typed fields from the note extraction step.
+Canonical names and explicit aliases resolve to a single exercise ID.
+Alias resolution ignores case and extra whitespace.
+It does not use fuzzy search or a model.
 
-### 6.2 Vector index
+## 5. Records
 
-Embed only free text and media. Do not embed sets, reps, or macros.
+### Exercise
 
-- One vector per row of `notes`.
-- One vector per meal photo.
-- Dimension: 256. Re-normalize the vector after truncation.
+Fields: `id`, `name`, `muscleGroup`, `equipment`, `aliases`.
 
-## 7. Model stack
+### Workout group
 
-### 7.1 Retriever
+Fields: `id`, `name`, `exerciseIds`.
+Group IDs are `upper`, `lower`, and `arms-shoulders`.
+The exercise IDs preserve the supplied order.
+Groups suggest exercises but do not restrict a workout.
 
-- Model: `google/embeddinggemma-2`.
-- Configuration: text only. Pass `{"vision_config": None, "audio_config": None}`. The model then uses 270M parameters.
-- Output dimension: 256 by default. Test 512 if quality is low.
-- Run in bfloat16 or float32.
+### Workout
 
-### 7.2 Generator
+Fields: `id`, `date`, `groupId`, `notes`, `durationMin`, `createdAt`, `updatedAt`, `sets`.
 
-- Model: Gemma 4 E2B.
-- Job: write the answer from the tool output.
-- Limit: the model must not invent a number.
+The client supplies the calendar date in the user's timezone.
+The date has `YYYY-MM-DD` format.
+The clock supplies UTC timestamps for the audit fields.
 
-### 7.3 Note extraction
+The group and duration are optional.
+Notes default to an empty string.
+A new workout has no sets.
 
-- First pass: rules and a keyword list. Keywords cover body parts, pain words, and sleep words.
-- Second pass (optional later): a function call from the generator.
-- No hosted API.
+### Set
 
-### 7.4 Runtimes
+Fields: `id`, `exerciseId`, `reps`, `weightKg`, `rpe`, `position`.
 
-| Platform | Runtime |
-| --- | --- |
-| Android | LiteRT-LM |
-| iOS | CoreML or MLX |
-| Both | ONNX Runtime Mobile as one code path |
+Reps must be positive safe integers.
+Weight must be finite and non-negative.
+RPE is optional.
+If present, RPE must be finite and between 1 and 10.
+Decimal RPE values are valid.
+Set positions start at zero.
 
-## 8. Query flow
+The service stores the entered load in kilograms.
+It does not infer a combined dumbbell load, body weight, or machine resistance.
+No workout statistics exist in this milestone.
 
-1. The user enters a question.
-2. The router picks a tool. The router is a rule set in version 1.
-3. The tool runs. A tool returns rows or chunks.
-4. The generator writes the answer. The prompt states: use the tool values for numbers.
+## 6. Storage
 
-### 8.1 Tools
+The SQLite schema has these tables:
 
-- `get_sets(date_from, date_to, exercise)`
-- `get_pr(exercise)`
-- `get_macros(date_from, date_to)`
-- `search_notes(query)`
-- `search_meal_photos(photo)`
+- `exercises`
+- `exercise_aliases`
+- `workout_groups`
+- `workout_group_exercises`
+- `workouts`
+- `sets`
 
-Do not let the model write free SQL. A fixed tool cannot read the wrong table.
+The adapter owns table names, row conversion, and migrations.
+The initial schema has version 1 in `PRAGMA user_version`.
+The initial migration inserts the catalog once.
+It does not reinsert the catalog on reopen.
 
-## 9. Retrieval
+Each write is atomic.
+A failed operation must preserve the previous record.
+The adapter must serialize commands on its connection.
+SQL parameters carry user values.
+The service must not accept free SQL from a client or model.
 
-Use hybrid search. Vector search alone misses exact names. `RDL`, `OHP`, and `DB` are short and easy to confuse.
+The host chooses the database path.
+SQLite files contain unencrypted data.
+Clients must not automatically retry writes because this version has no duplicate-request protection.
 
-- Combine the vector score with a keyword score.
-- Use SQLite FTS5 for the keyword score.
-- Chunk rule for notes: one note is one chunk.
-- Chunk rule for recipes and programs: one item is one chunk. This rule applies if a reference base is added later.
+## 7. Acceptance checks
 
-## 10. Note extraction
+1. Retrieve all 19 exercises and all three ordered groups.
+2. Resolve canonical names and aliases to their exercise IDs.
+3. Create a workout through the public API.
+4. Add, edit, and delete sets through the public API.
+5. Reject invalid dates, reps, weights, and RPE.
+6. Reject unknown references without a partial record.
+7. Preserve every set from concurrent commands through one service.
+8. Close and reopen a real SQLite file.
+9. Retrieve the exact previous records after reopen.
+10. Reject new operations after service close.
 
-1. Scan the note text for a body part from a fixed list.
-2. Scan for pain words, for example `hurt`, `ache`, `pain`, `tweak`, `pinch`.
-3. Scan for personal-best words, for example `PR`, `best`, `record`.
-4. Set `severity` from a fixed phrase list, for example `mild`, `sharp`, `bad`.
-5. Write the result to `note_extract`.
-6. Ask the user to confirm a low-confidence row.
+Run the same contract tests against memory and SQLite.
+Run `npm test`, `npm run typecheck`, and `npm run demo`.
 
-The user confirms every row that sets `mentions_pain` to true.
+These checks do not prove Android behavior.
+They do not include an airplane-mode test.
 
-## 11. Build phases
+## 8. Next phases
 
-**Phase 0 — Seed.** Create the `exercises` table. Add name, muscle group, equipment, and aliases. About 150 rows cover most gyms.
+1. Add duplicate-request protection before clients retry writes.
+2. Add a thin mobile client and an Android storage adapter.
+3. Add workout history tools and numerical calculations.
+4. Add nutrition after the workout module meets its acceptance criteria.
 
-**Phase 1 — Logging.** Build the logging screens. Write to SQLite. No model.
+Later decisions can add notes, retrieval, and local inference.
+Those features have no placeholder APIs in this milestone.
+Code must compute numerical facts.
+A model must not generate numerical facts or free SQL.
 
-**Phase 2 — Tools.** Write the five tools. Test them without a generator.
+Android remains the first mobile target.
+The initial test device is a Nothing Phone (2a) with 8 GB RAM.
+The first mobile version requires no backend.
 
-**Phase 3 — Generator.** Add Gemma 4 E2B. Answer text questions over the logs by tool call.
+The separate validation repo records model and database experiments.
+Forma has no runtime dependency on that repo.
 
-**Phase 4 — Retrieval.** Add EmbeddingGemma 2. Embed the notes. Add the `search_notes` tool. Add hybrid search.
+Before model integration, resolve the earlier BF16/float32 requirement against the validated INT4 embedding artifact.
+Do not use float16 for the embedding model.
+Model memory and device behavior require separate acceptance checks.
 
-**Phase 5 — Media.** Add meal photo search. Add voice notes. Add the vision encoder. Add the audio encoder.
-
-## 12. Evaluation
-
-Keep a fixed question set with known answers. Run the set after every change.
-
-- Target: 20 questions.
-- Mix: 10 SQL questions, 6 note questions, 4 media questions.
-- Score: correct answer, correct number, and correct source.
-- Check the 128-dimension option against the 256-dimension option on your own notes.
-
-## 13. Risks and warnings
-
-- **Numbers.** Do not let the model compute a number. A wrong row gives a wrong answer that looks correct.
-- **Precision.** The model returns NaN or bad embeddings in float16. The failure is silent.
-- **Memory.** Test the free memory of the target phone before you pick the generator size.
-- **Names.** Keep the exercise names exact. `RDL` and `Romanian deadlift` must map to one row.
-- **Chunk mismatch.** The query and the documents must use the same dimension.
-- **Cold start.** Retention needs a logging streak of about two weeks before retrieval is useful.
-- **Privacy.** Airplane mode is the test. No request may leave the device.
-
-## 14. Open questions
-
-- Android only, or Android and iOS together?
-- Is Gemma 4 E2B small enough for the target phone?
-- Should the app use one screen for logging and one screen for questions?
-- Do you have a CSV export from an older app? If yes, write an import script.
-- Which foods and macros do you track by default?
-
-## 15. Glossary
-
-- **Embedding** — a fixed-length vector that represents content.
-- **RAG** — retrieval-augmented generation. Retrieve content, then write an answer.
-- **Noul, Choice, Score** — the three answer types of Jev. Not used in this project.
-- **MRL** — Matryoshka Representation Learning. A short vector keeps most of the quality.
-- **Hybrid search** — a mix of vector search and keyword search.
-- **Cold start** — the period before the app has enough history.
+A future Telegram client requires a separate privacy decision.
+Telegram messages pass through its servers.

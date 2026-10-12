@@ -1,0 +1,162 @@
+# Workout architecture
+
+## Ownership
+
+`@forma/core` owns workout validation, exercise resolution, and set order.
+Its public API uses plain objects, strings, numbers, and promises.
+The core has no runtime package dependencies.
+Its compiler configuration has no Node or DOM types.
+
+`@forma/adapters` owns SQL, schema changes, and database access.
+The current adapter uses `node:sqlite`.
+Only Node hosts import `@forma/adapters/node`.
+A future mobile adapter will implement the same `WorkoutStore` port.
+
+The host chooses the database path.
+The host provides a clock and an ID generator.
+The Node factory provides UTC timestamps and UUIDs by default.
+
+## Composition
+
+```ts
+import { openNodeForma } from '@forma/adapters/node';
+
+const service = openNodeForma({ databasePath: './workouts.sqlite' });
+
+try {
+  const exercise = await service.exercises.resolveAlias('Incline DB Press');
+  const workout = await service.workouts.create({
+    date: '2026-10-12',
+    groupId: 'upper',
+  });
+
+  await service.workouts.addSet({
+    workoutId: workout.id,
+    exerciseId: exercise.id,
+    reps: 8,
+    weightKg: 20,
+    rpe: 7.5,
+  });
+
+  const saved = await service.workouts.get(workout.id);
+  console.log(saved);
+} finally {
+  await service.close();
+}
+```
+
+The database directory must exist.
+The factory creates the database file if it does not exist.
+The adapter creates the initial schema and catalog in one transaction.
+The adapter rejects a schema version newer than its own version.
+
+For another host, use `createFormaService({ store, clock, ids })`.
+The core does not need a server or an HTTP connection.
+
+## Public API
+
+| Method | Result |
+| --- | --- |
+| `exercises.list()` | All exercises, in catalog order |
+| `exercises.get(exerciseId)` | One exercise |
+| `exercises.resolveAlias(alias)` | One exercise |
+| `groups.list()` | The three groups, in catalog order |
+| `groups.get(groupId)` | One group, with ordered exercise IDs |
+| `workouts.create({ date, groupId?, notes?, durationMin? })` | A workout with no sets |
+| `workouts.addSet({ workoutId, exerciseId, reps, weightKg, rpe? })` | The new set |
+| `workouts.updateSet({ workoutId, setId, exerciseId?, reps?, weightKg?, rpe? })` | The updated set |
+| `workouts.deleteSet({ workoutId, setId })` | No value |
+| `workouts.get(workoutId)` | A workout with ordered sets |
+| `workouts.list({ dateFrom?, dateTo? }?)` | Complete workouts, newest date first |
+| `close()` | No value |
+
+An unknown exercise, group, workout, or set produces `NOT_FOUND`.
+An alias can match a canonical name or an explicit alias.
+The core converts aliases to lowercase and removes extra whitespace.
+The core does not guess an exercise from a general word such as `bench`.
+
+A group suggests exercises. It does not restrict the exercises in a workout.
+The catalog remains read-only in this milestone.
+
+## Record rules
+
+- `date` is an explicit local calendar date in `YYYY-MM-DD` format.
+- The client chooses the date in the user's timezone.
+- The core rejects impossible dates.
+- `createdAt` and `updatedAt` are UTC timestamps with milliseconds.
+- `reps` is a positive safe integer.
+- `weightKg` is a finite, non-negative number.
+- `rpe` is optional and accepts finite values from 1 to 10, including decimals.
+- An omitted RPE becomes `null`.
+- In a set update, `rpe: null` removes the RPE.
+- `durationMin` is optional and accepts finite, non-negative values.
+- An omitted duration becomes `null`.
+- Notes remain unchanged.
+- Set positions start at zero.
+- A set delete makes the remaining positions consecutive.
+- A set update preserves the set ID and position.
+- A set belongs to exactly one workout.
+
+`weightKg` stores the load that the user enters.
+The service does not convert a dumbbell load to a combined load.
+It does not add body weight or a machine resistance estimate.
+Future calculations must define their load convention before use.
+
+## Storage port
+
+`WorkoutStore.read()` supplies a coherent read view.
+`WorkoutStore.write()` supplies an atomic write transaction.
+Each callback uses its supplied reader or writer.
+A callback must not start another operation on the same store.
+
+The Node adapter serializes operations on its connection.
+Concurrent commands through one service cannot overwrite each other's sets.
+A failed write rolls back the workout and its sets.
+The adapter prevents duplicate set IDs across workouts.
+Transaction views expire after their callback returns.
+
+Each host must use one live service per database within its process.
+The current adapter does not coordinate several connections within one process.
+
+The service owns its injected store and closes it with `close()`.
+Do not share the same store between services with independent lifetimes.
+A close waits for accepted operations.
+After a close starts, the service rejects new operations.
+Repeated calls to `close()` use the same promise.
+
+## Errors
+
+`FormaError` has a stable `code` and an optional `field`.
+
+| Code | Meaning |
+| --- | --- |
+| `INVALID_INPUT` | The request violates a record rule |
+| `NOT_FOUND` | A record or alias does not exist |
+| `CONFLICT` | An ID or unique value already exists |
+| `SERVICE_CLOSED` | The service or store no longer accepts operations |
+| `STORAGE_FAILURE` | Storage cannot complete the operation |
+
+The Node adapter converts native database errors to `FormaError`.
+The error retains its original cause for local diagnostics.
+Future adapters must use the same error codes.
+
+Invalid values fail in the core before the storage write starts.
+Unknown references fail within the transaction before the adapter saves a record.
+Inputs contain no SQL.
+The adapter binds every user value as a SQL parameter.
+
+## Verification
+
+The same contract tests run against a memory adapter and the SQLite adapter.
+The tests check the catalog, validation, set operations, history, and lifecycle.
+
+Additional SQLite tests check:
+
+- Exact records after close and reopen.
+- Atomic rollback after a failed save or callback.
+- Concurrent write commands and close.
+- Duplicate IDs and expired transaction views.
+- Schema version checks and migration failures.
+- SQL-shaped input as data.
+
+The tests do not establish Android behavior.

@@ -13,6 +13,7 @@
     "build": "tsc -b",
     "typecheck": "tsc -b",
     "test": "npm run build && node --test .build/tests/*.test.js",
+    "demo": "npm run build && node .build/examples/workouts.js",
     "clean": "tsc -b --clean"
   },
   "devDependencies": {
