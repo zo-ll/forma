@@ -10,7 +10,7 @@ The mobile app does not exist yet.
 
 The service can:
 
-- List your 19 exercises and three workout groups.
+- List your 19 exercises and three split days.
 - Resolve exercise names and explicit aliases.
 - Create workouts with an explicit calendar date.
 - Add, edit, and delete sets.

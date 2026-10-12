@@ -1,10 +1,10 @@
 import { DatabaseSync } from 'node:sqlite';
 import type { SQLInputValue, SQLOutputValue } from 'node:sqlite';
 import {
-  DEFAULT_EXERCISES, DEFAULT_WORKOUT_GROUPS, FormaError, normalizeExerciseAlias,
+  DEFAULT_EXERCISES, DEFAULT_SPLIT_DAYS, FormaError, normalizeExerciseAlias,
 } from '@forma/core';
 import type {
-  Exercise, ListWorkoutsInput, Workout, WorkoutGroup, WorkoutReader, WorkoutSet,
+  Exercise, ListWorkoutsInput, Workout, SplitDay, WorkoutReader, WorkoutSet,
   WorkoutStore, WorkoutWriter,
 } from '@forma/core';
 import { SCHEMA_V1, SCHEMA_VERSION } from '../sqlite/schema.js';
@@ -103,15 +103,15 @@ export class SqliteWorkoutStore implements WorkoutStore {
       const names = new Map([exercise.name, ...exercise.aliases].map((name) => [normalizeExerciseAlias(name), name]));
       for (const [normalized, name] of names) insertAlias.run(normalized, name, exercise.id);
     });
-    const insertGroup = this.db.prepare(
+    const insertSplitDay = this.db.prepare(
       'INSERT INTO workout_groups (id, name, catalog_position) VALUES (?, ?, ?)',
     );
     const insertMember = this.db.prepare(
       'INSERT INTO workout_group_exercises (group_id, exercise_id, position) VALUES (?, ?, ?)',
     );
-    DEFAULT_WORKOUT_GROUPS.forEach((group, groupPosition) => {
-      insertGroup.run(group.id, group.name, groupPosition);
-      group.exerciseIds.forEach((id, position) => insertMember.run(group.id, id, position));
+    DEFAULT_SPLIT_DAYS.forEach((splitDay, splitDayPosition) => {
+      insertSplitDay.run(splitDay.id, splitDay.name, splitDayPosition);
+      splitDay.exerciseIds.forEach((id, position) => insertMember.run(splitDay.id, id, position));
     });
   }
 
@@ -149,8 +149,8 @@ export class SqliteWorkoutStore implements WorkoutStore {
         const row = this.db.prepare('SELECT exercise_id FROM exercise_aliases WHERE normalized_alias = ?').get(alias);
         return row ? this.getExercise(stringValue(row, 'exercise_id')) : null;
       },
-      listGroups: async () => { check(); return this.listGroups(); },
-      getGroup: async (id) => { check(); return this.getGroup(id); },
+      listSplitDays: async () => { check(); return this.listSplitDays(); },
+      getSplitDay: async (id) => { check(); return this.getSplitDay(id); },
       getWorkout: async (id) => { check(); return this.getWorkout(id); },
       listWorkouts: async (input) => { check(); return this.listWorkouts(input); },
       saveWorkout: async (workout) => {
@@ -195,7 +195,7 @@ export class SqliteWorkoutStore implements WorkoutStore {
     return row ? this.exerciseFromRow(row) : null;
   }
 
-  private groupFromRow(row: Row): WorkoutGroup {
+  private splitDayFromRow(row: Row): SplitDay {
     const id = stringValue(row, 'id');
     const exerciseIds = this.db.prepare(
       'SELECT exercise_id FROM workout_group_exercises WHERE group_id = ? ORDER BY position',
@@ -203,14 +203,14 @@ export class SqliteWorkoutStore implements WorkoutStore {
     return { id, name: stringValue(row, 'name'), exerciseIds };
   }
 
-  private listGroups(): readonly WorkoutGroup[] {
+  private listSplitDays(): readonly SplitDay[] {
     return this.db.prepare('SELECT * FROM workout_groups ORDER BY catalog_position').all()
-      .map((row) => this.groupFromRow(row));
+      .map((row) => this.splitDayFromRow(row));
   }
 
-  private getGroup(id: string): WorkoutGroup | null {
+  private getSplitDay(id: string): SplitDay | null {
     const row = this.db.prepare('SELECT * FROM workout_groups WHERE id = ?').get(id);
-    return row ? this.groupFromRow(row) : null;
+    return row ? this.splitDayFromRow(row) : null;
   }
 
   private workoutFromRow(row: Row): Workout {
@@ -223,7 +223,7 @@ export class SqliteWorkoutStore implements WorkoutStore {
       rpe: nullableNumber(set, 'rpe'), position: numberValue(set, 'position'),
     }));
     return {
-      id, date: stringValue(row, 'date'), groupId: nullableString(row, 'group_id'),
+      id, date: stringValue(row, 'date'), splitDayId: nullableString(row, 'group_id'),
       notes: stringValue(row, 'notes'), durationMin: nullableNumber(row, 'duration_min'),
       createdAt: stringValue(row, 'created_at'), updatedAt: stringValue(row, 'updated_at'), sets,
     };
@@ -252,7 +252,7 @@ export class SqliteWorkoutStore implements WorkoutStore {
       + 'date = excluded.date, group_id = excluded.group_id, notes = excluded.notes, '
       + 'duration_min = excluded.duration_min, updated_at = excluded.updated_at',
     ).run(
-      workout.id, workout.date, workout.groupId, workout.notes, workout.durationMin,
+      workout.id, workout.date, workout.splitDayId, workout.notes, workout.durationMin,
       workout.createdAt, workout.updatedAt,
     );
     this.db.prepare('DELETE FROM sets WHERE workout_id = ?').run(workout.id);

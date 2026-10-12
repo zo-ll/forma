@@ -27,14 +27,14 @@ export function createWorkoutApi(
   return {
     async create(input) {
       ensureOpen();
-      objectInput(input, ['date', 'groupId', 'notes', 'durationMin']);
+      objectInput(input, ['date', 'splitDayId', 'notes', 'durationMin']);
       const date = calendarDate(input.date, 'date');
-      const groupId = input.groupId === undefined ? null : identifier(input.groupId, 'groupId');
+      const splitDayId = input.splitDayId === undefined ? null : identifier(input.splitDayId, 'splitDayId');
       const notes = input.notes === undefined ? '' : text(input.notes, 'notes');
       const durationMin = input.durationMin === undefined ? null : finiteNumber(input.durationMin, 'durationMin', 0);
       return store.write(async (writer) => {
-        if (groupId !== null && !(await writer.getGroup(groupId))) {
-          throw new FormaError('NOT_FOUND', 'The workout group does not exist.', { field: 'groupId' });
+        if (splitDayId !== null && !(await writer.getSplitDay(splitDayId))) {
+          throw new FormaError('NOT_FOUND', 'The split day does not exist.', { field: 'splitDayId' });
         }
         const id = identifier(ids.next(), 'id');
         if (await writer.getWorkout(id)) {
@@ -42,7 +42,7 @@ export function createWorkoutApi(
         }
         const timestamp = utcTimestamp(clock.nowUtc());
         const workout: Workout = {
-          id, date, groupId, notes, durationMin, createdAt: timestamp, updatedAt: timestamp, sets: [],
+          id, date, splitDayId, notes, durationMin, createdAt: timestamp, updatedAt: timestamp, sets: [],
         };
         await writer.saveWorkout(workout);
         return workout;

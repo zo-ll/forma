@@ -1,4 +1,4 @@
-import type { Exercise, WorkoutGroup } from './types.js';
+import type { Exercise, SplitDay } from './types.js';
 
 function exercise(
   id: string,
@@ -36,20 +36,20 @@ export const DEFAULT_EXERCISES: readonly Exercise[] = Object.freeze([
   exercise('upright-row', 'Upright Row'),
 ]);
 
-function group(id: string, name: string, exerciseIds: readonly string[]): WorkoutGroup {
+function splitDay(id: string, name: string, exerciseIds: readonly string[]): SplitDay {
   return Object.freeze({ id, name, exerciseIds: Object.freeze([...exerciseIds]) });
 }
 
-export const DEFAULT_WORKOUT_GROUPS: readonly WorkoutGroup[] = Object.freeze([
-  group('upper', 'Upper', [
+export const DEFAULT_SPLIT_DAYS: readonly SplitDay[] = Object.freeze([
+  splitDay('upper', 'Upper', [
     'incline-dumbbell-press', 'lat-pulldown', 'cable-row', 'cable-pullover',
     'lateral-raises', 'triceps-pushdowns', 'preacher-curl-machine',
   ]),
-  group('lower', 'Lower', [
+  splitDay('lower', 'Lower', [
     'hack-squat', 'bulgarian-split-squat', 'calf-raises', 'hammer-curls',
     'leg-extensions', 'leg-curls',
   ]),
-  group('arms-shoulders', 'Arms & Shoulders', [
+  splitDay('arms-shoulders', 'Arms & Shoulders', [
     'preacher-curl', 'dumbbell-overhead-triceps-extension', 'cable-lateral-raises',
     'cable-biceps-curl', 'triceps-pushdowns', 'overhead-shoulder-press', 'upright-row',
   ]),

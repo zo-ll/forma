@@ -27,7 +27,7 @@ try {
   const exercise = await service.exercises.resolveAlias('Incline DB Press');
   const workout = await service.workouts.create({
     date: '2026-10-12',
-    groupId: 'upper',
+    splitDayId: 'upper',
   });
 
   await service.workouts.addSet({
@@ -60,9 +60,9 @@ The core does not need a server or an HTTP connection.
 | `exercises.list()` | All exercises, in catalog order |
 | `exercises.get(exerciseId)` | One exercise |
 | `exercises.resolveAlias(alias)` | One exercise |
-| `groups.list()` | The three groups, in catalog order |
-| `groups.get(groupId)` | One group, with ordered exercise IDs |
-| `workouts.create({ date, groupId?, notes?, durationMin? })` | A workout with no sets |
+| `splitDays.list()` | The three split days, in catalog order |
+| `splitDays.get(splitDayId)` | One split day, with ordered exercise IDs |
+| `workouts.create({ date, splitDayId?, notes?, durationMin? })` | A workout with no sets |
 | `workouts.addSet({ workoutId, exerciseId, reps, weightKg, rpe? })` | The new set |
 | `workouts.updateSet({ workoutId, setId, exerciseId?, reps?, weightKg?, rpe? })` | The updated set |
 | `workouts.deleteSet({ workoutId, setId })` | No value |
@@ -70,12 +70,12 @@ The core does not need a server or an HTTP connection.
 | `workouts.list({ dateFrom?, dateTo? }?)` | Complete workouts, newest date first |
 | `close()` | No value |
 
-An unknown exercise, group, workout, or set produces `NOT_FOUND`.
+An unknown exercise, split day, workout, or set produces `NOT_FOUND`.
 An alias can match a canonical name or an explicit alias.
 The core converts aliases to lowercase and removes extra whitespace.
 The core does not guess an exercise from a general word such as `bench`.
 
-A group suggests exercises. It does not restrict the exercises in a workout.
+A split day suggests exercises. It does not restrict the exercises in a workout.
 The catalog remains read-only in this milestone.
 
 ## Record rules
@@ -103,6 +103,9 @@ It does not add body weight or a machine resistance estimate.
 Future calculations must define their load convention before use.
 
 ## Storage port
+
+The adapter keeps the version 1 names `workout_groups`, `workout_group_exercises`, and `group_id` for compatibility.
+The adapter maps these names to `SplitDay` and `splitDayId`.
 
 `WorkoutStore.read()` supplies a coherent read view.
 `WorkoutStore.write()` supplies an atomic write transaction.

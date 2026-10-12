@@ -1,4 +1,4 @@
-import type { Exercise, ListWorkoutsInput, Workout, WorkoutGroup } from './types.js';
+import type { Exercise, ListWorkoutsInput, Workout, SplitDay } from './types.js';
 
 export interface Clock {
   nowUtc(): string;
@@ -12,8 +12,8 @@ export interface WorkoutReader {
   listExercises(): Promise<readonly Exercise[]>;
   getExercise(exerciseId: string): Promise<Exercise | null>;
   findExerciseByAlias(normalizedAlias: string): Promise<Exercise | null>;
-  listGroups(): Promise<readonly WorkoutGroup[]>;
-  getGroup(groupId: string): Promise<WorkoutGroup | null>;
+  listSplitDays(): Promise<readonly SplitDay[]>;
+  getSplitDay(splitDayId: string): Promise<SplitDay | null>;
   getWorkout(workoutId: string): Promise<Workout | null>;
   listWorkouts(input: ListWorkoutsInput): Promise<readonly Workout[]>;
 }

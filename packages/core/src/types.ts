@@ -6,7 +6,7 @@ export interface Exercise {
   readonly aliases: readonly string[];
 }
 
-export interface WorkoutGroup {
+export interface SplitDay {
   readonly id: string;
   readonly name: string;
   readonly exerciseIds: readonly string[];
@@ -24,7 +24,7 @@ export interface WorkoutSet {
 export interface Workout {
   readonly id: string;
   readonly date: string;
-  readonly groupId: string | null;
+  readonly splitDayId: string | null;
   readonly notes: string;
   readonly durationMin: number | null;
   readonly createdAt: string;
@@ -34,7 +34,7 @@ export interface Workout {
 
 export interface CreateWorkoutInput {
   readonly date: string;
-  readonly groupId?: string;
+  readonly splitDayId?: string;
   readonly notes?: string;
   readonly durationMin?: number;
 }
@@ -72,9 +72,9 @@ export interface ExerciseApi {
   resolveAlias(alias: string): Promise<Exercise>;
 }
 
-export interface WorkoutGroupApi {
-  list(): Promise<readonly WorkoutGroup[]>;
-  get(groupId: string): Promise<WorkoutGroup>;
+export interface SplitDayApi {
+  list(): Promise<readonly SplitDay[]>;
+  get(splitDayId: string): Promise<SplitDay>;
 }
 
 export interface WorkoutApi {
@@ -88,7 +88,7 @@ export interface WorkoutApi {
 
 export interface FormaService {
   readonly exercises: ExerciseApi;
-  readonly groups: WorkoutGroupApi;
+  readonly splitDays: SplitDayApi;
   readonly workouts: WorkoutApi;
   close(): Promise<void>;
 }

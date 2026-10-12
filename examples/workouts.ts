@@ -11,13 +11,13 @@ let service: FormaService | undefined;
 
 try {
   service = openNodeForma({ databasePath });
-  const groups = await service.groups.list();
-  console.log('Workout groups:', groups.map((group) => group.name).join(', '));
+  const splitDays = await service.splitDays.list();
+  console.log('Split days:', splitDays.map((splitDay) => splitDay.name).join(', '));
   console.log('Exercise count:', (await service.exercises.list()).length);
 
   const exercise = await service.exercises.resolveAlias('Incline DB Press');
   const workout = await service.workouts.create({
-    date: '2026-10-12', groupId: 'upper', notes: 'Fictional demonstration workout.',
+    date: '2026-10-12', splitDayId: 'upper', notes: 'Fictional demonstration workout.',
   });
   const first = await service.workouts.addSet({
     workoutId: workout.id, exerciseId: exercise.id, reps: 8, weightKg: 20, rpe: 7.5,

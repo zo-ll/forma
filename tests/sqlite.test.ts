@@ -47,7 +47,7 @@ workoutContract('Node SQLite adapter', sqliteFixture);
 test('a real SQLite file retains exact records after close and reopen', async (t) => {
   const fixture = await sqliteFixture(t);
   const workout = await fixture.service.workouts.create({
-    date: '2026-10-12', groupId: 'lower', notes: 'Persistence test', durationMin: 40,
+    date: '2026-10-12', splitDayId: 'lower', notes: 'Persistence test', durationMin: 40,
   });
   const first = await fixture.service.workouts.addSet({
     workoutId: workout.id, exerciseId: 'leg-curls', reps: 10, weightKg: 25.5, rpe: 8.5,
@@ -61,7 +61,7 @@ test('a real SQLite file retains exact records after close and reopen', async (t
   const reopened = await fixture.reopen();
   assert.deepEqual(await reopened.workouts.get(workout.id), before);
   assert.equal((await reopened.exercises.list()).length, 19);
-  assert.equal((await reopened.groups.get('lower')).exerciseIds.length, 6);
+  assert.equal((await reopened.splitDays.get('lower')).exerciseIds.length, 6);
 });
 
 test('catalog and schema initialization do not duplicate records on reopen', async (t) => {

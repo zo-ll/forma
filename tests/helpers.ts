@@ -1,5 +1,5 @@
 import {
-  createFormaService, DEFAULT_EXERCISES, DEFAULT_WORKOUT_GROUPS,
+  createFormaService, DEFAULT_EXERCISES, DEFAULT_SPLIT_DAYS,
   FormaError, normalizeExerciseAlias,
 } from '@forma/core';
 import type { FormaService, Workout, WorkoutReader, WorkoutStore, WorkoutWriter } from '@forma/core';
@@ -21,8 +21,8 @@ export class MemoryWorkoutStore implements WorkoutStore {
       findExerciseByAlias: async (alias) => structuredClone(DEFAULT_EXERCISES.find(
         (exercise) => [exercise.name, ...exercise.aliases].some((name) => normalizeExerciseAlias(name) === alias),
       ) ?? null),
-      listGroups: async () => structuredClone(DEFAULT_WORKOUT_GROUPS),
-      getGroup: async (id) => structuredClone(DEFAULT_WORKOUT_GROUPS.find((group) => group.id === id) ?? null),
+      listSplitDays: async () => structuredClone(DEFAULT_SPLIT_DAYS),
+      getSplitDay: async (id) => structuredClone(DEFAULT_SPLIT_DAYS.find((splitDay) => splitDay.id === id) ?? null),
       getWorkout: async (id) => structuredClone(this.workouts.get(id) ?? null),
       listWorkouts: async (input) => structuredClone([...this.workouts.values()]
         .filter((workout) => (input.dateFrom === undefined || workout.date >= input.dateFrom)

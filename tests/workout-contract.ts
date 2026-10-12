@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { TestContext } from 'node:test';
-import { DEFAULT_EXERCISES, DEFAULT_WORKOUT_GROUPS } from '@forma/core';
+import { DEFAULT_EXERCISES, DEFAULT_SPLIT_DAYS } from '@forma/core';
 import type { AddSetInput, CreateWorkoutInput, WorkoutSet } from '@forma/core';
 import { errorCode, TEST_TIME } from './helpers.js';
 import type { Fixture } from './helpers.js';
@@ -19,21 +19,21 @@ export function workoutContract(
     assert.equal((await service.exercises.list()).length, 19);
   });
 
-  check('the three groups preserve membership and order', async (service) => {
-    assert.deepEqual(await service.groups.list(), DEFAULT_WORKOUT_GROUPS);
-    const lower = await service.groups.get('lower');
+  check('the three split days preserve membership and order', async (service) => {
+    assert.deepEqual(await service.splitDays.list(), DEFAULT_SPLIT_DAYS);
+    const lower = await service.splitDays.get('lower');
     assert.deepEqual(lower.exerciseIds, [
       'hack-squat', 'bulgarian-split-squat', 'calf-raises', 'hammer-curls', 'leg-extensions', 'leg-curls',
     ]);
-    assert.equal((await service.groups.get('upper')).exerciseIds.length, 7);
-    assert.equal((await service.groups.get('arms-shoulders')).exerciseIds.length, 7);
+    assert.equal((await service.splitDays.get('upper')).exerciseIds.length, 7);
+    assert.equal((await service.splitDays.get('arms-shoulders')).exerciseIds.length, 7);
   });
 
-  check('Triceps Pushdowns shares one exercise ID across groups', async (service) => {
+  check('Triceps Pushdowns shares one exercise ID across split days', async (service) => {
     const exercises = await service.exercises.list();
     assert.equal(exercises.filter((exercise) => exercise.name === 'Triceps Pushdowns').length, 1);
-    assert((await service.groups.get('upper')).exerciseIds.includes('triceps-pushdowns'));
-    assert((await service.groups.get('arms-shoulders')).exerciseIds.includes('triceps-pushdowns'));
+    assert((await service.splitDays.get('upper')).exerciseIds.includes('triceps-pushdowns'));
+    assert((await service.splitDays.get('arms-shoulders')).exerciseIds.includes('triceps-pushdowns'));
   });
 
   check('Preacher Curl and Preacher Curl Machine remain distinct', async (service) => {
@@ -51,15 +51,15 @@ export function workoutContract(
 
   check('unknown catalog records have typed errors', async (service) => {
     await assert.rejects(service.exercises.get('missing'), errorCode('NOT_FOUND', 'exerciseId'));
-    await assert.rejects(service.groups.get('missing'), errorCode('NOT_FOUND', 'groupId'));
+    await assert.rejects(service.splitDays.get('missing'), errorCode('NOT_FOUND', 'splitDayId'));
     await assert.rejects(service.exercises.get(''), errorCode('INVALID_INPUT', 'exerciseId'));
-    await assert.rejects(service.groups.get(''), errorCode('INVALID_INPUT', 'groupId'));
+    await assert.rejects(service.splitDays.get(''), errorCode('INVALID_INPUT', 'splitDayId'));
   });
 
   check('a workout has explicit date, defaults, and UTC audit times', async (service) => {
-    const workout = await service.workouts.create({ date: '2026-10-11', groupId: 'upper' });
+    const workout = await service.workouts.create({ date: '2026-10-11', splitDayId: 'upper' });
     assert.equal(workout.date, '2026-10-11');
-    assert.equal(workout.groupId, 'upper');
+    assert.equal(workout.splitDayId, 'upper');
     assert.equal(workout.notes, '');
     assert.equal(workout.durationMin, null);
     assert.equal(workout.createdAt, TEST_TIME);
@@ -94,8 +94,8 @@ export function workoutContract(
     assert.deepEqual(workout.sets, []);
   });
 
-  check('groups suggest exercises but do not restrict a workout', async (service) => {
-    const workout = await service.workouts.create({ date: '2026-10-12', groupId: 'lower' });
+  check('split days suggest exercises but do not restrict a workout', async (service) => {
+    const workout = await service.workouts.create({ date: '2026-10-12', splitDayId: 'lower' });
     await service.workouts.addSet({ workoutId: workout.id, exerciseId: 'cable-row', reps: 8, weightKg: 20 });
     assert.equal((await service.workouts.get(workout.id)).sets[0]?.exerciseId, 'cable-row');
   });
@@ -194,8 +194,8 @@ export function workoutContract(
   });
 
   check('missing relationships never create partial records', async (service) => {
-    await assert.rejects(service.workouts.create({ date: '2026-10-12', groupId: 'missing' }),
-      errorCode('NOT_FOUND', 'groupId'));
+    await assert.rejects(service.workouts.create({ date: '2026-10-12', splitDayId: 'missing' }),
+      errorCode('NOT_FOUND', 'splitDayId'));
     assert.equal((await service.workouts.list()).length, 0);
     const workout = await service.workouts.create({ date: '2026-10-12' });
     await assert.rejects(service.workouts.addSet({
@@ -246,7 +246,7 @@ export function workoutContract(
     await service.close();
     await service.close();
     await assert.rejects(service.exercises.list(), errorCode('SERVICE_CLOSED'));
-    await assert.rejects(service.groups.list(), errorCode('SERVICE_CLOSED'));
+    await assert.rejects(service.splitDays.list(), errorCode('SERVICE_CLOSED'));
     await assert.rejects(service.workouts.list(), errorCode('SERVICE_CLOSED'));
     await assert.rejects(service.workouts.create({ date: '2026-10-12' }), errorCode('SERVICE_CLOSED'));
   });

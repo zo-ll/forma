@@ -12,7 +12,7 @@ Nutrition will follow later.
 ## 2. Current scope
 
 - Use the supplied exercise catalog.
-- Preserve the supplied workout groups and exercise order.
+- Preserve the supplied split days and exercise order.
 - Create workout records.
 - Add, edit, and delete sets.
 - Retrieve workout records and filter history by date.
@@ -40,8 +40,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the API and port contracts.
 
 ## 4. Exercise catalog
 
-The catalog has 19 distinct exercises and 20 group memberships.
-Triceps Pushdowns uses one exercise ID in both groups.
+The catalog has 19 distinct exercises and 20 split day memberships.
+Triceps Pushdowns uses one exercise ID in both split days.
 Preacher Curl and Preacher Curl Machine remain separate exercises.
 Lateral Raises and Cable Lateral Raises remain separate exercises.
 
@@ -90,22 +90,22 @@ It does not use fuzzy search or a model.
 
 Fields: `id`, `name`, `muscleGroup`, `equipment`, `aliases`.
 
-### Workout group
+### Split day
 
 Fields: `id`, `name`, `exerciseIds`.
-Group IDs are `upper`, `lower`, and `arms-shoulders`.
+Split day IDs are `upper`, `lower`, and `arms-shoulders`.
 The exercise IDs preserve the supplied order.
-Groups suggest exercises but do not restrict a workout.
+Split days suggest exercises but do not restrict a workout.
 
 ### Workout
 
-Fields: `id`, `date`, `groupId`, `notes`, `durationMin`, `createdAt`, `updatedAt`, `sets`.
+Fields: `id`, `date`, `splitDayId`, `notes`, `durationMin`, `createdAt`, `updatedAt`, `sets`.
 
 The client supplies the calendar date in the user's timezone.
 The date has `YYYY-MM-DD` format.
 The clock supplies UTC timestamps for the audit fields.
 
-The group and duration are optional.
+The split day and duration are optional.
 Notes default to an empty string.
 A new workout has no sets.
 
@@ -137,6 +137,8 @@ The SQLite schema has these tables:
 
 The adapter owns table names, row conversion, and migrations.
 The initial schema has version 1 in `PRAGMA user_version`.
+The adapter keeps the original table names and the `group_id` column for compatibility.
+The public API uses `SplitDay`, `splitDays`, and `splitDayId`.
 The initial migration inserts the catalog once.
 It does not reinsert the catalog on reopen.
 
@@ -152,7 +154,7 @@ Clients must not automatically retry writes because this version has no duplicat
 
 ## 7. Acceptance checks
 
-1. Retrieve all 19 exercises and all three ordered groups.
+1. Retrieve all 19 exercises and all three ordered split days.
 2. Resolve canonical names and aliases to their exercise IDs.
 3. Create a workout through the public API.
 4. Add, edit, and delete sets through the public API.
