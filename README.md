@@ -7,7 +7,10 @@ Nutrition must wait for the workout device gate.
 ## Status
 
 The workout core and a SQLite adapter for Node exist.
-The mobile app does not exist yet.
+The injected Android adapter passed all 143 native storage cases on the Nothing Phone (2a).
+Exact record and receipt persistence also passed across a process restart.
+The production mobile app does not exist yet.
+See [docs/android-storage-tests.md](docs/android-storage-tests.md) for commands and remaining checks.
 The approved Android v1 plan includes workouts, nutrition, notes, local history questions, and local backup and restore.
 [ROADMAP.md](ROADMAP.md) separates that plan from current capabilities and defines each phase gate.
 

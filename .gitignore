@@ -4,6 +4,9 @@ node_modules/
 # Coordinator state
 /.filo/
 
+# Worker protocol markers
+.scratch/
+
 # Expo
 .expo/
 dist/

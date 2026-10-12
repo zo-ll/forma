@@ -4,11 +4,15 @@
 
 Issue #5 passed the critic at `93abccc` and merged in [PR #41](https://github.com/zo-ll/forma/pull/41).
 Issue #6 passed the critic at `f2a0e99` and merged in [PR #42](https://github.com/zo-ll/forma/pull/42).
-The implementation baseline is `e10eb8d` on `master`.
-The current branch implements [#7: paged history and deterministic statistics](https://github.com/zo-ll/forma/issues/7) for the core and Node SQLite.
-The approved DTOs and rules are in [docs/history-contract.md](docs/history-contract.md).
-Follow the exact-head critic gate before merge. Do not close #7 yet: its Android query tests have not run.
-Next implement [#8: Android OP-SQLite storage](https://github.com/zo-ll/forma/issues/8) and run the same history fixtures there.
+The merged implementation baseline is `9e4c037` on `master`.
+PR #44 merged the core/Node slice of [#7](https://github.com/zo-ll/forma/issues/7) at approved HEAD `a0e5d5337a2a0ca19c8de006f963623d3f720df6`.
+Both independent critics passed all 28 files and 418 tests. Master merge: `9e4c0373d8e091963c061e14672fcae9773d9822`.
+The Android query acceptance check for #7 has now passed. GitHub closure follows the approved issue #8 merge.
+Branch `issue/8-android-store` now adds an injected OP-SQLite binding and a shared synchronous SQL store.
+It also extracts all 116 earlier service cases into Node-free fixtures and adds a disposable native test host.
+The physical Nothing Phone (2a) passed all 143 native cases and exact process-restart persistence at source HEAD `90781dcd75e8b54fb82f5651dbb3e0525a19ae27`.
+The critic passed that exact source HEAD with 582 Node tests. Final evidence documentation needs exact-head approval before merge.
+See [docs/android-storage-tests.md](docs/android-storage-tests.md) for commands, evidence, and limits.
 
 Current checkout: `/home/az/projects/forma`.
 The old `/home/andrea/personal/forma` and `/home/andrea/personal/fitrag` paths belong to an earlier host.
@@ -26,7 +30,8 @@ Complete:
 - Calendar context and explicit load conventions.
 - Persisted start, resume, finish, and discard, with one in-progress workout.
 - Metadata edits and whole-workout deletion.
-- Bounded history, previous sets, and source-linked statistics on memory and Node SQLite.
+- Bounded history, previous sets, and source-linked statistics on memory, Node SQLite, and Android OP-SQLite.
+- Native rollback, migrations, owner lifecycle, close/reopen, and exact process-restart persistence.
 - Atomic writes, rollback, shared migrations, and schema version checks.
 - Persistent request receipts for every workout write command.
 - Full app contracts, phase gates, and a decision register.
@@ -34,7 +39,8 @@ Complete:
 Schema version 3 preserves old sets as unknown. Version 4 preserves old workouts as finished historical records with no invented finish timestamp.
 Both upgrades preserve request receipts. Committed in-progress sets survive an abrupt Node process stop.
 Schema version 5 adds persistent history revisions. Record changes invalidate earlier cursors.
-The last local verification passed all 418 tests, type checks, and the persistence example.
+The current Node suite passes 582 tests (including binding simulations, not Android verification).
+The last full merged-baseline verification passed all 418 tests, type checks, and the persistence example.
 This is not a critic verdict or an Android device result.
 The earlier completed issues passed an independent GLM 5.3 critic review before merge:
 
@@ -47,8 +53,8 @@ The earlier completed issues passed an independent GLM 5.3 critic review before 
 | #6 | Metadata, deletion, and persisted workout sessions | [#42](https://github.com/zo-ll/forma/pull/42) |
 
 The merged implementation baseline has 26 required tasks left and four separate later enhancements.
-Android storage, screens, backup, nutrition, independent notes, and the assistant remain incomplete.
-The Android statistics acceptance check also remains incomplete.
+Screens, backup, nutrition, independent notes, and the assistant remain incomplete.
+Android storage and statistics acceptance now pass. This branch still requires its final approved merge.
 
 ## Read first
 
@@ -63,7 +69,11 @@ The Android statistics acceptance check also remains incomplete.
 - `packages/core/src/`: domain rules and plain DTOs; no platform imports or runtime dependencies.
 - `packages/core/src/workouts/service.ts`: workout API composition and set commands.
 - `packages/core/src/workouts/history.ts`: bounded queries and numerical facts.
-- `tests/fixtures/history-cases.ts`: platform-independent query fixtures for Node and future Android execution.
+- `tests/fixtures/`: shared service/query cases and portable assertions.
+- `packages/adapters/src/sqlite/workout-store.ts`: shared SQL, queue, transactions, and resource lifecycle.
+- `packages/adapters/src/android/`: native binding, error mapping, and one-owner guard.
+- `scripts/android-test-host.mjs`: standalone test-host setup, build, source checks, and device runner.
+- `docs/android-storage-tests.md`: commands and remaining native gate.
 - `packages/core/src/requests/service.ts`: shared request identity and replay.
 - `packages/core/src/workouts/results.ts`: saved result validation.
 - `packages/adapters/src/sqlite/`: shared migration registry and synchronous driver contract.
@@ -122,8 +132,24 @@ Do not estimate a one-rep maximum. Volume uses reps per implement for per-hand s
 Keep incompatible groups separate and report excluded records. Reject stale cursors and restart.
 [docs/history-contract.md](docs/history-contract.md) records the finalized DTOs and limits.
 
-No device is connected to this host. Android SDK 35 images and writable KVM are available for emulator checks.
-Emulator checks can validate Android storage but cannot satisfy the Nothing Phone (2a) device gate.
+The user's Nothing Phone (2a), model A142, is now connected through wireless ADB.
+It runs Android 16/API 36 on ARM64. The connection endpoint is temporary; do not commit it or pairing codes.
+The first run found two host-runner problems before installation: pm returns 1 for an absent package, and Gradle can reuse a stale bundle from external sources.
+The runner accepts only the empty absent-package result and forces fresh bundles. The critic passed those fixes at `903b6b9e9f9b75283fd24e0f1be26d26ca572937`.
+At that head the phone passed all 132 shared service/history cases plus three native diagnostics.
+The next diagnostic exposed an error-field mismatch: the published 18.2.5 archive throws message-only errors, but research had described newer upstream structured fields.
+The adapter now has a narrowly scoped known-column UNIQUE fallback. Diagnostics verify native message evidence as well as public codes.
+The critic passed the compatibility fix at `90781dcd75e8b54fb82f5651dbb3e0525a19ae27`.
+The APK update delay came from overlapping Android install requests, not a phone prompt. The retry succeeded after those requests finished.
+The clean source build then passed all 143 native cases. Seed PID 21830 and verify PID 21887 proved a new process.
+Sanitized evidence is in `docs/verification/android-storage-90781dc.json`. No other apps or real records were changed.
+ADB commands now have timeouts so the host does not wait indefinitely.
+SDK Platform 37.0, Build-Tools 37.0.0, and NDK 27.1.12297006 are now installed.
+The external React Native 0.87.1 / OP-SQLite 18.2.5 test host built successfully with JDK 25.
+Its release bundle used the native OP entry and excluded Forma's Node entry.
+It has no INTERNET permission. Tooling audit limits are documented, not hidden.
+Rebuild after source changes. The runner checks source fingerprints, expected counts, and a new PID for restart verification.
+Storage-only tests, even on the target phone, cannot approve workout UI/device gate #14.
 
 `weightKg` stores the entered load in kilograms.
 The service never infers combined load or adds body weight.
