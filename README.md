@@ -15,7 +15,10 @@ The service can:
 
 - List your 19 exercises and three split days.
 - Resolve exercise names and explicit aliases.
-- Create workouts with an explicit calendar date.
+- Create finished historical workouts with an explicit calendar date.
+- Start, resume, finish, and discard one saved in-progress workout.
+- Edit workout date, split day, notes, and duration.
+- Delete a whole workout with its sets.
 - Add, edit, and delete sets.
 - Retrieve workouts and filter history by date.
 - Preserve records after the database closes and reopens.

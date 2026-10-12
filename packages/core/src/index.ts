@@ -7,6 +7,7 @@ export { resolveCalendarRange } from './calendar.js';
 export type { CalendarPeriod, CalendarRange, CalendarRangeInput } from './calendar.js';
 export { calculateSetLoad, compareSetLoads, validateSetLoadDetails } from './workouts/loads.js';
 export type { SetLoadFact } from './workouts/loads.js';
+export { validateWorkoutSession } from './workouts/session.js';
 export { withRequest } from './requests/service.js';
 export type { ResultCodec } from './requests/service.js';
 export type {
@@ -15,5 +16,6 @@ export type {
 } from './ports.js';
 export type {
   AddSetInput, CreateWorkoutInput, DeleteSetInput, Exercise, ExerciseApi, FormaService,
-  ListWorkoutsInput, LoadConvention, SetLoadDetails, UpdateSetInput, Workout, WorkoutApi, SplitDay, SplitDayApi, WorkoutSet,
+  ListWorkoutsInput, LoadConvention, SetLoadDetails, UpdateSetInput, UpdateWorkoutInput, Workout,
+  WorkoutApi, WorkoutCommandInput, WorkoutSessionDetails, WorkoutStatus, SplitDay, SplitDayApi, WorkoutSet,
 } from './types.js';

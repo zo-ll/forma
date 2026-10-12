@@ -28,7 +28,14 @@ export interface WorkoutSet extends SetLoadDetails {
   readonly position: number;
 }
 
-export interface Workout {
+export type WorkoutStatus = 'in-progress' | 'finished';
+
+export interface WorkoutSessionDetails {
+  readonly status: WorkoutStatus;
+  readonly finishedAt: string | null;
+}
+
+export interface Workout extends WorkoutSessionDetails {
   readonly id: string;
   readonly date: string;
   readonly splitDayId: string | null;
@@ -45,6 +52,18 @@ export interface CreateWorkoutInput {
   readonly splitDayId?: string;
   readonly notes?: string;
   readonly durationMin?: number;
+}
+
+export interface WorkoutCommandInput {
+  readonly requestId: string;
+  readonly workoutId: string;
+}
+
+export interface UpdateWorkoutInput extends WorkoutCommandInput {
+  readonly date?: string;
+  readonly splitDayId?: string | null;
+  readonly notes?: string;
+  readonly durationMin?: number | null;
 }
 
 export interface AddSetInput {
@@ -94,6 +113,13 @@ export interface SplitDayApi {
 
 export interface WorkoutApi {
   create(input: CreateWorkoutInput): Promise<Workout>;
+  start(input: CreateWorkoutInput): Promise<Workout>;
+  inProgress(): Promise<Workout | null>;
+  resume(workoutId: string): Promise<Workout>;
+  finish(input: WorkoutCommandInput): Promise<Workout>;
+  update(input: UpdateWorkoutInput): Promise<Workout>;
+  delete(input: WorkoutCommandInput): Promise<void>;
+  discard(input: WorkoutCommandInput): Promise<void>;
   addSet(input: AddSetInput): Promise<WorkoutSet>;
   updateSet(input: UpdateSetInput): Promise<WorkoutSet>;
   deleteSet(input: DeleteSetInput): Promise<void>;

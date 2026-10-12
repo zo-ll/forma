@@ -3,6 +3,7 @@ import type { MigrationStatement, SqliteMigration } from './migrations.js';
 import { SCHEMA_V1 } from './schema.js';
 import { SCHEMA_V2 } from './schema-v2.js';
 import { SCHEMA_V3 } from './schema-v3.js';
+import { SCHEMA_V4 } from './schema-v4.js';
 
 function initialCatalogStatements(): readonly MigrationStatement[] {
   const statements: MigrationStatement[] = [];
@@ -57,6 +58,11 @@ export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = Object.freeze([
     version: 3,
     name: 'Add explicit set load conventions',
     statements: Object.freeze(SCHEMA_V3.map((sql) => Object.freeze({ sql }))),
+  }),
+  Object.freeze({
+    version: 4,
+    name: 'Add persisted workout session states',
+    statements: Object.freeze(SCHEMA_V4.map((sql) => Object.freeze({ sql }))),
   }),
 ]);
 

@@ -7,10 +7,12 @@ import { nextRequestId, MemoryWorkoutStore, memoryFixture, errorCode, TEST_TIME 
 import { workoutContract } from './workout-contract.js';
 import { requestContract } from './request-contract.js';
 import { loadContract } from './load-contract.js';
+import { sessionContract } from './session-contract.js';
 
 workoutContract('portable core with memory port', memoryFixture);
 requestContract('memory request receipts', memoryFixture);
 loadContract('memory load contract', memoryFixture);
+sessionContract('memory session contract', memoryFixture);
 
 test('the core has no runtime package dependencies or platform imports', async () => {
   const packagePath = resolve('packages/core/package.json');

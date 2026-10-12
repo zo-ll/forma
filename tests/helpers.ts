@@ -30,6 +30,8 @@ export class MemoryWorkoutStore implements WorkoutStore {
         this.receipts.set(receipt.requestId, structuredClone(receipt));
       },
       getWorkout: async (id) => structuredClone(this.workouts.get(id) ?? null),
+      getInProgressWorkout: async () => structuredClone([...this.workouts.values()].find((workout) => workout.status === 'in-progress') ?? null),
+      deleteWorkout: async (id) => { this.workouts.delete(id); },
       listWorkouts: async (input) => structuredClone([...this.workouts.values()]
         .filter((workout) => (input.dateFrom === undefined || workout.date >= input.dateFrom)
           && (input.dateTo === undefined || workout.date <= input.dateTo))

@@ -1,6 +1,6 @@
 # Forma — Specification
 
-Version 0.4. Current implementation: the workout core. Planned product: the complete Android v1 app.
+Version 0.5. Current implementation: the workout core. Planned product: the complete Android v1 app.
 
 ## 1. Purpose
 
@@ -14,7 +14,9 @@ Nutrition starts only after the workout device gate passes.
 
 - Use the supplied exercise catalog.
 - Preserve the supplied split days and exercise order.
-- Create workout records.
+- Create historical workout records and start saved workout sessions.
+- Resume, finish, and discard the one in-progress workout.
+- Edit metadata and delete whole workouts.
 - Add, edit, and delete sets.
 - Retrieve workout records and filter history by date.
 - Store records locally in SQLite.
@@ -101,7 +103,7 @@ Split days suggest exercises but do not restrict a workout.
 
 ### Workout
 
-Fields: `id`, `date`, `splitDayId`, `notes`, `durationMin`, `createdAt`, `updatedAt`, `sets`.
+Fields: `id`, `date`, `splitDayId`, `notes`, `durationMin`, `createdAt`, `updatedAt`, `sets`, `status`, `finishedAt`.
 
 The client supplies the calendar date in the user's timezone.
 The date has `YYYY-MM-DD` format.
@@ -115,6 +117,14 @@ Saved workout dates never change after a timezone change.
 The split day and duration are optional.
 Notes default to an empty string.
 A new workout has no sets.
+`workouts.create()` saves a finished historical record with no invented finish timestamp.
+`workouts.start()` saves an in-progress session. Only one can exist at once.
+Every set saves immediately. App shutdown does not change the state.
+Resume reads the saved session. Finish saves finished state and a UTC finish timestamp.
+Finish never estimates duration or changes the workout date.
+Finished records remain editable. Metadata edits never reopen a session.
+Discard deletes only an in-progress workout. Whole-workout deletion accepts either state.
+The mobile UI must confirm discard and deletion before it sends a command.
 
 ### Set
 
@@ -155,8 +165,12 @@ The adapter owns table names, row conversion, and migrations.
 The initial workout schema has version 1 in `PRAGMA user_version`.
 Version 2 adds a shared table for command receipts.
 Version 3 adds load metadata to sets. Old sets receive `unknown` and a null implement count.
+Version 4 adds persisted session state and enforces one in-progress workout.
+Old workouts receive finished state and a null finish timestamp. Their audit timestamps stay unchanged.
 Released migrations and saved receipt contents remain unchanged.
 Legacy set result snapshots receive unknown load metadata when replayed.
+Legacy workout result snapshots receive finished state with no invented finish time.
+Deletion removes primary records and their sets, not request receipts.
 
 The adapter keeps the original table names and the `group_id` column for compatibility.
 The public API uses `SplitDay`, `splitDays`, and `splitDayId`.
@@ -204,6 +218,10 @@ History APIs read primary records rather than receipt snapshots.
 12. Reject a request key with different input.
 13. Preserve request receipts after reopen.
 14. Roll back a record if its receipt fails.
+15. Start, resume, finish, update, discard, and delete through the public API.
+16. Keep one in-progress workout, including during competing starts.
+17. Resume committed sets after an abrupt Node process stop.
+18. Preserve records and receipts after session-state upgrade and failed operations.
 
 Run the same contract tests against memory and SQLite.
 Run `npm test`, `npm run typecheck`, and `npm run demo`.
@@ -233,7 +251,8 @@ A model must not generate numerical facts or free SQL.
 
 The calendar rules and load conventions approved for #5 are recorded in [ROADMAP.md](ROADMAP.md#approved-calendar-and-load-contract--issue-5).
 Existing records keep an unknown load convention unless the user confirms it.
-Session states, nutrient precision, note confirmation rules, and model limits remain explicit decisions.
+The session-state rules approved for #6 are recorded in [ROADMAP.md](ROADMAP.md#approved-workout-session-contract--issue-6).
+Nutrient precision, note confirmation rules, and model limits remain explicit decisions.
 [The decision register](ROADMAP.md#decision-register) identifies their required approval points.
 
 Android remains the first mobile target.

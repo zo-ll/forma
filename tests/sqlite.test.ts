@@ -15,6 +15,7 @@ import type { Fixture } from './helpers.js';
 import { workoutContract } from './workout-contract.js';
 import { requestContract } from './request-contract.js';
 import { loadContract } from './load-contract.js';
+import { sessionContract } from './session-contract.js';
 
 interface SqliteFixture extends Fixture {
   readonly databasePath: string;
@@ -49,6 +50,7 @@ async function sqliteFixture(t: TestContext): Promise<SqliteFixture> {
 workoutContract('Node SQLite adapter', sqliteFixture);
 requestContract('SQLite request receipts', sqliteFixture);
 loadContract('SQLite load contract', sqliteFixture);
+sessionContract('SQLite session contract', sqliteFixture);
 
 test('a real SQLite file retains exact records after close and reopen', async (t) => {
   const fixture = await sqliteFixture(t);
@@ -92,6 +94,7 @@ test('existing version 1 records retain group_id through the receipt migration',
   assert.deepEqual(workout, {
     id: 'existing-workout', date: '2026-10-12', splitDayId: 'lower',
     notes: 'Existing workout', durationMin: 40, createdAt: TEST_TIME, updatedAt: TEST_TIME,
+    status: 'finished', finishedAt: null,
     sets: [{ id: 'existing-set', exerciseId: 'leg-curls', reps: 10, weightKg: 20.5, rpe: 8, position: 0, loadConvention: 'unknown', implementCount: null }],
   });
   assert.equal(Object.hasOwn(workout, 'groupId'), false);

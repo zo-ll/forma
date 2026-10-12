@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
 import { openNodeForma } from '@forma/adapters/node';
-import { runSqliteMigrations, SQLITE_MIGRATIONS } from '@forma/adapters/sqlite';
+import { runSqliteMigrations, SCHEMA_VERSION, SQLITE_MIGRATIONS } from '@forma/adapters/sqlite';
 import { calculateSetLoad } from '@forma/core';
 import type { FormaService, WorkoutSet } from '@forma/core';
 import { errorCode, TEST_TIME } from './helpers.js';
@@ -69,7 +69,7 @@ test('version 2 upgrade preserves old command signatures, snapshots, and primary
     ids: { next: () => { assert.fail('Replays must not generate IDs'); } } });
   assert.deepEqual((await service.workouts.get(original.id)).sets, [confirmed]);
   assert.deepEqual(await service.workouts.updateSet(confirm), confirmed);
-  assert.deepEqual(await service.workouts.create(create), legacyWorkout);
+  assert.deepEqual(await service.workouts.create(create), { ...legacyWorkout, status: 'finished', finishedAt: null });
   const unknown = { loadConvention: 'unknown', implementCount: null };
   assert.deepEqual(await service.workouts.addSet(add), { ...legacySet, ...unknown });
   assert.deepEqual(await service.workouts.updateSet(update), { ...legacySet, reps: 10, ...unknown });
@@ -79,7 +79,7 @@ test('version 2 upgrade preserves old command signatures, snapshots, and primary
   await service.close();
   inspect(path, (check) => {
     assert.deepEqual(check.prepare("SELECT * FROM request_receipts WHERE request_id <> 'confirm-old' ORDER BY request_id").all(), beforeReceipts);
-    assert.equal(check.prepare('PRAGMA user_version').get()?.user_version, 3);
+    assert.equal(check.prepare('PRAGMA user_version').get()?.user_version, SCHEMA_VERSION);
     assert.equal(check.prepare('SELECT count(*) AS count FROM exercises').get()?.count, 19);
     assert.equal(check.prepare('SELECT count(*) AS count FROM workout_group_exercises').get()?.count, 20);
   });
@@ -103,19 +103,19 @@ test('a failed version 3 statement rolls back both new columns and all old data'
     assert.throws(() => runSqliteMigrations({ ...driver, execute: (statement) => {
       if (++statements === 2) throw new Error('Injected second-column failure');
       return driver.execute(statement);
-    } }, SQLITE_MIGRATIONS), errorCode('STORAGE_FAILURE'));
+    } }, SQLITE_MIGRATIONS.slice(0, 3)), errorCode('STORAGE_FAILURE'));
     assert.equal(driver.getVersion(), 2);
     assert.deepEqual(db.prepare('PRAGMA table_info(sets)').all().map((row) => row.name),
       ['id', 'workout_id', 'exercise_id', 'reps', 'weight_kg', 'rpe', 'position']);
     assert.deepEqual(data(), before);
-    assert.deepEqual(runSqliteMigrations(driver, SQLITE_MIGRATIONS), [3]);
+    assert.deepEqual(runSqliteMigrations(driver, SQLITE_MIGRATIONS.slice(0, 3)), [3]);
   } finally { db.close(); }
 });
 
 test('schema version 3 rejects inconsistent metadata even through direct SQL', () => {
   const db = new DatabaseSync(':memory:');
   try {
-    runSqliteMigrations(migrationDriver(db), SQLITE_MIGRATIONS);
+    runSqliteMigrations(migrationDriver(db), SQLITE_MIGRATIONS.slice(0, 3));
     db.prepare('INSERT INTO workouts VALUES (?, ?, ?, ?, ?, ?, ?)').run('w', '2026-10-12', null, '', null, TEST_TIME, TEST_TIME);
     const insert = db.prepare('INSERT INTO sets VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
     for (const [convention, count] of [['guessed', null], ['per-hand', null], ['per-hand', 3], ['entered', 2], ['unknown', 1]] as const) {
