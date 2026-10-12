@@ -2,15 +2,14 @@
 
 ## Resume point
 
-The implementation baseline is `66821f2` on `master`.
-This handoff adds documentation only.
-Product work remains paused at the user's request.
-The next task is [#5: calendar context and load conventions](https://github.com/zo-ll/forma/issues/5) when the user resumes work.
+Work resumed from `f4bfe62`, with implementation baseline `66821f2`.
+The current change implements [#5: calendar context and load conventions](https://github.com/zo-ll/forma/issues/5) on `issue/5-calendar-load`.
+Follow the exact-head critic gate below before merge.
+The next task after that merge is [#6: workout metadata, deletion, and resume behavior](https://github.com/zo-ll/forma/issues/6).
+Confirm its session-state contract before implementation.
 
-Current checkout: `/home/andrea/personal/forma`.
-The old `/home/andrea/personal/fitrag` path is not the repository.
-An old session can create a temporary bridge directory there.
-Start a new session in the current checkout.
+Current checkout: `/home/az/projects/forma`.
+The old `/home/andrea/personal/forma` and `/home/andrea/personal/fitrag` paths belong to an earlier host.
 
 ## Current state
 
@@ -26,7 +25,10 @@ Complete:
 - Persistent request receipts for all four workout write commands.
 - Full app contracts, phase gates, and a decision register.
 
-The last verification passed all 208 tests, type checks, and the persistence example.
+The resumed implementation adds device-timezone calendar helpers and explicit per-set load conventions.
+Schema version 3 preserves old sets as unknown and preserves old request receipts.
+The last local verification passed all 299 tests, type checks, and the persistence example.
+This is not a critic verdict or an Android device result.
 All three completed issues passed an independent GLM 5.3 critic review before merge:
 
 | Issue | Change | Merged PR |
@@ -35,7 +37,8 @@ All three completed issues passed an independent GLM 5.3 critic review before me
 | #4 | Safe repeated write commands | [#38](https://github.com/zo-ll/forma/pull/38) |
 | #2 | Full Android app contracts and phase gates | [#39](https://github.com/zo-ll/forma/pull/39) |
 
-The roadmap has 28 required tasks left and four separate later enhancements at this baseline.
+The handoff baseline had 28 required tasks left and four separate later enhancements.
+Issue #5 reduces that count only after its reviewed merge.
 Android storage, screens, backup, statistics, nutrition, independent notes, and the assistant remain incomplete.
 
 ## Read first
@@ -85,18 +88,20 @@ Use the supplied transaction view inside each store callback.
 Do not call the same store from inside its callback.
 SQLite files currently contain unencrypted data.
 
-## Next decisions
+## Approved issue #5 decisions and next decisions
 
-Before issue #5, confirm these rules with the user:
+The user approved the current device timezone, Monday week start, and complete calendar weeks.
+Saved dates never change after a timezone change.
+Per-set conventions are explicit. Old sets stay unknown until the user confirms them.
+Per-hand conversion requires an explicit implement count of 1 or 2.
+Entered and combined loads remain separate for comparisons.
+Body-weight sets store added external load only. Their total load is not calculated or compared.
+[ROADMAP.md](ROADMAP.md#approved-calendar-and-load-contract--issue-5) records the complete contract.
 
-- User timezone and behavior after a timezone change.
-- Week start and the meanings of today, this week, and last week.
-- Entered, per-hand, combined, and body-weight load conventions.
-- Explicit confirmation of existing records rather than an assumed load convention.
-- Compatible calculations and comparisons.
+Before issue #6, confirm persisted session states and start, resume, finish, discard, and deletion behavior.
 
-`weightKg` currently stores the entered load in kilograms.
-The service does not infer a combined dumbbell load or add body weight.
+`weightKg` stores the entered load in kilograms.
+The service never infers combined load or adds body weight.
 Use equipment only when the exercise name explicitly states it.
 Keep unspecified equipment and muscle groups null.
 Do not infer load convention from an exercise name.
@@ -115,7 +120,11 @@ Keep commits small and independently verifiable.
 6. Request another review after each correction.
 7. Merge only the exact head that passed review.
 
-Previous reviews used GLM 5.3 through `opencode-go`.
+The current tmux session has a `critic` window running GLM 5.3 through `opencode-go`.
+The critic reads the user's code-review skill before each exact-head review.
+It sends the verdict and reviewed hash to coordinator pane `%0` when each requested review finishes.
+Pane IDs apply only to the current tmux session.
+Previous reviews used the same model and provider.
 Do not treat an old verdict as approval for a new head.
 
 ## Verification

@@ -233,12 +233,36 @@ A private release channel is enough.
 Store publication does not form part of the gate.
 Close the roadmap only after all required issues pass their acceptance checks.
 
+## Approved calendar and load contract — issue #5
+
+The user approved these rules when work resumed on 2026-10-12.
+
+- The host supplies the current device timezone as an IANA timezone name.
+- Today is the calendar day at an explicit UTC instant in that timezone.
+- Weeks start on Monday. This week includes the complete Monday-to-Sunday week.
+- Last week is the previous complete Monday-to-Sunday week.
+- Saved workout dates never change after a timezone change.
+- `resolveCalendarRange({ nowUtc, timeZone, period })` returns inclusive `dateFrom` and `dateTo`, the timezone, and the week start.
+- Periods are `today`, `this-week`, and `last-week`. The core never reads the device timezone or clock itself.
+- Each set carries `loadConvention` and `implementCount`. Add commands default to `unknown` and `null` when omitted.
+- Conventions are `unknown`, `entered`, `per-hand`, `combined`, and `body-weight`.
+- `weightKg` always remains the entered value. A per-hand convention requires an explicit implement count of 1 or 2.
+- Other conventions require a null implement count. A metadata update supplies the complete convention and count together.
+- A body-weight set stores added external load only. Use 0 for an unweighted set. No total-body-weight calculation or load comparison is supported.
+- Existing sets stay unknown until an explicit set update confirms them. Neither migration nor exercise names supply a convention.
+- `calculateSetLoad(set)` returns a source-linked kilogram fact. It converts per-hand load to combined load with the explicit count.
+- `compareSetLoads(left, right)` compares only the same exercise and compatible facts. Entered load remains separate from combined load.
+- Unknown and body-weight sets cannot supply comparable load facts. Invalid or overflowing calculations fail with a typed error.
+- Old receipt signatures remain valid. Legacy result snapshots gain only `unknown` and `null` metadata on replay. Stored receipts remain unchanged.
+
+These contracts do not implement aggregate statistics, a confirmation screen, or device timezone access.
+Those features remain later issues.
+
 ## Decision register
 
 | Decision | Required before |
 | --- | --- |
-| User timezone, week start, historical date rules, and relative date meanings | #5 and date-based statistics |
-| Entered, per-hand, combined, and body-weight conventions; explicit confirmation of old records | #5 and load comparisons |
+| Calendar context and load conventions | Approved above for #5; preserve in statistics and screens |
 | Persisted session states and start, resume, finish, discard, and deletion behavior | #6 and workout screens |
 | Nutrient quantity basis, precision, the rule to round values, and food-edit effects on saved meals | #15 and nutrition totals |
 | Body-part vocabulary, typed field definitions, and user confirmation rules | #19 and exact pain questions |

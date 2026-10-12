@@ -2,6 +2,7 @@ import { DEFAULT_EXERCISES, DEFAULT_SPLIT_DAYS, normalizeExerciseAlias } from '@
 import type { MigrationStatement, SqliteMigration } from './migrations.js';
 import { SCHEMA_V1 } from './schema.js';
 import { SCHEMA_V2 } from './schema-v2.js';
+import { SCHEMA_V3 } from './schema-v3.js';
 
 function initialCatalogStatements(): readonly MigrationStatement[] {
   const statements: MigrationStatement[] = [];
@@ -51,6 +52,11 @@ export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = Object.freeze([
     version: 2,
     name: 'Add persistent command receipts',
     statements: Object.freeze([Object.freeze({ sql: SCHEMA_V2 })]),
+  }),
+  Object.freeze({
+    version: 3,
+    name: 'Add explicit set load conventions',
+    statements: Object.freeze(SCHEMA_V3.map((sql) => Object.freeze({ sql }))),
   }),
 ]);
 

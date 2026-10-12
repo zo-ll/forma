@@ -149,7 +149,7 @@ export function requestContract(label: string, fixture: (t: TestContext) => Fixt
     const input = { requestId: nextRequestId(), date: '2026-10-12' };
     const original = await service.workouts.create(input);
     const expected = structuredClone(original);
-    (original.sets as WorkoutSet[]).push({ id: 'fake', exerciseId: 'leg-curls', reps: 1, weightKg: 0, rpe: null, position: 0 });
+    (original.sets as WorkoutSet[]).push({ id: 'fake', exerciseId: 'leg-curls', reps: 1, weightKg: 0, rpe: null, position: 0, loadConvention: 'unknown', implementCount: null });
     assert.deepEqual(await service.workouts.create(input), expected);
   });
 

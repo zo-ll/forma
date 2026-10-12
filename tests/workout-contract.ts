@@ -118,6 +118,7 @@ export function workoutContract(
     });
     assert.deepEqual(updated, {
       id: set.id, exerciseId: 'leg-extensions', reps: 10, weightKg: 0, rpe: null, position: 0,
+      loadConvention: 'unknown', implementCount: null,
     });
     assert.equal((await service.workouts.get(workout.id)).sets[0]?.rpe, null);
   });
@@ -147,6 +148,7 @@ export function workoutContract(
     const updated = await pending;
     assert.deepEqual(updated, {
       id: set.id, exerciseId: 'leg-extensions', reps: 9, weightKg: 25, rpe: 8, position: 0,
+      loadConvention: 'unknown', implementCount: null,
     });
     assert.deepEqual((await service.workouts.get(workout.id)).sets, [updated]);
   });

@@ -20,6 +20,11 @@ The service can:
 - Retrieve workouts and filter history by date.
 - Preserve records after the database closes and reopens.
 - Replay successful write commands without duplicate changes, including after restart.
+- Save explicit set load conventions without assuming the meaning of old weights.
+
+The core also resolves calendar ranges from an explicit UTC instant and device timezone.
+It supplies source-linked load facts and rejects incompatible load comparisons.
+It does not yet calculate aggregate statistics.
 
 The core does not use React, Expo, a SQLite driver, or a model.
 
@@ -83,6 +88,8 @@ Read [ROADMAP.md](ROADMAP.md) for the full app contracts and unresolved decision
 This milestone has no mobile UI, Android adapter, nutrition module, or inference.
 The catalog has no edit API.
 History lists have no pagination.
+The mobile host must supply the current device timezone. No device timezone adapter exists yet.
+Body-weight sets store added external load only. Total body-weight load calculations are not supported.
 Request receipts have no automatic expiration.
 They can retain input and result data from deleted sets.
 SQLite files contain unencrypted data.

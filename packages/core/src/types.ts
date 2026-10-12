@@ -12,7 +12,14 @@ export interface SplitDay {
   readonly exerciseIds: readonly string[];
 }
 
-export interface WorkoutSet {
+export type LoadConvention = 'unknown' | 'entered' | 'per-hand' | 'combined' | 'body-weight';
+
+export interface SetLoadDetails {
+  readonly loadConvention: LoadConvention;
+  readonly implementCount: 1 | 2 | null;
+}
+
+export interface WorkoutSet extends SetLoadDetails {
   readonly id: string;
   readonly exerciseId: string;
   readonly reps: number;
@@ -46,6 +53,8 @@ export interface AddSetInput {
   readonly exerciseId: string;
   readonly reps: number;
   readonly weightKg: number;
+  readonly loadConvention?: LoadConvention;
+  readonly implementCount?: 1 | 2 | null;
   readonly rpe?: number;
 }
 
@@ -56,6 +65,8 @@ export interface UpdateSetInput {
   readonly exerciseId?: string;
   readonly reps?: number;
   readonly weightKg?: number;
+  readonly loadConvention?: LoadConvention;
+  readonly implementCount?: 1 | 2 | null;
   readonly rpe?: number | null;
 }
 
