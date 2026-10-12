@@ -104,4 +104,8 @@ test('the shared mechanism supports a writer with no workout capabilities and ne
   await assert.rejects(withRequest(receiptOnly, 'generic-key', 'other.test', input, codec, run), errorCode('CONFLICT', 'requestId'));
   assert.throws(() => withRequest(receiptOnly, 'sparse-array', 'generic.test', { values: Array(1) }, codec, run), errorCode('INVALID_INPUT'));
   assert.equal(calls, 1);
+  for (const operation of ['', ' outer', 'nul\u0000operation', '\ud800']) {
+    assert.throws(() => withRequest(receiptOnly, 'invalid-operation', operation, input, codec, run), errorCode('INVALID_INPUT', 'operation'));
+  }
+  assert.equal(store.receipts.size, 1);
 });

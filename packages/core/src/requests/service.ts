@@ -38,8 +38,10 @@ export function withRequest<W extends RequestWriter, T>(
   codec: ResultCodec<T>,
   run: (writer: W) => Promise<T>,
 ): Promise<T> {
-  identifier(requestId, 'requestId');
-  if (/[\u0000\uD800-\uDFFF]/u.test(requestId)) invalid('requestId', 'The requestId must contain valid Unicode characters without NUL.');
+  for (const [field, value] of [['requestId', requestId], ['operation', operation]] as const) {
+    identifier(value, field);
+    if (/[\u0000\uD800-\uDFFF]/u.test(value)) invalid(field, field + ' must contain valid Unicode characters without NUL.');
+  }
   // Capture the signature before the store queues this command.
   const inputSignature = canonicalJson(input);
   return store.write(async (writer) => {
