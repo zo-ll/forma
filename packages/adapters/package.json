@@ -1,0 +1,21 @@
+{
+  "name": "@forma/adapters",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@forma/core": "0.1.0"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}
