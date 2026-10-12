@@ -33,6 +33,7 @@ export interface Workout {
 }
 
 export interface CreateWorkoutInput {
+  readonly requestId: string;
   readonly date: string;
   readonly splitDayId?: string;
   readonly notes?: string;
@@ -40,6 +41,7 @@ export interface CreateWorkoutInput {
 }
 
 export interface AddSetInput {
+  readonly requestId: string;
   readonly workoutId: string;
   readonly exerciseId: string;
   readonly reps: number;
@@ -48,6 +50,7 @@ export interface AddSetInput {
 }
 
 export interface UpdateSetInput {
+  readonly requestId: string;
   readonly workoutId: string;
   readonly setId: string;
   readonly exerciseId?: string;
@@ -57,6 +60,7 @@ export interface UpdateSetInput {
 }
 
 export interface DeleteSetInput {
+  readonly requestId: string;
   readonly workoutId: string;
   readonly setId: string;
 }

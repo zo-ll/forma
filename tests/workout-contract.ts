@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import type { TestContext } from 'node:test';
 import { DEFAULT_EXERCISES, DEFAULT_SPLIT_DAYS } from '@forma/core';
 import type { AddSetInput, CreateWorkoutInput, WorkoutSet } from '@forma/core';
-import { errorCode, TEST_TIME } from './helpers.js';
+import { nextRequestId, errorCode, TEST_TIME } from './helpers.js';
 import type { Fixture } from './helpers.js';
 
 export function workoutContract(
@@ -32,7 +32,7 @@ export function workoutContract(
   check('the public API uses split day names and rejects the old groupId field', async (service) => {
     assert.equal(Object.hasOwn(service, 'groups'), false);
     assert.equal(Object.hasOwn(service, 'splitDays'), true);
-    const input = { date: '2026-10-12', groupId: 'upper' } as unknown as CreateWorkoutInput;
+    const input = { requestId: nextRequestId(), date: '2026-10-12', groupId: 'upper' } as unknown as CreateWorkoutInput;
     await assert.rejects(service.workouts.create(input), errorCode('INVALID_INPUT', 'groupId'));
     assert.deepEqual(await service.workouts.list(), []);
   });
@@ -65,7 +65,7 @@ export function workoutContract(
   });
 
   check('a workout has explicit date, defaults, and UTC audit times', async (service) => {
-    const workout = await service.workouts.create({ date: '2026-10-11', splitDayId: 'upper' });
+    const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-11', splitDayId: 'upper' });
     assert.equal(workout.date, '2026-10-11');
     assert.equal(workout.splitDayId, 'upper');
     assert.equal(workout.notes, '');
@@ -78,18 +78,18 @@ export function workoutContract(
 
   check('notes and duration survive storage without text alteration', async (service) => {
     const notes = "Quote: '; DROP TABLE exercises; -- 🏋";
-    const workout = await service.workouts.create({ date: '2026-10-12', notes, durationMin: 45.5 });
+    const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12', notes, durationMin: 45.5 });
     assert.equal((await service.workouts.get(workout.id)).notes, notes);
     assert.equal((await service.exercises.list()).length, 19);
     assert.equal(workout.durationMin, 45.5);
   });
 
   check('sets use kg, decimal RPE, optional RPE, and zero-based positions', async (service) => {
-    const workout = await service.workouts.create({ date: '2026-10-12' });
-    const first = await service.workouts.addSet({
+    const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
+    const first = await service.workouts.addSet({ requestId: nextRequestId(),
       workoutId: workout.id, exerciseId: 'incline-dumbbell-press', reps: 8, weightKg: 22.5, rpe: 7.5,
     });
-    const second = await service.workouts.addSet({
+    const second = await service.workouts.addSet({ requestId: nextRequestId(),
       workoutId: workout.id, exerciseId: 'bulgarian-split-squat', reps: 10, weightKg: 0,
     });
     assert.equal(first.position, 0);
@@ -103,17 +103,17 @@ export function workoutContract(
   });
 
   check('split days suggest exercises but do not restrict a workout', async (service) => {
-    const workout = await service.workouts.create({ date: '2026-10-12', splitDayId: 'lower' });
-    await service.workouts.addSet({ workoutId: workout.id, exerciseId: 'cable-row', reps: 8, weightKg: 20 });
+    const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12', splitDayId: 'lower' });
+    await service.workouts.addSet({ requestId: nextRequestId(), workoutId: workout.id, exerciseId: 'cable-row', reps: 8, weightKg: 20 });
     assert.equal((await service.workouts.get(workout.id)).sets[0]?.exerciseId, 'cable-row');
   });
 
   check('set updates preserve identity and position and can clear RPE', async (service) => {
-    const workout = await service.workouts.create({ date: '2026-10-12' });
-    const set = await service.workouts.addSet({
+    const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
+    const set = await service.workouts.addSet({ requestId: nextRequestId(),
       workoutId: workout.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20, rpe: 7,
     });
-    const updated = await service.workouts.updateSet({
+    const updated = await service.workouts.updateSet({ requestId: nextRequestId(),
       workoutId: workout.id, setId: set.id, exerciseId: 'leg-extensions', reps: 10, weightKg: 0, rpe: null,
     });
     assert.deepEqual(updated, {
@@ -123,20 +123,20 @@ export function workoutContract(
   });
 
   check('a partial set update preserves omitted fields', async (service) => {
-    const workout = await service.workouts.create({ date: '2026-10-12' });
-    const set = await service.workouts.addSet({
+    const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
+    const set = await service.workouts.addSet({ requestId: nextRequestId(),
       workoutId: workout.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20, rpe: 7,
     });
-    assert.deepEqual(await service.workouts.updateSet({ workoutId: workout.id, setId: set.id, reps: 9 }),
+    assert.deepEqual(await service.workouts.updateSet({ requestId: nextRequestId(), workoutId: workout.id, setId: set.id, reps: 9 }),
       { ...set, reps: 9 });
   });
 
   check('a set update copies its validated payload before asynchronous work', async (service) => {
-    const workout = await service.workouts.create({ date: '2026-10-12' });
-    const set = await service.workouts.addSet({
+    const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
+    const set = await service.workouts.addSet({ requestId: nextRequestId(),
       workoutId: workout.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20, rpe: 7,
     });
-    const input = {
+    const input = { requestId: nextRequestId(),
       workoutId: workout.id, setId: set.id, exerciseId: 'leg-extensions', reps: 9, weightKg: 25, rpe: 8,
     };
     const pending = service.workouts.updateSet(input);
@@ -152,34 +152,34 @@ export function workoutContract(
   });
 
   check('an unknown replacement exercise does not alter a set', async (service) => {
-    const workout = await service.workouts.create({ date: '2026-10-12' });
-    await service.workouts.addSet({ workoutId: workout.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20 });
+    const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
+    await service.workouts.addSet({ requestId: nextRequestId(), workoutId: workout.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20 });
     const before = await service.workouts.get(workout.id);
     const set = before.sets[0];
     assert(set);
-    await assert.rejects(service.workouts.updateSet({
+    await assert.rejects(service.workouts.updateSet({ requestId: nextRequestId(),
       workoutId: workout.id, setId: set.id, exerciseId: 'missing', reps: 9,
     }), errorCode('NOT_FOUND', 'exerciseId'));
     assert.deepEqual(await service.workouts.get(workout.id), before);
   });
 
   check('set deletion compacts positions and leaves other workouts unchanged', async (service) => {
-    const workout = await service.workouts.create({ date: '2026-10-12' });
-    const other = await service.workouts.create({ date: '2026-10-11' });
+    const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
+    const other = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-11' });
     const sets: WorkoutSet[] = [];
     for (let reps = 1; reps <= 3; reps++) {
-      sets.push(await service.workouts.addSet({ workoutId: workout.id, exerciseId: 'leg-curls', reps, weightKg: 20 }));
+      sets.push(await service.workouts.addSet({ requestId: nextRequestId(), workoutId: workout.id, exerciseId: 'leg-curls', reps, weightKg: 20 }));
     }
     const middle = sets[1];
     assert(middle);
-    await service.workouts.deleteSet({ workoutId: workout.id, setId: middle.id });
+    await service.workouts.deleteSet({ requestId: nextRequestId(), workoutId: workout.id, setId: middle.id });
     assert.deepEqual((await service.workouts.get(workout.id)).sets.map((set) => [set.reps, set.position]), [[1, 0], [3, 1]]);
     assert.deepEqual(await service.workouts.get(other.id), other);
   });
 
   check('concurrent set commands preserve every set', async (service) => {
-    const workout = await service.workouts.create({ date: '2026-10-12' });
-    await Promise.all(Array.from({ length: 10 }, (_, index) => service.workouts.addSet({
+    const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
+    await Promise.all(Array.from({ length: 10 }, (_, index) => service.workouts.addSet({ requestId: nextRequestId(),
       workoutId: workout.id, exerciseId: 'leg-curls', reps: index + 1, weightKg: 20,
     })));
     const sets = (await service.workouts.get(workout.id)).sets;
@@ -189,9 +189,9 @@ export function workoutContract(
   });
 
   check('workout lists use inclusive date filters and stable date order', async (service) => {
-    const early = await service.workouts.create({ date: '2026-10-05' });
-    const middle = await service.workouts.create({ date: '2026-10-07' });
-    const late = await service.workouts.create({ date: '2026-10-11' });
+    const early = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-05' });
+    const middle = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-07' });
+    const late = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-11' });
     assert.deepEqual((await service.workouts.list()).map((workout) => workout.id), [late.id, middle.id, early.id]);
     assert.deepEqual((await service.workouts.list({ dateFrom: '2026-10-07', dateTo: '2026-10-11' }))
       .map((workout) => workout.id), [late.id, middle.id]);
@@ -202,47 +202,47 @@ export function workoutContract(
   });
 
   check('missing relationships never create partial records', async (service) => {
-    await assert.rejects(service.workouts.create({ date: '2026-10-12', splitDayId: 'missing' }),
+    await assert.rejects(service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12', splitDayId: 'missing' }),
       errorCode('NOT_FOUND', 'splitDayId'));
     assert.equal((await service.workouts.list()).length, 0);
-    const workout = await service.workouts.create({ date: '2026-10-12' });
-    await assert.rejects(service.workouts.addSet({
+    const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
+    await assert.rejects(service.workouts.addSet({ requestId: nextRequestId(),
       workoutId: workout.id, exerciseId: 'missing', reps: 8, weightKg: 20,
     }), errorCode('NOT_FOUND', 'exerciseId'));
     assert.deepEqual((await service.workouts.get(workout.id)).sets, []);
     await assert.rejects(service.workouts.get('missing'), errorCode('NOT_FOUND', 'workoutId'));
-    await assert.rejects(service.workouts.addSet({
+    await assert.rejects(service.workouts.addSet({ requestId: nextRequestId(),
       workoutId: 'missing', exerciseId: 'leg-curls', reps: 8, weightKg: 20,
     }), errorCode('NOT_FOUND', 'workoutId'));
   });
 
   check('a set cannot be edited or deleted through another workout', async (service) => {
-    const workout = await service.workouts.create({ date: '2026-10-12' });
-    const other = await service.workouts.create({ date: '2026-10-11' });
-    const set = await service.workouts.addSet({
+    const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
+    const other = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-11' });
+    const set = await service.workouts.addSet({ requestId: nextRequestId(),
       workoutId: workout.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20,
     });
-    await assert.rejects(service.workouts.updateSet({ workoutId: other.id, setId: set.id, reps: 9 }),
+    await assert.rejects(service.workouts.updateSet({ requestId: nextRequestId(), workoutId: other.id, setId: set.id, reps: 9 }),
       errorCode('NOT_FOUND', 'setId'));
-    await assert.rejects(service.workouts.deleteSet({ workoutId: other.id, setId: set.id }),
+    await assert.rejects(service.workouts.deleteSet({ requestId: nextRequestId(), workoutId: other.id, setId: set.id }),
       errorCode('NOT_FOUND', 'setId'));
     assert.equal((await service.workouts.get(workout.id)).sets[0]?.reps, 8);
   });
 
   check('empty patches and unsupported fields are rejected', async (service) => {
-    const workout = await service.workouts.create({ date: '2026-10-12' });
-    const set = await service.workouts.addSet({
+    const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
+    const set = await service.workouts.addSet({ requestId: nextRequestId(),
       workoutId: workout.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20,
     });
-    await assert.rejects(service.workouts.updateSet({ workoutId: workout.id, setId: set.id }),
+    await assert.rejects(service.workouts.updateSet({ requestId: nextRequestId(), workoutId: workout.id, setId: set.id }),
       errorCode('INVALID_INPUT', 'input'));
-    const input = { date: '2026-10-12', unexpected: true } as CreateWorkoutInput;
+    const input = { requestId: nextRequestId(), date: '2026-10-12', unexpected: true } as CreateWorkoutInput;
     await assert.rejects(service.workouts.create(input), errorCode('INVALID_INPUT', 'unexpected'));
   });
 
   check('returned data cannot mutate stored records', async (service) => {
-    const workout = await service.workouts.create({ date: '2026-10-12' });
-    const set = await service.workouts.addSet({
+    const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
+    const set = await service.workouts.addSet({ requestId: nextRequestId(),
       workoutId: workout.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20,
     });
     const loaded = await service.workouts.get(workout.id);
@@ -256,20 +256,20 @@ export function workoutContract(
     await assert.rejects(service.exercises.list(), errorCode('SERVICE_CLOSED'));
     await assert.rejects(service.splitDays.list(), errorCode('SERVICE_CLOSED'));
     await assert.rejects(service.workouts.list(), errorCode('SERVICE_CLOSED'));
-    await assert.rejects(service.workouts.create({ date: '2026-10-12' }), errorCode('SERVICE_CLOSED'));
+    await assert.rejects(service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' }), errorCode('SERVICE_CLOSED'));
   });
 
   for (const date of ['2026-02-29', '2026-04-31', '2026-13-01', '2026-00-01', '2026-01-00', '0000-01-01', '12/10/2026']) {
     check('rejects invalid calendar date ' + date, async (service) => {
-      await assert.rejects(service.workouts.create({ date }), errorCode('INVALID_INPUT', 'date'));
+      await assert.rejects(service.workouts.create({ requestId: nextRequestId(), date }), errorCode('INVALID_INPUT', 'date'));
       assert.equal((await service.workouts.list()).length, 0);
     });
   }
 
   check('accepts a leap day and rejects invalid object inputs', async (service) => {
-    assert.equal((await service.workouts.create({ date: '2024-02-29' })).date, '2024-02-29');
+    assert.equal((await service.workouts.create({ requestId: nextRequestId(), date: '2024-02-29' })).date, '2024-02-29');
     await assert.rejects(service.workouts.create(null as unknown as CreateWorkoutInput), errorCode('INVALID_INPUT', 'input'));
-    await assert.rejects(service.workouts.create({ date: '2026-10-12', durationMin: -1 }), errorCode('INVALID_INPUT', 'durationMin'));
+    await assert.rejects(service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12', durationMin: -1 }), errorCode('INVALID_INPUT', 'durationMin'));
   });
 
   const badSetValues: { name: string; field: string; patch: Record<string, unknown> }[] = [
@@ -285,8 +285,8 @@ export function workoutContract(
   ];
   for (const invalid of badSetValues) {
     check('rejects ' + invalid.name + ' without a write', async (service) => {
-      const workout = await service.workouts.create({ date: '2026-10-12' });
-      const input = {
+      const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
+      const input = { requestId: nextRequestId(),
         workoutId: workout.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20, ...invalid.patch,
       } as AddSetInput;
       await assert.rejects(service.workouts.addSet(input), errorCode('INVALID_INPUT', invalid.field));

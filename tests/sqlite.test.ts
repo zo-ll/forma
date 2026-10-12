@@ -7,10 +7,13 @@ import { test } from 'node:test';
 import type { TestContext } from 'node:test';
 import { openNodeForma, SqliteWorkoutStore } from '@forma/adapters/node';
 import { createFormaService } from '@forma/core';
+import { runSqliteMigrations, SCHEMA_VERSION, SQLITE_MIGRATIONS } from '@forma/adapters/sqlite';
+import { migrationDriver } from './sqlite-helpers.js';
 import type { FormaService, WorkoutWriter } from '@forma/core';
-import { errorCode, TEST_TIME } from './helpers.js';
+import { nextRequestId, errorCode, TEST_TIME } from './helpers.js';
 import type { Fixture } from './helpers.js';
 import { workoutContract } from './workout-contract.js';
+import { requestContract } from './request-contract.js';
 
 interface SqliteFixture extends Fixture {
   readonly databasePath: string;
@@ -43,20 +46,21 @@ async function sqliteFixture(t: TestContext): Promise<SqliteFixture> {
 }
 
 workoutContract('Node SQLite adapter', sqliteFixture);
+requestContract('SQLite request receipts', sqliteFixture);
 
 test('a real SQLite file retains exact records after close and reopen', async (t) => {
   const fixture = await sqliteFixture(t);
-  const workout = await fixture.service.workouts.create({
+  const workout = await fixture.service.workouts.create({ requestId: nextRequestId(),
     date: '2026-10-12', splitDayId: 'lower', notes: 'Persistence test', durationMin: 40,
   });
-  const first = await fixture.service.workouts.addSet({
+  const first = await fixture.service.workouts.addSet({ requestId: nextRequestId(),
     workoutId: workout.id, exerciseId: 'leg-curls', reps: 10, weightKg: 25.5, rpe: 8.5,
   });
-  const second = await fixture.service.workouts.addSet({
+  const second = await fixture.service.workouts.addSet({ requestId: nextRequestId(),
     workoutId: workout.id, exerciseId: 'leg-extensions', reps: 8, weightKg: 30,
   });
-  await fixture.service.workouts.updateSet({ workoutId: workout.id, setId: second.id, reps: 9 });
-  await fixture.service.workouts.deleteSet({ workoutId: workout.id, setId: first.id });
+  await fixture.service.workouts.updateSet({ requestId: nextRequestId(), workoutId: workout.id, setId: second.id, reps: 9 });
+  await fixture.service.workouts.deleteSet({ requestId: nextRequestId(), workoutId: workout.id, setId: first.id });
   const before = await fixture.service.workouts.get(workout.id);
   const reopened = await fixture.reopen();
   assert.deepEqual(await reopened.workouts.get(workout.id), before);
@@ -64,11 +68,13 @@ test('a real SQLite file retains exact records after close and reopen', async (t
   assert.equal((await reopened.splitDays.get('lower')).exerciseIds.length, 6);
 });
 
-test('existing version 1 records map group_id to splitDayId without a migration', async (t) => {
-  const fixture = await sqliteFixture(t);
-  await fixture.service.close();
-  const db = new DatabaseSync(fixture.databasePath);
+test('existing version 1 records retain group_id through the receipt migration', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'forma-v1-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const databasePath = join(directory, 'workouts.sqlite');
+  const db = new DatabaseSync(databasePath);
   try {
+    runSqliteMigrations(migrationDriver(db), SQLITE_MIGRATIONS.slice(0, 1));
     assert.equal(db.prepare('PRAGMA user_version').get()?.user_version, 1);
     db.prepare(
       'INSERT INTO workouts (id, date, group_id, notes, duration_min, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -78,7 +84,8 @@ test('existing version 1 records map group_id to splitDayId without a migration'
     ).run('existing-set', 'existing-workout', 'leg-curls', 10, 20.5, 8, 0);
   } finally { db.close(); }
 
-  const service = await fixture.reopen();
+  const service = openNodeForma({ databasePath, clock: { nowUtc: () => TEST_TIME } });
+  t.after(() => service.close());
   const workout = await service.workouts.get('existing-workout');
   assert.deepEqual(workout, {
     id: 'existing-workout', date: '2026-10-12', splitDayId: 'lower',
@@ -87,12 +94,12 @@ test('existing version 1 records map group_id to splitDayId without a migration'
   });
   assert.equal(Object.hasOwn(workout, 'groupId'), false);
   assert.equal((await service.splitDays.get('lower')).exerciseIds.length, 6);
-  await service.workouts.updateSet({ workoutId: workout.id, setId: 'existing-set', weightKg: 25.5 });
-  await fixture.service.close();
+  await service.workouts.updateSet({ requestId: nextRequestId(), workoutId: workout.id, setId: 'existing-set', weightKg: 25.5 });
+  await service.close();
 
-  const check = new DatabaseSync(fixture.databasePath);
+  const check = new DatabaseSync(databasePath);
   try {
-    assert.equal(check.prepare('PRAGMA user_version').get()?.user_version, 1);
+    assert.equal(check.prepare('PRAGMA user_version').get()?.user_version, SCHEMA_VERSION);
     assert.equal(check.prepare('SELECT group_id FROM workouts WHERE id = ?').get(workout.id)?.group_id, 'lower');
     assert.equal(check.prepare('SELECT weight_kg FROM sets WHERE id = ?').get('existing-set')?.weight_kg, 25.5);
   } finally { check.close(); }
@@ -104,7 +111,7 @@ test('catalog and schema initialization do not duplicate records on reopen', asy
   await fixture.reopen();
   const db = new DatabaseSync(fixture.databasePath);
   try {
-    assert.equal(db.prepare('PRAGMA user_version').get()?.user_version, 1);
+    assert.equal(db.prepare('PRAGMA user_version').get()?.user_version, SCHEMA_VERSION);
     assert.equal(db.prepare('SELECT count(*) AS count FROM exercises').get()?.count, 19);
     assert.equal(db.prepare('SELECT count(*) AS count FROM workout_groups').get()?.count, 3);
     assert.equal(db.prepare('SELECT count(*) AS count FROM workout_group_exercises').get()?.count, 20);
@@ -116,8 +123,8 @@ test('a failed write rolls back both the workout and its sets', async (t) => {
   let next = 0;
   const service = createFormaService({ store, clock: { nowUtc: () => TEST_TIME }, ids: { next: () => 'id-' + ++next } });
   t.after(() => service.close());
-  const workout = await service.workouts.create({ date: '2026-10-12', notes: 'Original' });
-  await service.workouts.addSet({ workoutId: workout.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20 });
+  const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12', notes: 'Original' });
+  await service.workouts.addSet({ requestId: nextRequestId(), workoutId: workout.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20 });
   const before = await service.workouts.get(workout.id);
   await assert.rejects(store.write(async (writer) => {
     await writer.saveWorkout({ ...before, notes: 'Must roll back' });
@@ -127,7 +134,7 @@ test('a failed write rolls back both the workout and its sets', async (t) => {
     });
   }), errorCode('STORAGE_FAILURE'));
   assert.deepEqual(await service.workouts.get(workout.id), before);
-  await service.workouts.addSet({ workoutId: workout.id, exerciseId: 'leg-curls', reps: 9, weightKg: 20 });
+  await service.workouts.addSet({ requestId: nextRequestId(), workoutId: workout.id, exerciseId: 'leg-curls', reps: 9, weightKg: 20 });
   assert.equal((await service.workouts.get(workout.id)).sets.length, 2);
 });
 
@@ -135,7 +142,7 @@ test('a callback failure rolls back a completed save', async (t) => {
   const store = SqliteWorkoutStore.open({ databasePath: ':memory:' });
   t.after(() => store.close());
   const service = createFormaService({ store, clock: { nowUtc: () => TEST_TIME }, ids: { next: () => 'id' } });
-  const workout = await service.workouts.create({ date: '2026-10-12', notes: 'Original' });
+  const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12', notes: 'Original' });
   await assert.rejects(store.write(async (writer) => {
     await writer.saveWorkout({ ...workout, notes: 'Changed' });
     throw new Error('Simulated failure after a save');
@@ -150,23 +157,23 @@ test('duplicate set IDs across workouts have typed conflict errors and no partia
     ids: { next: () => { const id = sequence.shift(); assert(id); return id; } },
   });
   t.after(() => service.close());
-  const first = await service.workouts.create({ date: '2026-10-12' });
-  const second = await service.workouts.create({ date: '2026-10-11' });
-  await service.workouts.addSet({ workoutId: first.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20 });
-  await assert.rejects(service.workouts.addSet({
+  const first = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
+  const second = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-11' });
+  await service.workouts.addSet({ requestId: nextRequestId(), workoutId: first.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20 });
+  await assert.rejects(service.workouts.addSet({ requestId: nextRequestId(),
     workoutId: second.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20,
   }), errorCode('CONFLICT'));
   assert.deepEqual(await service.workouts.get(second.id), second);
   assert.equal((await service.workouts.get(first.id)).sets.length, 1);
-  await service.workouts.addSet({ workoutId: second.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20 });
+  await service.workouts.addSet({ requestId: nextRequestId(), workoutId: second.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20 });
   assert.equal((await service.workouts.get(second.id)).sets.length, 1);
 });
 
 test('service close drains already accepted write commands', async (t) => {
   const fixture = await sqliteFixture(t);
   const service = fixture.service;
-  const workout = await service.workouts.create({ date: '2026-10-12' });
-  const writes = Array.from({ length: 5 }, (_, index) => service.workouts.addSet({
+  const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
+  const writes = Array.from({ length: 5 }, (_, index) => service.workouts.addSet({ requestId: nextRequestId(),
     workoutId: workout.id, exerciseId: 'leg-curls', reps: index + 1, weightKg: 20,
   }));
   await Promise.all([...writes, service.close()]);
@@ -178,7 +185,7 @@ test('read views reject a write and transaction views expire', async (t) => {
   const store = SqliteWorkoutStore.open({ databasePath: ':memory:' });
   t.after(() => store.close());
   const service = createFormaService({ store, clock: { nowUtc: () => TEST_TIME }, ids: { next: () => 'id' } });
-  const workout = await service.workouts.create({ date: '2026-10-12' });
+  const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
   await assert.rejects(store.read((reader) => (reader as WorkoutWriter).saveWorkout({ ...workout, notes: 'Not allowed' })),
     errorCode('STORAGE_FAILURE'));
   let expired: WorkoutWriter | undefined;
@@ -232,7 +239,7 @@ test('SQL-shaped input remains a bound value, not executable SQL', async (t) => 
 test('Node adapter uses default clock and IDs when the host omits overrides', async (t) => {
   const service = openNodeForma({ databasePath: ':memory:' });
   t.after(() => service.close());
-  const workout = await service.workouts.create({ date: '2026-10-12' });
+  const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
   assert.match(workout.id, /^[a-f0-9-]{36}$/);
   assert.equal(new Date(workout.createdAt).toISOString(), workout.createdAt);
 });

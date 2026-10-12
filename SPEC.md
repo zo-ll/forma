@@ -134,9 +134,12 @@ The SQLite schema has these tables:
 - `workout_group_exercises`
 - `workouts`
 - `sets`
+- `request_receipts`
 
 The adapter owns table names, row conversion, and migrations.
-The initial schema has version 1 in `PRAGMA user_version`.
+The initial workout schema has version 1 in `PRAGMA user_version`.
+Version 2 adds a shared table for command receipts.
+
 The adapter keeps the original table names and the `group_id` column for compatibility.
 The public API uses `SplitDay`, `splitDays`, and `splitDayId`.
 The initial migration inserts the catalog once.
@@ -155,7 +158,17 @@ The service must not accept free SQL from a client or model.
 
 The host chooses the database path.
 SQLite files contain unencrypted data.
-Clients must not automatically retry writes because this version has no duplicate-request protection.
+Every write requires a `requestId` that identifies one intended command.
+A retry must use the same `requestId` and normalized input.
+The core saves the receipt with the record change in one transaction.
+A repeated command returns its original result, even after restart.
+A different input or operation with the same key produces a typed `CONFLICT`.
+Invalid input fails validation before receipt lookup.
+
+A failed transaction leaves no successful receipt.
+Receipts have no automatic expiration.
+They retain historical input and result data.
+History APIs read primary records rather than receipt snapshots.
 
 ## 7. Acceptance checks
 
@@ -169,6 +182,10 @@ Clients must not automatically retry writes because this version has no duplicat
 8. Close and reopen a real SQLite file.
 9. Retrieve the exact previous records after reopen.
 10. Reject new operations after service close.
+11. Replay all write commands without duplicate changes.
+12. Reject a request key with different input.
+13. Preserve request receipts after reopen.
+14. Roll back a record if its receipt fails.
 
 Run the same contract tests against memory and SQLite.
 Run `npm test`, `npm run typecheck`, and `npm run demo`.
@@ -178,10 +195,10 @@ They do not include an airplane-mode test.
 
 ## 8. Next phases
 
-1. Add duplicate-request protection before clients retry writes.
+1. Define calendar context and load conventions.
 2. Add a thin mobile client and an Android storage adapter.
 3. Add workout history tools and numerical calculations.
-4. Add nutrition after the workout module meets its acceptance criteria.
+4. Add nutrition after the workout device gate passes.
 
 Later decisions can add notes, retrieval, and local inference.
 Those features have no placeholder APIs in this milestone.

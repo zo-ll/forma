@@ -3,7 +3,7 @@ import type { SQLInputValue, SQLOutputValue } from 'node:sqlite';
 import { FormaError, normalizeExerciseAlias } from '@forma/core';
 import type {
   Exercise, ListWorkoutsInput, Workout, SplitDay, WorkoutReader, WorkoutSet,
-  WorkoutStore, WorkoutWriter,
+  RequestReceipt, WorkoutStore, WorkoutWriter,
 } from '@forma/core';
 import { pendingMigrations, runSqliteMigrations } from '../sqlite/migrations.js';
 import { SQLITE_MIGRATIONS } from '../sqlite/registry.js';
@@ -129,6 +129,14 @@ export class SqliteWorkoutStore implements WorkoutStore {
       },
       listSplitDays: async () => { check(); return this.listSplitDays(); },
       getSplitDay: async (id) => { check(); return this.getSplitDay(id); },
+      getRequestReceipt: async (id) => { check(); return this.getRequestReceipt(id); },
+      saveRequestReceipt: async (receipt) => {
+        check();
+        if (!writable) throw new FormaError('STORAGE_FAILURE', 'A read transaction cannot save a request receipt.');
+        this.db.prepare(
+          'INSERT INTO request_receipts (request_id, operation, input_signature, result_json, format_version) VALUES (?, ?, ?, ?, ?)',
+        ).run(receipt.requestId, receipt.operation, receipt.inputSignature, receipt.resultJson, receipt.formatVersion);
+      },
       getWorkout: async (id) => { check(); return this.getWorkout(id); },
       listWorkouts: async (input) => { check(); return this.listWorkouts(input); },
       saveWorkout: async (workout) => {
@@ -147,6 +155,19 @@ export class SqliteWorkoutStore implements WorkoutStore {
       try { this.db.exec('ROLLBACK'); } catch { /* Preserve the original failure. */ }
       throw cause;
     }
+  }
+
+  private getRequestReceipt(id: string): RequestReceipt | null {
+    const row = this.db.prepare('SELECT * FROM request_receipts WHERE request_id = ?').get(id);
+    if (!row) return null;
+    if (numberValue(row, 'format_version') !== 1) {
+      throw new FormaError('STORAGE_FAILURE', 'The request receipt format is not supported.');
+    }
+    return {
+      requestId: stringValue(row, 'request_id'), operation: stringValue(row, 'operation'),
+      inputSignature: stringValue(row, 'input_signature'), resultJson: stringValue(row, 'result_json'),
+      formatVersion: 1,
+    };
   }
 
   private exerciseFromRow(row: Row): Exercise {
