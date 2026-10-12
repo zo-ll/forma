@@ -18,6 +18,9 @@
     },
     {
       "path": "packages/adapters"
+    },
+    {
+      "path": "packages/mobile-host"
     }
   ]
 }

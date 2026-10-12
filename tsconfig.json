@@ -8,6 +8,9 @@
       "path": "packages/adapters"
     },
     {
+      "path": "packages/mobile-host"
+    },
+    {
       "path": "tsconfig.node.json"
     }
   ]
