@@ -37,6 +37,13 @@ credentials.json
 *.apk
 *.aab
 build/
+.build/
+
+# Local workout data
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
 
 # Metro
 .metro-health-check*

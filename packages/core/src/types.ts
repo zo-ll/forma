@@ -1,0 +1,94 @@
+export interface Exercise {
+  readonly id: string;
+  readonly name: string;
+  readonly muscleGroup: string | null;
+  readonly equipment: string | null;
+  readonly aliases: readonly string[];
+}
+
+export interface WorkoutGroup {
+  readonly id: string;
+  readonly name: string;
+  readonly exerciseIds: readonly string[];
+}
+
+export interface WorkoutSet {
+  readonly id: string;
+  readonly exerciseId: string;
+  readonly reps: number;
+  readonly weightKg: number;
+  readonly rpe: number | null;
+  readonly position: number;
+}
+
+export interface Workout {
+  readonly id: string;
+  readonly date: string;
+  readonly groupId: string | null;
+  readonly notes: string;
+  readonly durationMin: number | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly sets: readonly WorkoutSet[];
+}
+
+export interface CreateWorkoutInput {
+  readonly date: string;
+  readonly groupId?: string;
+  readonly notes?: string;
+  readonly durationMin?: number;
+}
+
+export interface AddSetInput {
+  readonly workoutId: string;
+  readonly exerciseId: string;
+  readonly reps: number;
+  readonly weightKg: number;
+  readonly rpe?: number;
+}
+
+export interface UpdateSetInput {
+  readonly workoutId: string;
+  readonly setId: string;
+  readonly exerciseId?: string;
+  readonly reps?: number;
+  readonly weightKg?: number;
+  readonly rpe?: number | null;
+}
+
+export interface DeleteSetInput {
+  readonly workoutId: string;
+  readonly setId: string;
+}
+
+export interface ListWorkoutsInput {
+  readonly dateFrom?: string;
+  readonly dateTo?: string;
+}
+
+export interface ExerciseApi {
+  list(): Promise<readonly Exercise[]>;
+  get(exerciseId: string): Promise<Exercise>;
+  resolveAlias(alias: string): Promise<Exercise>;
+}
+
+export interface WorkoutGroupApi {
+  list(): Promise<readonly WorkoutGroup[]>;
+  get(groupId: string): Promise<WorkoutGroup>;
+}
+
+export interface WorkoutApi {
+  create(input: CreateWorkoutInput): Promise<Workout>;
+  addSet(input: AddSetInput): Promise<WorkoutSet>;
+  updateSet(input: UpdateSetInput): Promise<WorkoutSet>;
+  deleteSet(input: DeleteSetInput): Promise<void>;
+  get(workoutId: string): Promise<Workout>;
+  list(input?: ListWorkoutsInput): Promise<readonly Workout[]>;
+}
+
+export interface FormaService {
+  readonly exercises: ExerciseApi;
+  readonly groups: WorkoutGroupApi;
+  readonly workouts: WorkoutApi;
+  close(): Promise<void>;
+}
