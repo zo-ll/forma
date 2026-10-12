@@ -11,13 +11,17 @@ PR #45 merged issue #8 at approved HEAD `73a9c5a207d2785d13f1f93e943ecbad9e3020e
 The critic covered 34/34 files with zero findings. The exact approved HEAD passed all 143 native cases and restart verification on the Nothing Phone (2a).
 Issues #7 and #8 are closed. Node baseline: 582 passing tests.
 Branch `issue/9-mobile-host` now adds the thin Android host, the portable host package, a native device bridge, local preferences, and an isolated hostgate flavor.
-Its root suite passes 614 tests. App typecheck and ARM64 standalone build pass. Physical host acceptance and final source review remain pending.
+Its root suite passes 614 tests. App typecheck and ARM64 standalone build pass.
+The critic passed clean source `b474f79338c83d0cbb1b85decdc53d554bca3059`: 55/55 files, zero actionable findings.
+That exact source passed all 26 host assertions and 26 thin-host UI checks on the Nothing Phone (2a).
+A further verify run passed all 8 restart assertions after the UI checks.
+Only final evidence/documentation approval and the approved merge remain before #10.
 See [the mobile host](docs/mobile-host.md) for ownership, commands, and limits.
 
 The session interruption removed `/tmp` worktrees and artifacts. Committed work and the main checkout survived.
 The unfinished gate harness was recovered from the worker session, then corrected to compare saved records before replay and require exact counts for every mode.
-The critic window is restored using plain `pi` defaults and read-only tools. It waits for a frozen review request.
-The phone reconnected briefly but is now unreachable over Wi-Fi. Ask for the current connection address from the main Wireless debugging screen when needed.
+The critic window is restored using plain `pi` defaults and read-only tools. Request a new exact-head verdict for later changes.
+The phone reconnected and completed the host and UI checks. Its endpoint remains temporary; ask for the main Wireless debugging address when needed.
 Only `dev.forma.mobile.hostgate` is authorized for synthetic host tests. Do not update existing apps or records.
 
 Current checkout: `/home/az/projects/forma`.
@@ -26,7 +30,7 @@ The old `/home/andrea/personal/forma` and `/home/andrea/personal/fitrag` paths b
 ## Current state
 
 Forma has a portable TypeScript workout service and real Node SQLite storage.
-It does not have a usable Android app yet.
+It has a thin standalone Android host. Full workout entry screens are not implemented.
 
 Complete:
 
@@ -41,13 +45,15 @@ Complete:
 - Atomic writes, rollback, shared migrations, and schema version checks.
 - Persistent request receipts for every workout write command.
 - Full app contracts, phase gates, and a decision register.
+- Thin Android identity, navigation, native UUID/timezone bridge, preferences, and read-only history form.
+- Physical thin-host lifecycle, exact record/receipt persistence, typed form errors, theme, and explicit close/restart checks.
 
 Schema version 3 preserves old sets as unknown. Version 4 preserves old workouts as finished historical records with no invented finish timestamp.
 Both upgrades preserve request receipts. Committed in-progress sets survive an abrupt Node process stop.
 Schema version 5 adds persistent history revisions. Record changes invalidate earlier cursors.
-The current Node suite passes 614 tests (including host and binding simulations, not proof of the new host's native acceptance).
-The last full merged-baseline verification passed all 418 tests, type checks, and the persistence example.
-This is not a critic verdict or an Android device result.
+The current Node suite passes 614 tests, type checks, and the persistence example.
+The merged issue #8 baseline passed 582 tests. Independent physical issue #9 evidence is in `docs/verification/android-mobile-host-b474f79.json`.
+Keep Node simulation results separate from device results.
 The earlier completed issues passed an independent GLM 5.3 critic review before merge:
 
 | Issue | Change | Merged PR |
@@ -57,10 +63,12 @@ The earlier completed issues passed an independent GLM 5.3 critic review before 
 | #2 | Full Android app contracts and phase gates | [#39](https://github.com/zo-ll/forma/pull/39) |
 | #5 | Calendar context and explicit load conventions | [#41](https://github.com/zo-ll/forma/pull/41) |
 | #6 | Metadata, deletion, and persisted workout sessions | [#42](https://github.com/zo-ll/forma/pull/42) |
+| #7 | Bounded history and source-linked statistics | [#44](https://github.com/zo-ll/forma/pull/44) |
+| #8 | Injected Android SQLite adapter and native acceptance | [#45](https://github.com/zo-ll/forma/pull/45) |
 
-The merged implementation baseline has 26 required tasks left and four separate later enhancements.
-Screens, backup, nutrition, independent notes, and the assistant remain incomplete.
-Android storage and statistics acceptance now pass. This branch still requires its final approved merge.
+Remaining tasks are tracked in roadmap #1. Four later enhancements remain separate.
+Full workout screens, backup, nutrition, independent notes, and the assistant remain incomplete.
+Android storage, statistics, and thin-host acceptance now pass. Next after the approved #9 merge: workout entry UI #10.
 
 ## Read first
 
@@ -180,11 +188,12 @@ Keep commits small and independently verifiable.
 6. Request another review after each correction.
 7. Merge only the exact head that passed review.
 
-The current tmux session has a `critic` window running GLM 5.3 through `opencode-go`.
+The current tmux session has a `critic` window running plain `pi` defaults.
+The issue #9 source review used `opencode-go` / `deepseek-v4.1-flash`. Earlier reviews used GLM 5.3.
 The critic reads the user's code-review skill before each exact-head review.
 It sends the verdict and reviewed hash to coordinator pane `%0` when each requested review finishes.
 Pane IDs apply only to the current tmux session.
-Previous reviews used the same model and provider.
+Use the user's requested model selection. Do not substitute an earlier review for the current head.
 Do not treat an old verdict as approval for a new head.
 
 ## Verification
@@ -196,8 +205,10 @@ npm ci
 npm run typecheck
 npm test
 npm run demo
-git diff --check
+git -c core.whitespace=cr-at-eol diff --check BASE HEAD
 ```
+
+The canonical Windows Gradle wrapper uses CRLF. The `cr-at-eol` option prevents false whitespace findings for that file.
 
 `typecheck` also emits the libraries and declarations.
 Keep build files, databases, personal records, APK files, and model binaries outside Git.

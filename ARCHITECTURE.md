@@ -269,7 +269,7 @@ Seed and verify also passed in distinct processes, with exact records and origin
 This is storage acceptance, not workout UI gate #14 approval.
 See [test commands](docs/android-storage-tests.md) and [binding evidence](docs/research/op-sqlite.md).
 
-## Mobile host — issue #9 in progress
+## Mobile host — issue #9
 
 `@forma/mobile-host` owns the client service lifetime, preference state, and date context.
 It imports only the core. The Android composition root injects the SQLite adapter, native UUIDs, timezone, and private preference storage.
@@ -284,7 +284,9 @@ Corrupt or newer preferences remain intact and fail startup rather than silently
 
 The standalone hostgate flavor uses a separate sandbox with synthetic records.
 Its expected snapshots live under a native test-only guard. Restart verification reads records before receipt replay.
-Build checks exclude Node runtime modules. Physical host acceptance remains pending.
+Build checks exclude Node runtime modules. Physical host acceptance passed on the Nothing Phone (2a).
+The device checks also cover accessible navigation, typed history errors, themes, and close/restart.
+These thin-host checks do not approve the full workout UI gate #14.
 See [mobile ownership and limits](docs/mobile-host.md).
 
 ## Storage port

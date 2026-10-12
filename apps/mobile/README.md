@@ -61,10 +61,13 @@ The UI keeps its last confirmed value and asks for a restart to read stored stat
 
 The root suite passes 614 Node tests. App typecheck and the native ARM64 release build pass.
 The native bundle graph has no Forma Node adapter or Node runtime imports.
-The current host gate has not completed on the phone. Issue #9 stays open.
-The gate expects 12 fixture assertions, 6 seed assertions, and 8 restart assertions.
+The Nothing Phone (2a) passed all 12 fixture, 6 seed, and 8 restart assertions at clean source `b474f79`.
+It also passed 26 thin-host UI checks. A further 8-assertion verify run confirmed unchanged records after UI checks.
+See [sanitized evidence](../../docs/verification/android-mobile-host-b474f79.json).
+The source review covered all 55 changed files with zero actionable findings.
 Seed includes a real Android background/resume cycle. Verify reads exact records before replay.
 Missing records cannot be recreated to disguise a failed restart.
 
 This gate is not the complete workout UI/device gate #14. Nutrition still waits for #14.
-The dependency audit has unresolved build-tooling DoS advisories. See `docs/mobile-host.md`.
+The dependency audit reports 20 high entries from one unresolved build-tooling DoS advisory.
+The affected `braces` package is absent from the embedded bundle. See [audit limits](../../docs/mobile-host.md).

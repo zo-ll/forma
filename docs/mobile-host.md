@@ -30,8 +30,13 @@ The UI retains the last confirmed theme and reports this uncertainty.
 - App TypeScript check passes separately from the platform-free root build.
 - Android ARM64 hostgate release builds with React Native 0.87.1, OP-SQLite 18.2.5, JDK 25, Gradle 9.4.1, SDK Platform 37.0, and NDK 27.1.12297006.
 - The fresh embedded bundle graph excludes Node runtime modules and the Forma Node adapter.
-- Physical host-gate completion remains pending after the phone became unreachable over Wi-Fi.
-- Source review remains pending. Issue #9 is not approved or merged.
+- Clean source `b474f79` passed all 26 native host assertions on the Nothing Phone (2a): 12 fixtures, 6 seed, and 8 restart assertions.
+- Seed and verify ran in distinct processes, PIDs 27751 and 27842. Seed included a real HOME/background/foreground cycle.
+- All 26 thin-host UI checks passed: navigation and selection, accessible controls, device calendar display, typed invalid-date error, correction and empty history, saved history, all theme choices, close, disabled controls, and restart.
+- A further 8-assertion verify run in PID 28658 confirmed unchanged exact records and receipts after the UI checks.
+- The independent source review passed `b474f79`, covering all 55 files with zero actionable findings.
+- [Sanitized evidence](verification/android-mobile-host-b474f79.json) identifies the tested APK and source. It contains no primary record snapshots or device connection details.
+- Final evidence/documentation changes require exact-head approval before merge. These changes do not alter runtime code.
 
 The gate runs only in the native hostgate flavor. Snapshot methods enforce that flag in Kotlin.
 All records are synthetic. Verify reads exact primary records before it replays original receipts.
@@ -44,9 +49,26 @@ The complete workout UI/device gate #14 remains separate. Nutrition still waits 
 Root library dependencies audit clean. Babel pins were updated to remove their reported advisory.
 The mobile framework toolchain still reports the unpatched `braces` DoS advisory and propagated dependency findings.
 These build-time tools process project source. The app has no INTERNET permission and the standalone build starts no Metro server.
-A source-map check must confirm that the affected tool is absent from the mobile bundle.
+The 564-entry source map was checked explicitly. The affected `braces` package is absent from the mobile bundle.
 Do not call the mobile dependency audit clean. Do not downgrade React Native or CLI major versions merely to silence it.
 Production signing and release checks remain issue #32.
+
+## Repeat the thin-host UI checks
+
+Run the host gate first. Use only the isolated test app.
+
+1. Open Home. Check the device date, timezone, and selected navigation button.
+2. Open History. Enter `not-a-date` and load history. Check the `INVALID_INPUT` message on `dateFrom`.
+3. Correct the date to a future valid date. Check the empty result and cleared error.
+4. Clear the date and load history. Check the synthetic finished records.
+5. Open Settings. Select dark, system, then light. Check the selected control after each confirmed save.
+6. Close the local service. Check the closed message and disabled service controls.
+7. Restart only the test app. Check readiness and the saved light theme.
+8. Run verify with the seed run ID in a new process. Confirm exact primary records before receipt replay.
+
+The device checks inspected native accessibility labels, button roles, selected states, enabled states, and error text.
+They did not change system appearance settings, other apps, or real records.
+They do not prove the complete workout workflow, screen-reader interaction, or gate #14.
 
 ## Primary platform sources
 
