@@ -1,4 +1,5 @@
 import type { Exercise, ListWorkoutsInput, Workout, SplitDay } from './types.js';
+import type { HistoryStorePage, HistoryStoreQuery } from './workouts/history-types.js';
 
 export interface Clock {
   nowUtc(): string;
@@ -34,6 +35,8 @@ export interface WorkoutReader extends RequestReader {
   getWorkout(workoutId: string): Promise<Workout | null>;
   getInProgressWorkout(): Promise<Workout | null>;
   listWorkouts(input: ListWorkoutsInput): Promise<readonly Workout[]>;
+  getHistoryRevision(): Promise<number>;
+  listHistoryWorkouts(input: HistoryStoreQuery): Promise<HistoryStorePage>;
 }
 
 export interface WorkoutWriter extends WorkoutReader, RequestWriter {

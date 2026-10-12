@@ -1,6 +1,6 @@
 # Forma — Specification
 
-Version 0.5. Current implementation: the workout core. Planned product: the complete Android v1 app.
+Version 0.6. Current implementation: the workout core. Planned product: the complete Android v1 app.
 
 ## 1. Purpose
 
@@ -18,7 +18,9 @@ Nutrition starts only after the workout device gate passes.
 - Resume, finish, and discard the one in-progress workout.
 - Edit metadata and delete whole workouts.
 - Add, edit, and delete sets.
-- Retrieve workout records and filter history by date.
+- Retrieve workout records and filter history by date, exercise, and status.
+- Page history with stable order and reject stale cursors after record changes.
+- Retrieve previous sets and code-derived finished-workout facts with exact sources.
 - Store records locally in SQLite.
 - Test the core without React Native.
 
@@ -147,7 +149,12 @@ A body-weight set stores added external load only, not body mass.
 The core can convert per-hand load to combined load using the explicit count.
 Load comparisons require the same exercise and compatible conventions.
 Entered and combined loads remain separate. Unknown and body-weight loads cannot be compared.
-No aggregate workout statistics exist in this milestone.
+Finished-workout statistics include counts, supported volume, best loads, and best reps at each exact load.
+Per-hand reps count reps per implement. Do not enter an alternating total as per-hand reps.
+Facts carry explicit units, saved-date context, and exact source references.
+Best facts apply only to the selected range. The service does not estimate a one-rep maximum.
+[docs/history-contract.md](docs/history-contract.md) defines limits, ties, exclusions, and cursor rules.
+Android query-fixture acceptance remains pending.
 
 ## 6. Storage
 
@@ -167,6 +174,8 @@ Version 2 adds a shared table for command receipts.
 Version 3 adds load metadata to sets. Old sets receive `unknown` and a null implement count.
 Version 4 adds persisted session state and enforces one in-progress workout.
 Old workouts receive finished state and a null finish timestamp. Their audit timestamps stay unchanged.
+Version 5 adds a persistent history revision and primary-record triggers for cursor invalidation.
+Record and revision changes share the same transaction. Failed operations preserve both.
 Released migrations and saved receipt contents remain unchanged.
 Legacy set result snapshots receive unknown load metadata when replayed.
 Legacy workout result snapshots receive finished state with no invented finish time.

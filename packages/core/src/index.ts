@@ -8,6 +8,13 @@ export type { CalendarPeriod, CalendarRange, CalendarRangeInput } from './calend
 export { calculateSetLoad, compareSetLoads, validateSetLoadDetails } from './workouts/loads.js';
 export type { SetLoadFact } from './workouts/loads.js';
 export { validateWorkoutSession } from './workouts/session.js';
+export { WORKOUT_HISTORY_LIMITS } from './workouts/history-limits.js';
+export { compareHistoryPositions } from './workouts/history-order.js';
+export type {
+  CountFact, HistoryFilter, HistoryPosition, HistoryStorePage, HistoryStoreQuery, LoadStatisticsGroup,
+  PreviousSetsInput, PreviousSetsResult, SetSource, WorkoutHistoryApi, WorkoutHistoryInput,
+  WorkoutHistoryPage, WorkoutSource, WorkoutStatistics, WorkoutStatisticsInput,
+} from './workouts/history-types.js';
 export { withRequest } from './requests/service.js';
 export type { ResultCodec } from './requests/service.js';
 export type {

@@ -81,7 +81,10 @@ The core does not need a server or an HTTP connection.
 | `workouts.updateSet({ requestId, workoutId, setId, exerciseId?, reps?, weightKg?, rpe?, loadConvention?, implementCount? })` | The updated set |
 | `workouts.deleteSet({ requestId, workoutId, setId })` | No value |
 | `workouts.get(workoutId)` | A workout with ordered sets |
-| `workouts.list({ dateFrom?, dateTo? }?)` | Complete workouts, newest date first |
+| `workouts.list({ dateFrom?, dateTo? }?)` | Legacy unbounded list; complete workouts, newest date first |
+| `workouts.history({ dateFrom?, dateTo?, exerciseId?, status?, limit?, cursor? }?)` | A bounded page with an opaque continuation cursor |
+| `workouts.previousSets({ exerciseId, beforeDate })` | Matching sets from the latest earlier finished workout |
+| `workouts.statistics({ exerciseId, dateFrom, dateTo })` | Source-linked counts, volume, best loads, and best reps within the selected range |
 | `close()` | No value |
 
 An unknown exercise, split day, workout, or set produces `NOT_FOUND`.
@@ -205,6 +208,39 @@ Unknown and body-weight loads cannot supply comparable facts.
 These functions reject invalid metadata and overflow with `INVALID_INPUT`.
 They do not calculate volume, personal bests, or aggregate statistics. They do not compare machine resistance.
 
+## Paged history and numerical facts
+
+[docs/history-contract.md](docs/history-contract.md) defines the complete DTO and calculation contract.
+The user approved finished-workout facts, explicit exclusions, and restart on stale cursors.
+History defaults to finished records. It can filter inclusive saved dates, exercise, and status.
+Its order is date descending, creation timestamp descending, and Unicode code-point ID ascending.
+The Node adapter uses matching SQLite BINARY order, a keyset predicate, and a bounded SQL query.
+A cursor binds normalized filters, the last record key, and a persistent history revision.
+Primary workout and set triggers update the revision in the same transaction as the record change.
+Stale cursors produce `CONFLICT` on `cursor`; malformed or mismatched cursors produce `INVALID_INPUT`.
+An unchanged database preserves cursors after reopen. Replays and rolled-back writes do not invalidate them.
+
+Previous sets require a date strictly before `beforeDate`. They exclude live and same-date workouts.
+The result retains raw load metadata. An unknown previous weight does not become comparable.
+Statistics read finished primary records in bounded pages, never request snapshots.
+Each fact carries units and sources; the result carries the explicit saved-date range and history revision.
+Source references carry workout IDs, dates, audit timestamps, revision, and set IDs when applicable.
+Volume is compatible kilograms multiplied by reps, in kg·rep. Per-hand reps count repetitions per implement.
+Entered and combined groups stay separate. Unknown and body-weight sets supply explicit exclusions rather than totals.
+Best load and best reps refer only to the selected range. No one-rep maximum is estimated.
+Ties retain all sources. No supported records means no best-load group, not an invented zero.
+The core validates finite arithmetic and never rounds facts.
+
+`WORKOUT_HISTORY_LIMITS` owns page and calculation limits in the core.
+A page accepts 1–100 workouts (default 20) and up to 10,000 sets.
+The adapter checks one metadata-only lookahead row without loading its sets.
+Statistics cap matching records at 5,000 workouts and 10,000 sets; oversized requests fail without partial facts.
+The client narrows the date range or reduces the page size.
+The internal history port can load only matching exercise sets for analytics.
+Those partial query rows must never be saved as complete workouts.
+Shared fixtures in `tests/fixtures/history-cases.ts` have no Node imports and are ready for Android execution.
+Only memory and Node SQLite have passed them so far. Issue #7 remains open for the Android acceptance check.
+
 ## Storage port
 
 The adapter keeps the version 1 names `workout_groups`, `workout_group_exercises`, and `group_id` for compatibility.
@@ -226,6 +262,9 @@ Old workouts receive finished state with no invented finish timestamp.
 The adapter validates session metadata on reads and deletes sets through the released foreign-key cascade.
 `WorkoutReader.getInProgressWorkout()` supplies the saved session. `WorkoutWriter.deleteWorkout()` deletes its primary record.
 Both capabilities obey the same coherent-view, read-only, and expired-view rules as the existing port.
+Version 5 adds a singleton history revision, six primary-record triggers, and a history index.
+It preserves all existing records, receipts, and released migrations.
+`getHistoryRevision()` and `listHistoryWorkouts()` run within the same coherent read view.
 
 `WorkoutStore.read()` supplies a coherent read view.
 `WorkoutStore.write()` supplies an atomic write transaction.

@@ -1,6 +1,6 @@
 import {
   createFormaService, DEFAULT_EXERCISES, DEFAULT_SPLIT_DAYS,
-  FormaError, normalizeExerciseAlias,
+  FormaError, normalizeExerciseAlias, compareHistoryPositions, WORKOUT_HISTORY_LIMITS,
 } from '@forma/core';
 import type { FormaService, RequestReceipt, Workout, WorkoutReader, WorkoutStore, WorkoutWriter } from '@forma/core';
 import type { TestContext } from 'node:test';
@@ -11,6 +11,7 @@ export class MemoryWorkoutStore implements WorkoutStore {
   writes = 0;
   saves = 0;
   closeCalls = 0;
+  historyRevision = 0;
   private tail: Promise<void> = Promise.resolve();
   private accepting = true;
   private closePromise: Promise<void> | undefined;
@@ -31,13 +32,31 @@ export class MemoryWorkoutStore implements WorkoutStore {
       },
       getWorkout: async (id) => structuredClone(this.workouts.get(id) ?? null),
       getInProgressWorkout: async () => structuredClone([...this.workouts.values()].find((workout) => workout.status === 'in-progress') ?? null),
-      deleteWorkout: async (id) => { this.workouts.delete(id); },
+      deleteWorkout: async (id) => { if (this.workouts.delete(id)) this.historyRevision++; },
+      getHistoryRevision: async () => this.historyRevision,
+      listHistoryWorkouts: async ({ filter, after, limit, sets }) => {
+        const candidates = [...this.workouts.values()]
+        .filter((workout) => (filter.dateFrom === null || workout.date >= filter.dateFrom)
+          && (filter.dateTo === null || workout.date <= filter.dateTo)
+          && (filter.status === 'all' || workout.status === filter.status)
+          && (filter.exerciseId === null || workout.sets.some((set) => set.exerciseId === filter.exerciseId))
+          && (after === null || compareHistoryPositions(workout, after) > 0))
+        .sort(compareHistoryPositions).slice(0, limit + 1);
+        const result = candidates.slice(0, limit)
+        .map((workout) => ({ ...workout, sets: sets === 'matching'
+          ? workout.sets.filter((set) => set.exerciseId === filter.exerciseId) : workout.sets }));
+        if (result.reduce((sum, workout) => sum + workout.sets.length, 0) > WORKOUT_HISTORY_LIMITS.maxPageSets) {
+          throw new FormaError('INVALID_INPUT', 'The query exceeds the set page budget.', { field: sets === 'matching' ? 'dateRange' : 'limit' });
+        }
+        return { items: structuredClone(result), hasMore: candidates.length > limit };
+      },
       listWorkouts: async (input) => structuredClone([...this.workouts.values()]
         .filter((workout) => (input.dateFrom === undefined || workout.date >= input.dateFrom)
           && (input.dateTo === undefined || workout.date <= input.dateTo))
         .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id))),
       saveWorkout: async (workout) => {
         this.saves++;
+        this.historyRevision++;
         this.workouts.set(workout.id, structuredClone(workout));
       },
     };
@@ -59,9 +78,11 @@ export class MemoryWorkoutStore implements WorkoutStore {
       this.writes++;
       const before = structuredClone(this.workouts);
       const beforeReceipts = structuredClone(this.receipts);
+      const beforeRevision = this.historyRevision;
       try {
         return await run(this.view());
       } catch (cause) {
+        this.historyRevision = beforeRevision;
         this.workouts.clear();
         for (const [id, workout] of before) this.workouts.set(id, workout);
         this.receipts.clear();
@@ -90,11 +111,11 @@ export interface Fixture {
   readonly service: FormaService;
 }
 
-export function memoryFixture(t: TestContext): Fixture {
+export function memoryFixture(t: TestContext, ids?: readonly string[]): Fixture {
   const store = new MemoryWorkoutStore();
   let next = 0;
   const service = createFormaService({
-    store, clock: { nowUtc: () => TEST_TIME }, ids: { next: () => 'id-' + ++next },
+    store, clock: { nowUtc: () => TEST_TIME }, ids: { next: () => { const id = ids?.[next]; next++; return id ?? 'id-' + next; } },
   });
   t.after(() => service.close());
   return { service };

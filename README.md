@@ -27,7 +27,8 @@ The service can:
 
 The core also resolves calendar ranges from an explicit UTC instant and device timezone.
 It supplies source-linked load facts and rejects incompatible load comparisons.
-It does not yet calculate aggregate statistics.
+It also returns bounded history pages, previous sets, and source-linked finished-workout statistics.
+Statistics keep incompatible load conventions separate and report excluded sets.
 
 The core does not use React, Expo, a SQLite driver, or a model.
 
@@ -90,8 +91,11 @@ Read [ROADMAP.md](ROADMAP.md) for the full app contracts and unresolved decision
 
 This milestone has no mobile UI, Android adapter, nutrition module, or inference.
 The catalog has no edit API.
-History lists have no pagination.
+Use `workouts.history()` for bounded pages. The legacy `workouts.list()` remains unbounded for compatibility.
+A record change invalidates earlier page cursors. Restart the query after a cursor conflict.
+History queries and facts have explicit limits in [docs/history-contract.md](docs/history-contract.md).
 The mobile host must supply the current device timezone. No device timezone adapter exists yet.
+Per-hand volume uses reps per implement, not an alternating total across both hands.
 Body-weight sets store added external load only. Total body-weight load calculations are not supported.
 Request receipts have no automatic expiration.
 They can retain input and result data from deleted sets.

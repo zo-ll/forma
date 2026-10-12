@@ -10,6 +10,7 @@ import {
 } from '../validation.js';
 import { requiredWorkout } from './required.js';
 import { createWorkoutRecordsApi } from './records.js';
+import { createWorkoutHistoryApi } from './history.js';
 
 async function requiredExercise(reader: WorkoutReader, exerciseId: string): Promise<void> {
   if (!(await reader.getExercise(exerciseId))) {
@@ -25,6 +26,7 @@ export function createWorkoutApi(
 ): WorkoutApi {
   return {
     ...createWorkoutRecordsApi(store, clock, ids, ensureOpen),
+    ...createWorkoutHistoryApi(store, ensureOpen),
 
     async addSet(input) {
       ensureOpen();
