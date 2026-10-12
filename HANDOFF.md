@@ -130,8 +130,10 @@ Do not estimate a one-rep maximum. Volume uses reps per implement for per-hand s
 Keep incompatible groups separate and report excluded records. Reject stale cursors and restart.
 [docs/history-contract.md](docs/history-contract.md) records the finalized DTOs and limits.
 
-No device is connected to this host. The user's phone was paired over wireless ADB but still needs the connection address from the main Wireless debugging screen.
-Do not reuse the pairing port or store the pairing code.
+The user's Nothing Phone (2a), model A142, is now connected through wireless ADB.
+It runs Android 16/API 36 on ARM64. The connection endpoint is temporary; do not commit it or pairing codes.
+The first run found two host-runner problems before installation: pm returns 1 for an absent package, and Gradle can reuse a stale bundle from external sources.
+The runner now accepts only the empty absent-package result and forces fresh bundle generation. These fixes need a new exact-head review and native execution.
 SDK Platform 37.0, Build-Tools 37.0.0, and NDK 27.1.12297006 are now installed.
 The external React Native 0.87.1 / OP-SQLite 18.2.5 test host built successfully with JDK 25.
 Its release bundle used the native OP entry and excluded Forma's Node entry.

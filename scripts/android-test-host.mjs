@@ -73,6 +73,15 @@ class MainActivity : ReactActivity() {
       }
     }
 }\n`);
+  const appGradle = join(host, 'android/app/build.gradle');
+  const freshnessMarker = '// Forma fixture bundle freshness';
+  if (!read(appGradle).includes(freshnessMarker)) write(appGradle, read(appGradle) + `
+${freshnessMarker}
+tasks.matching { it.name == "createBundleReleaseJsAndAssets" }.configureEach {
+  outputs.upToDateWhen { false }
+  outputs.doNotCacheIf("Fixture sources include external repository directories") { true }
+}
+`);
   const androidManifest = join(host, 'android/app/src/main/AndroidManifest.xml');
   const xml = read(androidManifest).replace('<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
     '<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">')
@@ -108,7 +117,13 @@ async function deviceRun() {
   const adb = (args) => run('adb', ['-s', device, ...args]);
   const apk = join(host, 'android/app/build/outputs/apk/release/app-release.apk');
   if (!existsSync(apk)) throw new Error('Build the test APK first.');
-  if (adb(['shell', 'pm', 'path', packageName]).trim() && !process.argv.includes('--replace-test-host')) {
+  const probe = spawnSync('adb', ['-s', device, 'shell', 'pm', 'path', packageName], { encoding: 'utf8' });
+  if (probe.error) throw probe.error;
+  // Android pm returns 1 with empty output when the package is absent.
+  if (probe.status !== 0 && !(probe.status === 1 && !probe.stdout.trim() && !probe.stderr.trim())) {
+    throw new Error('Cannot inspect the test package: ' + probe.stdout + probe.stderr);
+  }
+  if (probe.stdout.trim() && !process.argv.includes('--replace-test-host')) {
     throw new Error('The test package already exists. Inspect it before using --replace-test-host.');
   }
   console.log(adb(['install', '-r', apk]));
