@@ -6,6 +6,7 @@ This document describes the implemented workout service.
 ## Ownership
 
 `@forma/core` owns workout validation, exercise resolution, set order, and request replay.
+It also owns explicit calendar ranges, set load conventions, and compatible load calculations.
 Its public API uses plain objects, strings, numbers, and promises.
 The core has no runtime package dependencies.
 Its compiler configuration has no Node or DOM types.
@@ -69,8 +70,8 @@ The core does not need a server or an HTTP connection.
 | `splitDays.list()` | The three split days, in catalog order |
 | `splitDays.get(splitDayId)` | One split day, with ordered exercise IDs |
 | `workouts.create({ requestId, date, splitDayId?, notes?, durationMin? })` | A workout with no sets |
-| `workouts.addSet({ requestId, workoutId, exerciseId, reps, weightKg, rpe? })` | The new set |
-| `workouts.updateSet({ requestId, workoutId, setId, exerciseId?, reps?, weightKg?, rpe? })` | The updated set |
+| `workouts.addSet({ requestId, workoutId, exerciseId, reps, weightKg, rpe?, loadConvention?, implementCount? })` | The new set |
+| `workouts.updateSet({ requestId, workoutId, setId, exerciseId?, reps?, weightKg?, rpe?, loadConvention?, implementCount? })` | The updated set |
 | `workouts.deleteSet({ requestId, workoutId, setId })` | No value |
 | `workouts.get(workoutId)` | A workout with ordered sets |
 | `workouts.list({ dateFrom?, dateTo? }?)` | Complete workouts, newest date first |
@@ -110,6 +111,11 @@ History APIs read primary records, not receipt snapshots.
 The core validates saved results before it returns them.
 A malformed result produces `STORAGE_FAILURE` without another record change.
 Future API changes must preserve supported receipt formats or provide an explicit upgrade.
+Omitted load metadata in add commands retains the released unknown-load input signature.
+An explicit unknown convention with a null count has the same signature.
+Set updates without load metadata retain their released signatures.
+Legacy set snapshots receive `loadConvention: 'unknown'` and `implementCount: null` on replay.
+Neither replay nor migration rewrites saved receipts. Confirming a set does not change earlier replay results.
 
 ## Record rules
 
@@ -130,10 +136,39 @@ Future API changes must preserve supported receipt formats or provide an explici
 - A set update preserves the set ID and position.
 - A set belongs to exactly one workout.
 
-`weightKg` stores the load that the user enters.
-The service does not convert a dumbbell load to a combined load.
-It does not add body weight or a machine resistance estimate.
-Future calculations must define their load convention before use.
+`weightKg` stores the load that the user enters. The stored value is never converted.
+`loadConvention` is `unknown`, `entered`, `per-hand`, `combined`, or `body-weight`.
+Per-hand load requires an explicit `implementCount` of 1 or 2. Other conventions require null.
+Add commands default to unknown and null. A metadata update supplies an explicit convention and its count.
+Omitted metadata in ordinary set edits remains unchanged.
+Use an ordinary set update with a new request key to confirm an old convention.
+Exercise names and equipment never supply a convention.
+Body-weight sets store only added external load. Zero means no added load.
+The service never adds body mass or estimates machine resistance.
+
+## Calendar and load helpers
+
+These synchronous functions are exported by `@forma/core`. They do not use storage or platform access.
+
+`resolveCalendarRange({ nowUtc, timeZone, period })` accepts a UTC timestamp with milliseconds and an IANA timezone name.
+The host supplies the current device timezone on each call. The core does not detect it.
+Periods are `today`, `this-week`, and `last-week`.
+The result has inclusive `dateFrom` and `dateTo`, `timeZone`, `weekStartsOn: 'monday'`, and `period`.
+Pass only the two date fields to `workouts.list()`. Its strict input validation rejects the extra context fields.
+Today is the local calendar day. This week is the complete Monday-to-Sunday week that contains today.
+Last week is the previous complete calendar week.
+Gregorian date arithmetic follows local calendar days, not elapsed 24-hour durations across DST.
+Saved workout dates never change. Unsupported timezones and dates outside years 0001–9999 produce `INVALID_INPUT`.
+The host runtime must provide `Intl.DateTimeFormat` and the requested timezone data.
+Android runtime support still needs its own device checks.
+
+`calculateSetLoad(set)` returns a kilogram fact with the set ID, exercise ID, entered value, recorded convention, and implement count.
+Per-hand load becomes a combined-load fact through the explicit count. Other stored values stay unchanged.
+`compareSetLoads(left, right)` returns -1, 0, or 1 for load only.
+It requires the same exercise and compatible facts. Entered load stays separate from combined load.
+Unknown and body-weight loads cannot supply comparable facts.
+These functions reject invalid metadata and overflow with `INVALID_INPUT`.
+They do not calculate volume, personal bests, or aggregate statistics. They do not compare machine resistance.
 
 ## Storage port
 
@@ -148,6 +183,9 @@ The runner applies every pending version in one transaction and rechecks the ver
 A failure rolls back both schema changes and the version marker.
 
 The initial catalog belongs to version 1 only. Later versions must not seed or reset the catalog again.
+Version 3 adds `load_convention` and `implement_count` to sets, with SQL checks for valid metadata pairs.
+Old records receive unknown metadata. Their weights, dates, catalog memberships, and receipts remain unchanged.
+The Node adapter validates load metadata again when it reads stored sets.
 
 `WorkoutStore.read()` supplies a coherent read view.
 `WorkoutStore.write()` supplies an atomic write transaction.

@@ -1,9 +1,9 @@
 import { DatabaseSync } from 'node:sqlite';
 import type { SQLInputValue, SQLOutputValue } from 'node:sqlite';
-import { FormaError, normalizeExerciseAlias } from '@forma/core';
+import { FormaError, normalizeExerciseAlias, validateSetLoadDetails } from '@forma/core';
 import type {
   Exercise, ListWorkoutsInput, Workout, SplitDay, WorkoutReader, WorkoutSet,
-  RequestReceipt, WorkoutStore, WorkoutWriter,
+  RequestReceipt, SetLoadDetails, WorkoutStore, WorkoutWriter,
 } from '@forma/core';
 import { pendingMigrations, runSqliteMigrations } from '../sqlite/migrations.js';
 import { SQLITE_MIGRATIONS } from '../sqlite/registry.js';
@@ -220,12 +220,21 @@ export class SqliteWorkoutStore implements WorkoutStore {
       id: stringValue(set, 'id'), exerciseId: stringValue(set, 'exercise_id'),
       reps: numberValue(set, 'reps'), weightKg: numberValue(set, 'weight_kg'),
       rpe: nullableNumber(set, 'rpe'), position: numberValue(set, 'position'),
+      ...this.loadDetailsFromRow(set),
     }));
     return {
       id, date: stringValue(row, 'date'), splitDayId: nullableString(row, 'group_id'),
       notes: stringValue(row, 'notes'), durationMin: nullableNumber(row, 'duration_min'),
       createdAt: stringValue(row, 'created_at'), updatedAt: stringValue(row, 'updated_at'), sets,
     };
+  }
+
+  private loadDetailsFromRow(row: Row): SetLoadDetails {
+    try {
+      return validateSetLoadDetails(stringValue(row, 'load_convention'), nullableNumber(row, 'implement_count'));
+    } catch (cause) {
+      throw new FormaError('STORAGE_FAILURE', 'Invalid load convention in storage.', { cause });
+    }
   }
 
   private getWorkout(id: string): Workout | null {
@@ -256,10 +265,11 @@ export class SqliteWorkoutStore implements WorkoutStore {
     );
     this.db.prepare('DELETE FROM sets WHERE workout_id = ?').run(workout.id);
     const insert = this.db.prepare(
-      'INSERT INTO sets (id, workout_id, exercise_id, reps, weight_kg, rpe, position) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO sets (id, workout_id, exercise_id, reps, weight_kg, rpe, position, load_convention, implement_count) '
+      + 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     );
     for (const set of workout.sets) {
-      insert.run(set.id, workout.id, set.exerciseId, set.reps, set.weightKg, set.rpe, set.position);
+      insert.run(set.id, workout.id, set.exerciseId, set.reps, set.weightKg, set.rpe, set.position, set.loadConvention, set.implementCount);
     }
   }
 

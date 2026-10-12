@@ -1,6 +1,6 @@
 # Forma — Specification
 
-Version 0.3. Current implementation: the workout core. Planned product: the complete Android v1 app.
+Version 0.4. Current implementation: the workout core. Planned product: the complete Android v1 app.
 
 ## 1. Purpose
 
@@ -106,6 +106,11 @@ Fields: `id`, `date`, `splitDayId`, `notes`, `durationMin`, `createdAt`, `update
 The client supplies the calendar date in the user's timezone.
 The date has `YYYY-MM-DD` format.
 The clock supplies UTC timestamps for the audit fields.
+The host supplies the current device timezone for relative calendar queries.
+Today is the local calendar day at the supplied UTC instant.
+This week is the complete Monday-to-Sunday week that contains today.
+Last week is the preceding complete Monday-to-Sunday week.
+Saved workout dates never change after a timezone change.
 
 The split day and duration are optional.
 Notes default to an empty string.
@@ -113,7 +118,7 @@ A new workout has no sets.
 
 ### Set
 
-Fields: `id`, `exerciseId`, `reps`, `weightKg`, `rpe`, `position`.
+Fields: `id`, `exerciseId`, `reps`, `weightKg`, `rpe`, `position`, `loadConvention`, `implementCount`.
 
 Reps must be positive safe integers.
 Weight must be finite and non-negative.
@@ -123,8 +128,16 @@ Decimal RPE values are valid.
 Set positions start at zero.
 
 The service stores the entered load in kilograms.
-It does not infer a combined dumbbell load, body weight, or machine resistance.
-No workout statistics exist in this milestone.
+It never infers a load convention from an exercise name or equipment.
+The conventions are `unknown`, `entered`, `per-hand`, `combined`, and `body-weight`.
+Per-hand sets require an explicit implement count of 1 or 2.
+Other conventions require a null implement count.
+An omitted convention defaults to unknown. Existing sets remain unknown until an explicit update confirms them.
+A body-weight set stores added external load only, not body mass.
+The core can convert per-hand load to combined load using the explicit count.
+Load comparisons require the same exercise and compatible conventions.
+Entered and combined loads remain separate. Unknown and body-weight loads cannot be compared.
+No aggregate workout statistics exist in this milestone.
 
 ## 6. Storage
 
@@ -141,6 +154,9 @@ The SQLite schema has these tables:
 The adapter owns table names, row conversion, and migrations.
 The initial workout schema has version 1 in `PRAGMA user_version`.
 Version 2 adds a shared table for command receipts.
+Version 3 adds load metadata to sets. Old sets receive `unknown` and a null implement count.
+Released migrations and saved receipt contents remain unchanged.
+Legacy set result snapshots receive unknown load metadata when replayed.
 
 The adapter keeps the original table names and the `group_id` column for compatibility.
 The public API uses `SplitDay`, `splitDays`, and `splitDayId`.
@@ -215,7 +231,7 @@ Do not start nutrition before the workout device gate passes.
 Code must compute numerical facts.
 A model must not generate numerical facts or free SQL.
 
-Calendar rules and load conventions need explicit decisions before statistics.
+The calendar rules and load conventions approved for #5 are recorded in [ROADMAP.md](ROADMAP.md#approved-calendar-and-load-contract--issue-5).
 Existing records keep an unknown load convention unless the user confirms it.
 Session states, nutrient precision, note confirmation rules, and model limits remain explicit decisions.
 [The decision register](ROADMAP.md#decision-register) identifies their required approval points.

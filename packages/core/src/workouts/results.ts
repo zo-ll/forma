@@ -1,5 +1,6 @@
 import type { ResultCodec } from '../requests/service.js';
 import type { Workout, WorkoutSet } from '../types.js';
+import { validateSetLoadDetails } from './loads.js';
 import { calendarDate, effort, finiteNumber, identifier, invalid, objectInput, repetitions, text, utcTimestamp } from '../validation.js';
 
 function record(value: unknown, keys: readonly string[]): Record<string, unknown> {
@@ -8,13 +9,16 @@ function record(value: unknown, keys: readonly string[]): Record<string, unknown
 }
 
 function parseSet(value: unknown): WorkoutSet {
-  const row = record(value, ['id', 'exerciseId', 'reps', 'weightKg', 'rpe', 'position']);
+  const row = record(value, ['id', 'exerciseId', 'reps', 'weightKg', 'rpe', 'position', 'loadConvention', 'implementCount']);
+  // Released snapshots had neither field. Upcast their meaning, never rewrite receipts.
+  const legacy = !Object.hasOwn(row, 'loadConvention') && !Object.hasOwn(row, 'implementCount');
+  const details = validateSetLoadDetails(legacy ? 'unknown' : row.loadConvention, legacy ? null : row.implementCount);
   const position = finiteNumber(row.position, 'position', 0);
   if (!Number.isSafeInteger(position)) invalid('position', 'A set position must be a nonnegative safe integer.');
   return {
     id: identifier(row.id, 'id'), exerciseId: identifier(row.exerciseId, 'exerciseId'),
     reps: repetitions(row.reps), weightKg: finiteNumber(row.weightKg, 'weightKg', 0),
-    rpe: row.rpe === null ? null : effort(row.rpe), position,
+    rpe: row.rpe === null ? null : effort(row.rpe), position, ...details,
   };
 }
 

@@ -1,6 +1,7 @@
 import { FormaError } from '../errors.js';
 import { withRequest } from '../requests/service.js';
 import { setResult, voidResult, workoutResult } from './results.js';
+import { validateSetLoadDetails } from './loads.js';
 import type { Clock, IdGenerator, WorkoutReader, WorkoutStore } from '../ports.js';
 import type { ListWorkoutsInput, Workout, WorkoutApi, WorkoutSet } from '../types.js';
 import {
@@ -54,14 +55,21 @@ export function createWorkoutApi(
 
     async addSet(input) {
       ensureOpen();
-      objectInput(input, ['requestId', 'workoutId', 'exerciseId', 'reps', 'weightKg', 'rpe']);
+      objectInput(input, ['requestId', 'workoutId', 'exerciseId', 'reps', 'weightKg', 'rpe', 'loadConvention', 'implementCount']);
       const requestId = identifier(input.requestId, 'requestId');
       const workoutId = identifier(input.workoutId, 'workoutId');
       const exerciseId = identifier(input.exerciseId, 'exerciseId');
       const reps = repetitions(input.reps);
       const weightKg = finiteNumber(input.weightKg, 'weightKg', 0);
       const rpe = input.rpe === undefined ? null : effort(input.rpe);
-      return withRequest(store, requestId, 'workouts.addSet', { workoutId, exerciseId, reps, weightKg, rpe }, setResult, async (writer) => {
+      const details = validateSetLoadDetails(
+        input.loadConvention === undefined ? 'unknown' : input.loadConvention,
+        input.implementCount === undefined ? null : input.implementCount,
+      );
+      // Unknown is the legacy default. Preserve released input signatures for old clients.
+      const signature = { workoutId, exerciseId, reps, weightKg, rpe,
+        ...(details.loadConvention === 'unknown' ? {} : details) };
+      return withRequest(store, requestId, 'workouts.addSet', signature, setResult, async (writer) => {
         const workout = await requiredWorkout(writer, workoutId);
         await requiredExercise(writer, exerciseId);
         const id = identifier(ids.next(), 'id');
@@ -69,7 +77,7 @@ export function createWorkoutApi(
           throw new FormaError('CONFLICT', 'The generated set ID already exists.', { field: 'id' });
         }
         const set: WorkoutSet = {
-          id, exerciseId, reps, weightKg, rpe,
+          id, exerciseId, reps, weightKg, rpe, ...details,
           position: workout.sets.length,
         };
         const updated: Workout = {
@@ -82,7 +90,7 @@ export function createWorkoutApi(
 
     async updateSet(input) {
       ensureOpen();
-      objectInput(input, ['requestId', 'workoutId', 'setId', 'exerciseId', 'reps', 'weightKg', 'rpe']);
+      objectInput(input, ['requestId', 'workoutId', 'setId', 'exerciseId', 'reps', 'weightKg', 'rpe', 'loadConvention', 'implementCount']);
       const requestId = identifier(input.requestId, 'requestId');
       const workoutId = identifier(input.workoutId, 'workoutId');
       const setId = identifier(input.setId, 'setId');
@@ -90,10 +98,18 @@ export function createWorkoutApi(
       const reps = input.reps === undefined ? undefined : repetitions(input.reps);
       const weightKg = input.weightKg === undefined ? undefined : finiteNumber(input.weightKg, 'weightKg', 0);
       const rpe = input.rpe === undefined ? undefined : input.rpe === null ? null : effort(input.rpe);
-      if ([exerciseId, reps, weightKg, rpe].every((value) => value === undefined)) {
+      if (input.loadConvention === undefined && input.implementCount !== undefined) {
+        invalid('loadConvention', 'A load metadata update requires an explicit convention.');
+      }
+      const details = input.loadConvention === undefined ? undefined : validateSetLoadDetails(
+        input.loadConvention, input.implementCount === undefined ? null : input.implementCount,
+      );
+      if ([exerciseId, reps, weightKg, rpe, details].every((value) => value === undefined)) {
         invalid('input', 'A set update must contain at least one changed field.');
       }
-      return withRequest(store, requestId, 'workouts.updateSet', { workoutId, setId, exerciseId, reps, weightKg, rpe }, setResult, async (writer) => {
+      return withRequest(store, requestId, 'workouts.updateSet', {
+        workoutId, setId, exerciseId, reps, weightKg, rpe, ...details,
+      }, setResult, async (writer) => {
         const workout = await requiredWorkout(writer, workoutId);
         const current = workout.sets.find((set) => set.id === setId);
         if (!current) throw new FormaError('NOT_FOUND', 'The set does not exist in this workout.', { field: 'setId' });
@@ -104,6 +120,7 @@ export function createWorkoutApi(
           reps: reps ?? current.reps,
           weightKg: weightKg ?? current.weightKg,
           rpe: rpe === undefined ? current.rpe : rpe,
+          ...details,
         };
         await writer.saveWorkout({
           ...workout, updatedAt: utcTimestamp(clock.nowUtc()),

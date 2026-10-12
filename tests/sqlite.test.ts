@@ -14,6 +14,7 @@ import { nextRequestId, errorCode, TEST_TIME } from './helpers.js';
 import type { Fixture } from './helpers.js';
 import { workoutContract } from './workout-contract.js';
 import { requestContract } from './request-contract.js';
+import { loadContract } from './load-contract.js';
 
 interface SqliteFixture extends Fixture {
   readonly databasePath: string;
@@ -47,6 +48,7 @@ async function sqliteFixture(t: TestContext): Promise<SqliteFixture> {
 
 workoutContract('Node SQLite adapter', sqliteFixture);
 requestContract('SQLite request receipts', sqliteFixture);
+loadContract('SQLite load contract', sqliteFixture);
 
 test('a real SQLite file retains exact records after close and reopen', async (t) => {
   const fixture = await sqliteFixture(t);
@@ -90,7 +92,7 @@ test('existing version 1 records retain group_id through the receipt migration',
   assert.deepEqual(workout, {
     id: 'existing-workout', date: '2026-10-12', splitDayId: 'lower',
     notes: 'Existing workout', durationMin: 40, createdAt: TEST_TIME, updatedAt: TEST_TIME,
-    sets: [{ id: 'existing-set', exerciseId: 'leg-curls', reps: 10, weightKg: 20.5, rpe: 8, position: 0 }],
+    sets: [{ id: 'existing-set', exerciseId: 'leg-curls', reps: 10, weightKg: 20.5, rpe: 8, position: 0, loadConvention: 'unknown', implementCount: null }],
   });
   assert.equal(Object.hasOwn(workout, 'groupId'), false);
   assert.equal((await service.splitDays.get('lower')).exerciseIds.length, 6);
@@ -130,7 +132,7 @@ test('a failed write rolls back both the workout and its sets', async (t) => {
     await writer.saveWorkout({ ...before, notes: 'Must roll back' });
     await writer.saveWorkout({
       ...before,
-      sets: [{ id: 'invalid-reference', exerciseId: 'missing', reps: 8, weightKg: 20, rpe: null, position: 0 }],
+      sets: [{ id: 'invalid-reference', exerciseId: 'missing', reps: 8, weightKg: 20, rpe: null, position: 0, loadConvention: 'unknown', implementCount: null }],
     });
   }), errorCode('STORAGE_FAILURE'));
   assert.deepEqual(await service.workouts.get(workout.id), before);
