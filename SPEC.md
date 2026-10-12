@@ -1,13 +1,14 @@
 # Forma — Specification
 
-Version 0.2. Current milestone: the workout module.
+Version 0.3. Current implementation: the workout core. Planned product: the complete Android v1 app.
 
 ## 1. Purpose
 
 Forma is a local-first fitness service for one user.
-The first milestone records workouts.
-A mobile app will act as a thin client of the service.
-Nutrition will follow later.
+Android v1 includes workouts, nutrition, notes, and local history questions.
+The mobile app will act as a thin client of the service.
+Workouts remain the first active implementation module.
+Nutrition starts only after the workout device gate passes.
 
 ## 2. Current scope
 
@@ -36,7 +37,8 @@ Each host constructs adapters and injects them into `createFormaService`.
 Clients use the same public service API.
 The service does not require a server.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the API and port contracts.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the current API and port contracts.
+See [ROADMAP.md](ROADMAP.md) for planned phase contracts, acceptance gates, and unresolved decisions.
 
 ## 4. Exercise catalog
 
@@ -193,17 +195,30 @@ Run `npm test`, `npm run typecheck`, and `npm run demo`.
 These checks do not prove Android behavior.
 They do not include an airplane-mode test.
 
-## 8. Next phases
+## 8. Approved full app plan
 
-1. Define calendar context and load conventions.
-2. Add a thin mobile client and an Android storage adapter.
-3. Add workout history tools and numerical calculations.
-4. Add nutrition after the workout device gate passes.
+The planned product has these phases.
+Only the workout core has an implementation today.
+The planned contracts do not add placeholder APIs to the core.
 
-Later decisions can add notes, retrieval, and local inference.
-Those features have no placeholder APIs in this milestone.
+| Phase | Public contract | Acceptance gate |
+| --- | --- | --- |
+| Workouts on Android | Current workout APIs plus metadata, sessions, paged history, statistics, and local archives | Complete workout flow on the target phone in #14 |
+| Nutrition | Local foods, meals in grams, nutrient sources, and code-derived totals | Node and Android contracts plus phone entry, history, and restore checks |
+| Notes | Primary text, revisions, confirmed pain and sleep fields, and FTS5 search | Model-free records, negation checks, exact sources, and phone persistence |
+| Local assistant | Optional local models, revision-bound vectors, fixed tools, deterministic facts, and source links | Correct facts, exact sources, latency, and joint memory checks in #30 |
+| Android v1 release | All four feature areas, privacy controls, and complete local restore | Signed standalone APK and complete device checks in #32 |
+
+[ROADMAP.md](ROADMAP.md) defines each phase's public contracts and complete acceptance checks.
+[Issue #1](https://github.com/zo-ll/forma/issues/1) tracks the required tasks and dependencies.
+Do not start nutrition before the workout device gate passes.
 Code must compute numerical facts.
 A model must not generate numerical facts or free SQL.
+
+Calendar rules and load conventions need explicit decisions before statistics.
+Existing records keep an unknown load convention unless the user confirms it.
+Session states, nutrient precision, note confirmation rules, and model limits remain explicit decisions.
+[The decision register](ROADMAP.md#decision-register) identifies their required approval points.
 
 Android remains the first mobile target.
 The initial test device is a Nothing Phone (2a) with 8 GB RAM.

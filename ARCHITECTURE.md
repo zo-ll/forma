@@ -1,5 +1,8 @@
 # Workout architecture
 
+This document describes the implemented workout service.
+[ROADMAP.md](ROADMAP.md) describes future modules, contracts, and phase gates.
+
 ## Ownership
 
 `@forma/core` owns workout validation, exercise resolution, set order, and request replay.
