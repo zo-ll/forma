@@ -4,18 +4,23 @@
 
 Issue #5 passed the critic at `93abccc` and merged in [PR #41](https://github.com/zo-ll/forma/pull/41).
 Issue #6 passed the critic at `f2a0e99` and merged in [PR #42](https://github.com/zo-ll/forma/pull/42).
-The merged implementation baseline is `3fa8558` on `master`.
+The latest feature merge is `0c46eaa52ed46dc07cb6f3b2cabe091c10ef5b02` on `master` (PR #46).
 PR #44 merged the core/Node slice of [#7](https://github.com/zo-ll/forma/issues/7) at approved HEAD `a0e5d5337a2a0ca19c8de006f963623d3f720df6`.
 Both independent critics passed all 28 files and 418 tests. Master merge: `9e4c0373d8e091963c061e14672fcae9773d9822`.
 PR #45 merged issue #8 at approved HEAD `73a9c5a207d2785d13f1f93e943ecbad9e3020e7`; master merge is `3fa8558ffcbaccda9638824614eb15321e7a9ee7`.
 The critic covered 34/34 files with zero findings. The exact approved HEAD passed all 143 native cases and restart verification on the Nothing Phone (2a).
 Issues #7 and #8 are closed. Node baseline: 582 passing tests.
-Branch `issue/9-mobile-host` now adds the thin Android host, the portable host package, a native device bridge, local preferences, and an isolated hostgate flavor.
-Its root suite passes 614 tests. App typecheck and ARM64 standalone build pass.
-The critic passed clean source `b474f79338c83d0cbb1b85decdc53d554bca3059`: 55/55 files, zero actionable findings.
+PR [#46](https://github.com/zo-ll/forma/pull/46) merged the thin Android host, portable host package, native device bridge, local preferences, and isolated hostgate flavor.
+The final critic passed exact HEAD `4f2eed559b8d1f22332c806e0f296915c5c005ac`: 56/56 files, zero findings.
+The master feature-merge tree exactly matches that approved head.
 That exact source passed all 26 host assertions and 26 thin-host UI checks on the Nothing Phone (2a).
-A further verify run passed all 8 restart assertions after the UI checks.
-Only final evidence/documentation approval and the approved merge remain before #10.
+Seed and verify used distinct PIDs 29039 and 29120. Post-UI verify passed all 8 assertions in PID 29859.
+The earlier clean source `b474f79` also passed these checks; its sanitized evidence is committed.
+Final-head build, device, UI, and review records are retained in `/home/az/.local/state/forma/issue9-4f2eed5/` and summarized in PR #46.
+Post-merge checks passed: 614 tests, root clean/typecheck/demo/audit, app typecheck, and the CRLF-aware diff check.
+App audit remains 20 high entries from one build-tool `braces` advisory; the affected package is absent from the bundle.
+Issue #9 is closed. Roadmap #1 marks issues #2 through #9 complete.
+Next: workout record screens #10. Do not start them without user approval.
 See [the mobile host](docs/mobile-host.md) for ownership, commands, and limits.
 
 The session interruption removed `/tmp` worktrees and artifacts. Committed work and the main checkout survived.
@@ -54,7 +59,7 @@ Schema version 5 adds persistent history revisions. Record changes invalidate ea
 The current Node suite passes 614 tests, type checks, and the persistence example.
 The merged issue #8 baseline passed 582 tests. Independent physical issue #9 evidence is in `docs/verification/android-mobile-host-b474f79.json`.
 Keep Node simulation results separate from device results.
-The earlier completed issues passed an independent GLM 5.3 critic review before merge:
+Completed issues passed independent exact-head critic review before merge:
 
 | Issue | Change | Merged PR |
 | --- | --- | --- |
@@ -65,10 +70,12 @@ The earlier completed issues passed an independent GLM 5.3 critic review before 
 | #6 | Metadata, deletion, and persisted workout sessions | [#42](https://github.com/zo-ll/forma/pull/42) |
 | #7 | Bounded history and source-linked statistics | [#44](https://github.com/zo-ll/forma/pull/44) |
 | #8 | Injected Android SQLite adapter and native acceptance | [#45](https://github.com/zo-ll/forma/pull/45) |
+| #9 | Thin Android host and physical host/UI acceptance | [#46](https://github.com/zo-ll/forma/pull/46) |
 
 Remaining tasks are tracked in roadmap #1. Four later enhancements remain separate.
 Full workout screens, backup, nutrition, independent notes, and the assistant remain incomplete.
-Android storage, statistics, and thin-host acceptance now pass. Next after the approved #9 merge: workout entry UI #10.
+Android storage, statistics, and thin-host acceptance now pass. Next: workout record screens #10.
+The complete workout UI/device gate #14 and nutrition remain unapproved. Production signing remains #32.
 
 ## Read first
 
