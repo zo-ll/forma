@@ -1,10 +1,10 @@
-# FitRAG — Specification
+# Forma — Specification
 
 Version 0.1. Status: draft.
 
 ## 1. Purpose
 
-FitRAG is a phone app for one user. The app logs workouts, meals, and notes. The user asks questions about their own history. The app answers from local data. The app does not use the network.
+Forma is a phone app for one user. The app logs workouts, meals, and notes. The user asks questions about their own history. The app answers from local data. The app does not use the network.
 
 ## 2. Goals
 

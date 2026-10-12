@@ -110,7 +110,7 @@ describe('cleanupScratchTables', () => {
     const port: DbTestPort = {
       async execute(sql) {
         dropped.push(sql);
-        if (sql.includes('fitrag_val_fts')) {
+        if (sql.includes('forma_val_fts')) {
           throw new Error('missing');
         }
         return { rows: [] };
@@ -121,6 +121,6 @@ describe('cleanupScratchTables', () => {
     };
     await cleanupScratchTables(port);
     expect(dropped).toHaveLength(5);
-    expect(dropped[0]).toContain('fitrag_val_totals');
+    expect(dropped[0]).toContain('forma_val_totals');
   });
 });

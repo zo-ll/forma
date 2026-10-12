@@ -18,8 +18,8 @@ import {
   type SqlParams,
 } from './dbTestCore';
 
-const VALIDATION_DB_NAME = 'fitrag_validation.sqlite';
-const PERSISTENCE_DB_NAME = 'fitrag_validation_persistence.sqlite';
+const VALIDATION_DB_NAME = 'forma_validation.sqlite';
+const PERSISTENCE_DB_NAME = 'forma_validation_persistence.sqlite';
 
 function portForDb(db: DB): DbTestPort {
   return {
@@ -48,20 +48,20 @@ async function runPersistenceCheck(): Promise<DbTestReport> {
   try {
     const first = open({ name: PERSISTENCE_DB_NAME });
     const firstPort = portForDb(first);
-    await firstPort.execute('DROP TABLE IF EXISTS fitrag_val_persist');
+    await firstPort.execute('DROP TABLE IF EXISTS forma_val_persist');
     await firstPort.execute(
-      'CREATE TABLE fitrag_val_persist (id INTEGER PRIMARY KEY, label TEXT NOT NULL)',
+      'CREATE TABLE forma_val_persist (id INTEGER PRIMARY KEY, label TEXT NOT NULL)',
     );
-    await firstPort.execute('INSERT INTO fitrag_val_persist (id, label) VALUES (1, ?)', [
+    await firstPort.execute('INSERT INTO forma_val_persist (id, label) VALUES (1, ?)', [
       'persisted',
     ]);
     first.close();
 
     const second = open({ name: PERSISTENCE_DB_NAME });
     const secondPort = portForDb(second);
-    const result = await secondPort.execute('SELECT label FROM fitrag_val_persist WHERE id = 1');
+    const result = await secondPort.execute('SELECT label FROM forma_val_persist WHERE id = 1');
     const label = firstValue(result, 'label');
-    await secondPort.execute('DROP TABLE IF EXISTS fitrag_val_persist');
+    await secondPort.execute('DROP TABLE IF EXISTS forma_val_persist');
     second.close();
     second.delete();
 

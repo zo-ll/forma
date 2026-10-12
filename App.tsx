@@ -247,7 +247,7 @@ export default function App() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <StatusBar style="auto" />
-      <Text style={styles.title}>FitRAG validation app</Text>
+      <Text style={styles.title}>Forma validation app</Text>
       <Text style={styles.caption}>
         This app checks text embedding retrieval and the OP-SQLite extensions on one phone. Every
         test runs on the device. The app does not use the network.

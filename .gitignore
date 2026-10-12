@@ -1,6 +1,9 @@
 # dependencies
 node_modules/
 
+# Coordinator state
+/.filo/
+
 # Expo
 .expo/
 dist/

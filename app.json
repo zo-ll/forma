@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "FitRAG Validation",
-    "slug": "fitrag-validation",
+    "name": "Forma",
+    "slug": "forma-mobile",
     "version": "0.1.0",
     "orientation": "portrait",
     "newArchEnabled": true,
     "android": {
-      "package": "com.fitrag.validation",
+      "package": "com.forma.mobile",
       "predictiveBackGestureEnabled": false
     },
     "plugins": [

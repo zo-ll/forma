@@ -1,4 +1,4 @@
-# FitRAG validation app
+# Forma validation app
 
 This app is one small Android validation build. It checks two claims on one
 phone:
@@ -10,8 +10,20 @@ phone:
 The app uses React Native and TypeScript for the app logic. A local Kotlin
 module runs the inference. The app does not use the network.
 
-This app is not the full FitRAG product. It has no workout forms, no cloud API,
+This app is not the full Forma product. It has no workout forms, no cloud API,
 no generator chat, no accounts, and no iOS adapter.
+
+## Names
+
+- Product: Forma.
+- Mobile package: `forma-mobile`.
+- Core package: `@forma/core` (planned).
+- Adapter package: `@forma/adapters` (planned).
+
+The repo directory remains `fitrag`.
+The Android package is `com.forma.mobile`.
+The new Android package uses separate app storage. The previous validation app
+keeps its data. Import the model again after the new app install.
 
 ## What this app checks
 

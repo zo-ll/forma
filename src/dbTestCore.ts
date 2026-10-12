@@ -87,11 +87,11 @@ export function toFloat32Blob(values: readonly number[]): Uint8Array {
 }
 
 export const SCRATCH_TABLES = [
-  'fitrag_val_totals',
-  'fitrag_val_fts',
-  'fitrag_val_vec',
-  'fitrag_val_vec_dim',
-  'fitrag_val_tx',
+  'forma_val_totals',
+  'forma_val_fts',
+  'forma_val_vec',
+  'forma_val_vec_dim',
+  'forma_val_tx',
 ] as const;
 
 /** Drop the scratch tables. The function never touches user data. */
@@ -120,15 +120,15 @@ export const opSqliteTestCases: readonly DbTestCase[] = [
   {
     name: 'deterministic_sql_totals',
     async run(port) {
-      await port.execute('DROP TABLE IF EXISTS fitrag_val_totals');
+      await port.execute('DROP TABLE IF EXISTS forma_val_totals');
       await port.execute(
-        'CREATE TABLE fitrag_val_totals (id INTEGER PRIMARY KEY, kcal INTEGER NOT NULL)',
+        'CREATE TABLE forma_val_totals (id INTEGER PRIMARY KEY, kcal INTEGER NOT NULL)',
       );
       await port.execute(
-        'INSERT INTO fitrag_val_totals (id, kcal) VALUES (1, 100), (2, 250), (3, 400)',
+        'INSERT INTO forma_val_totals (id, kcal) VALUES (1, 100), (2, 250), (3, 400)',
       );
       const result = await port.execute(
-        'SELECT COUNT(*) AS count, SUM(kcal) AS total FROM fitrag_val_totals',
+        'SELECT COUNT(*) AS count, SUM(kcal) AS total FROM forma_val_totals',
       );
       const count = Number(firstValue(result, 'count'));
       const total = Number(firstValue(result, 'total'));
@@ -141,20 +141,20 @@ export const opSqliteTestCases: readonly DbTestCase[] = [
   {
     name: 'fts5_match',
     async run(port) {
-      await port.execute('DROP TABLE IF EXISTS fitrag_val_fts');
+      await port.execute('DROP TABLE IF EXISTS forma_val_fts');
       await port.execute(
-        'CREATE VIRTUAL TABLE fitrag_val_fts USING fts5(note_id UNINDEXED, text)',
+        'CREATE VIRTUAL TABLE forma_val_fts USING fts5(note_id UNINDEXED, text)',
       );
       await port.execute(
-        'INSERT INTO fitrag_val_fts (note_id, text) VALUES (?, ?)',
+        'INSERT INTO forma_val_fts (note_id, text) VALUES (?, ?)',
         ['N1', 'Mild ache in my left knee after back squats'],
       );
       await port.execute(
-        'INSERT INTO fitrag_val_fts (note_id, text) VALUES (?, ?)',
+        'INSERT INTO forma_val_fts (note_id, text) VALUES (?, ?)',
         ['N3', 'Lunch was salmon, rice, and broccoli'],
       );
       const result = await port.execute(
-        'SELECT note_id FROM fitrag_val_fts WHERE fitrag_val_fts MATCH ? ORDER BY rank',
+        'SELECT note_id FROM forma_val_fts WHERE forma_val_fts MATCH ? ORDER BY rank',
         ['knee'],
       );
       const noteId = firstValue(result, 'note_id');
@@ -178,23 +178,23 @@ export const opSqliteTestCases: readonly DbTestCase[] = [
   {
     name: 'vector_nearest_neighbor_256',
     async run(port) {
-      await port.execute('DROP TABLE IF EXISTS fitrag_val_vec');
-      await port.execute('CREATE VIRTUAL TABLE fitrag_val_vec USING vec0(embedding float[256])');
+      await port.execute('DROP TABLE IF EXISTS forma_val_vec');
+      await port.execute('CREATE VIRTUAL TABLE forma_val_vec USING vec0(embedding float[256])');
       const target = deterministicVector(256, 0.13);
-      await port.execute('INSERT INTO fitrag_val_vec (rowid, embedding) VALUES (?, ?)', [
+      await port.execute('INSERT INTO forma_val_vec (rowid, embedding) VALUES (?, ?)', [
         1,
         toFloat32Blob(deterministicVector(256, 0.11)),
       ]);
-      await port.execute('INSERT INTO fitrag_val_vec (rowid, embedding) VALUES (?, ?)', [
+      await port.execute('INSERT INTO forma_val_vec (rowid, embedding) VALUES (?, ?)', [
         2,
         toFloat32Blob(target),
       ]);
-      await port.execute('INSERT INTO fitrag_val_vec (rowid, embedding) VALUES (?, ?)', [
+      await port.execute('INSERT INTO forma_val_vec (rowid, embedding) VALUES (?, ?)', [
         3,
         toFloat32Blob(deterministicVector(256, 0.5)),
       ]);
       const result = await port.execute(
-        'SELECT rowid, distance FROM fitrag_val_vec WHERE embedding MATCH ? ORDER BY distance LIMIT 1',
+        'SELECT rowid, distance FROM forma_val_vec WHERE embedding MATCH ? ORDER BY distance LIMIT 1',
         [toFloat32Blob(target)],
       );
       const rowid = Number(firstValue(result, 'rowid'));
@@ -207,13 +207,13 @@ export const opSqliteTestCases: readonly DbTestCase[] = [
   {
     name: 'vector_dimension_mismatch',
     async run(port) {
-      await port.execute('DROP TABLE IF EXISTS fitrag_val_vec_dim');
+      await port.execute('DROP TABLE IF EXISTS forma_val_vec_dim');
       await port.execute(
-        'CREATE VIRTUAL TABLE fitrag_val_vec_dim USING vec0(embedding float[256])',
+        'CREATE VIRTUAL TABLE forma_val_vec_dim USING vec0(embedding float[256])',
       );
       let rejected = false;
       try {
-        await port.execute('INSERT INTO fitrag_val_vec_dim (rowid, embedding) VALUES (?, ?)', [
+        await port.execute('INSERT INTO forma_val_vec_dim (rowid, embedding) VALUES (?, ?)', [
           1,
           toFloat32Blob(deterministicVector(128, 0.2)),
         ]);
@@ -229,13 +229,13 @@ export const opSqliteTestCases: readonly DbTestCase[] = [
   {
     name: 'transaction_rollback',
     async run(port) {
-      await port.execute('DROP TABLE IF EXISTS fitrag_val_tx');
-      await port.execute('CREATE TABLE fitrag_val_tx (id INTEGER PRIMARY KEY)');
-      await port.execute('INSERT INTO fitrag_val_tx (id) VALUES (1)');
+      await port.execute('DROP TABLE IF EXISTS forma_val_tx');
+      await port.execute('CREATE TABLE forma_val_tx (id INTEGER PRIMARY KEY)');
+      await port.execute('INSERT INTO forma_val_tx (id) VALUES (1)');
       let threw = false;
       try {
         await port.transaction(async (tx) => {
-          await tx.execute('INSERT INTO fitrag_val_tx (id) VALUES (2)');
+          await tx.execute('INSERT INTO forma_val_tx (id) VALUES (2)');
           throw new Error('rollback-marker');
         });
       } catch {
@@ -244,7 +244,7 @@ export const opSqliteTestCases: readonly DbTestCase[] = [
       if (!threw) {
         throw new Error('The transaction did not report the error.');
       }
-      const result = await port.execute('SELECT COUNT(*) AS count FROM fitrag_val_tx');
+      const result = await port.execute('SELECT COUNT(*) AS count FROM forma_val_tx');
       const count = Number(firstValue(result, 'count'));
       if (count !== 1) {
         throw new Error(`Expected 1 row after rollback. Got ${count}.`);

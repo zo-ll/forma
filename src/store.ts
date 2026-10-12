@@ -2,7 +2,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { BackendName, ImportedModel } from './types';
 
-const STORAGE_KEY = 'fitrag.validation.model.v1';
+const STORAGE_KEY = 'forma.validation.model.v1';
 
 export type StoredModel = ImportedModel & {
   backend: BackendName;
