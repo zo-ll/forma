@@ -3,10 +3,9 @@
 ## Resume point
 
 Issue #5 passed the critic at `93abccc` and merged in [PR #41](https://github.com/zo-ll/forma/pull/41).
-The merged baseline is `4a9ad06`.
-The current change implements [#6: workout metadata, deletion, and resume behavior](https://github.com/zo-ll/forma/issues/6) on `issue/6-workout-sessions`.
-Follow the exact-head critic gate below before merge.
-The next task after that merge is [#7: paged history and deterministic statistics](https://github.com/zo-ll/forma/issues/7).
+Issue #6 passed the critic at `f2a0e99` and merged in [PR #42](https://github.com/zo-ll/forma/pull/42).
+The implementation baseline is `e10eb8d` on `master`.
+The next task is [#7: paged history and deterministic statistics](https://github.com/zo-ll/forma/issues/7).
 Finalize its pagination and numerical-result DTOs before implementation.
 
 Current checkout: `/home/az/projects/forma`.
@@ -41,9 +40,9 @@ The earlier completed issues passed an independent GLM 5.3 critic review before 
 | #4 | Safe repeated write commands | [#38](https://github.com/zo-ll/forma/pull/38) |
 | #2 | Full Android app contracts and phase gates | [#39](https://github.com/zo-ll/forma/pull/39) |
 | #5 | Calendar context and explicit load conventions | [#41](https://github.com/zo-ll/forma/pull/41) |
+| #6 | Metadata, deletion, and persisted workout sessions | [#42](https://github.com/zo-ll/forma/pull/42) |
 
-The merged baseline has 27 required tasks left and four separate later enhancements.
-Issue #6 reduces that count only after its reviewed merge.
+The merged implementation baseline has 26 required tasks left and four separate later enhancements.
 Android storage, screens, backup, statistics, nutrition, independent notes, and the assistant remain incomplete.
 
 ## Read first

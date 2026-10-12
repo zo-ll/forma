@@ -6,9 +6,8 @@ This document defines the approved product and its phase gates.
 It does not claim that planned capabilities exist.
 [Issue #1](https://github.com/zo-ll/forma/issues/1) tracks implementation and dependencies.
 
-The merged baseline at `4a9ad06` has the workout core, Node SQLite storage, shared migrations, persistent request receipts, calendar context, and explicit load conventions.
-All 299 tests passed at that baseline.
-The current issue #6 change adds persisted sessions, metadata edits, and whole-workout deletion.
+The merged implementation baseline at `e10eb8d` has the workout core, Node SQLite storage, shared migrations, persistent request receipts, calendar context, explicit load conventions, persisted sessions, metadata edits, and whole-workout deletion.
+All 368 tests passed at that baseline.
 The Android app, nutrition, independent notes, and local assistant do not exist yet.
 Workouts remain the only active implementation module.
 
