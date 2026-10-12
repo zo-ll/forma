@@ -8,7 +8,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
 import type { TestContext } from 'node:test';
 import { openNodeForma, SqliteWorkoutStore } from '@forma/adapters/node';
-import { runSqliteMigrations, SQLITE_MIGRATIONS } from '@forma/adapters/sqlite';
+import { runSqliteMigrations, SCHEMA_VERSION, SQLITE_MIGRATIONS } from '@forma/adapters/sqlite';
 import type { FormaService, Workout, WorkoutWriter } from '@forma/core';
 import { errorCode, TEST_TIME } from './helpers.js';
 import { migrationDriver } from './sqlite-helpers.js';
@@ -94,7 +94,7 @@ test('schema 3 records gain finished state without losing confirmed loads or leg
   assert.deepEqual(await service.workouts.create({ requestId: 'old-create', date: '2024-02-29' }),
     { ...oldWorkout, status: 'finished', finishedAt: null });
   inspect(path, (db) => {
-    assert.equal(db.prepare('PRAGMA user_version').get()?.user_version, 4);
+    assert.equal(db.prepare('PRAGMA user_version').get()?.user_version, SCHEMA_VERSION);
     assert.equal(db.prepare('SELECT input_signature FROM request_receipts').get()?.input_signature, inputSignature);
     assert.equal(db.prepare('SELECT result_json FROM request_receipts').get()?.result_json, resultJson);
   });
@@ -111,10 +111,10 @@ test('failure at the session index rolls back every version 4 schema change and 
     assert.throws(() => runSqliteMigrations({ ...driver, execute: (statement) => {
       if (++statements === 3) throw new Error('Injected index failure');
       return driver.execute(statement);
-    } }, SQLITE_MIGRATIONS), errorCode('STORAGE_FAILURE'));
+    } }, SQLITE_MIGRATIONS.slice(0, 4)), errorCode('STORAGE_FAILURE'));
     assert.equal(driver.getVersion(), 3);
     assert.deepEqual(db.prepare('SELECT * FROM workouts').all(), before);
-    assert.deepEqual(runSqliteMigrations(driver, SQLITE_MIGRATIONS), [4]);
+    assert.deepEqual(runSqliteMigrations(driver, SQLITE_MIGRATIONS.slice(0, 4)), [4]);
   } finally { db.close(); }
 });
 

@@ -1,3 +1,5 @@
+import type { WorkoutHistoryApi } from './workouts/history-types.js';
+
 export interface Exercise {
   readonly id: string;
   readonly name: string;
@@ -111,7 +113,7 @@ export interface SplitDayApi {
   get(splitDayId: string): Promise<SplitDay>;
 }
 
-export interface WorkoutApi {
+export interface WorkoutApi extends WorkoutHistoryApi {
   create(input: CreateWorkoutInput): Promise<Workout>;
   start(input: CreateWorkoutInput): Promise<Workout>;
   inProgress(): Promise<Workout | null>;

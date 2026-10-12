@@ -1,9 +1,9 @@
 import { DatabaseSync } from 'node:sqlite';
 import type { SQLInputValue, SQLOutputValue } from 'node:sqlite';
-import { FormaError, normalizeExerciseAlias, validateSetLoadDetails, validateWorkoutSession } from '@forma/core';
+import { FormaError, normalizeExerciseAlias, validateSetLoadDetails, validateWorkoutSession, WORKOUT_HISTORY_LIMITS } from '@forma/core';
 import type {
   Exercise, ListWorkoutsInput, Workout, SplitDay, WorkoutReader, WorkoutSet,
-  RequestReceipt, SetLoadDetails, WorkoutSessionDetails, WorkoutStore, WorkoutWriter,
+  HistoryStorePage, HistoryStoreQuery, RequestReceipt, SetLoadDetails, WorkoutSessionDetails, WorkoutStore, WorkoutWriter,
 } from '@forma/core';
 import { pendingMigrations, runSqliteMigrations } from '../sqlite/migrations.js';
 import { SQLITE_MIGRATIONS } from '../sqlite/registry.js';
@@ -149,6 +149,15 @@ export class SqliteWorkoutStore implements WorkoutStore {
         this.db.prepare('DELETE FROM workouts WHERE id = ?').run(id);
       },
       listWorkouts: async (input) => { check(); return this.listWorkouts(input); },
+      listHistoryWorkouts: async (input) => { check(); return this.listHistoryWorkouts(input); },
+      getHistoryRevision: async () => {
+        check();
+        const row = this.db.prepare('SELECT revision FROM workout_history_state WHERE id = 1').get();
+        if (!row) throw new FormaError('STORAGE_FAILURE', 'The history revision is missing.');
+        const revision = numberValue(row, 'revision');
+        if (!Number.isSafeInteger(revision) || revision < 0) throw new FormaError('STORAGE_FAILURE', 'Invalid history revision.');
+        return revision;
+      },
       saveWorkout: async (workout) => {
         check();
         if (!writable) throw new FormaError('STORAGE_FAILURE', 'A read transaction cannot save a workout.');
@@ -222,11 +231,16 @@ export class SqliteWorkoutStore implements WorkoutStore {
     return row ? this.splitDayFromRow(row) : null;
   }
 
-  private workoutFromRow(row: Row): Workout {
+  private workoutFromRow(row: Row, bounds?: { exerciseId: string | null; limit: number }): Workout {
     const id = stringValue(row, 'id');
+    const conditions = bounds?.exerciseId == null ? '' : ' AND exercise_id = ?';
+    const limit = bounds === undefined ? '' : ' LIMIT ?';
+    const parameters: SQLInputValue[] = [id];
+    if (bounds?.exerciseId != null) parameters.push(bounds.exerciseId);
+    if (bounds !== undefined) parameters.push(bounds.limit);
     const sets: WorkoutSet[] = this.db.prepare(
-      'SELECT * FROM sets WHERE workout_id = ? ORDER BY position',
-    ).all(id).map((set) => ({
+      'SELECT * FROM sets WHERE workout_id = ?' + conditions + ' ORDER BY position' + limit,
+    ).all(...parameters).map((set) => ({
       id: stringValue(set, 'id'), exerciseId: stringValue(set, 'exercise_id'),
       reps: numberValue(set, 'reps'), weightKg: numberValue(set, 'weight_kg'),
       rpe: nullableNumber(set, 'rpe'), position: numberValue(set, 'position'),
@@ -270,6 +284,42 @@ export class SqliteWorkoutStore implements WorkoutStore {
     return this.db.prepare(
       'SELECT * FROM workouts' + where + ' ORDER BY date DESC, created_at DESC, id ASC',
     ).all(...values).map((row) => this.workoutFromRow(row));
+  }
+
+  private listHistoryWorkouts(input: HistoryStoreQuery): HistoryStorePage {
+    const { filter, after } = input;
+    const conditions: string[] = [];
+    const values: SQLInputValue[] = [];
+    if (filter.dateFrom !== null) { conditions.push('w.date >= ?'); values.push(filter.dateFrom); }
+    if (filter.dateTo !== null) { conditions.push('w.date <= ?'); values.push(filter.dateTo); }
+    if (filter.status !== 'all') { conditions.push('w.status = ?'); values.push(filter.status); }
+    if (filter.exerciseId !== null) {
+      conditions.push('EXISTS (SELECT 1 FROM sets s WHERE s.workout_id = w.id AND s.exercise_id = ?)');
+      values.push(filter.exerciseId);
+    }
+    if (after !== null) {
+      conditions.push('(w.date < ? OR (w.date = ? AND w.created_at < ?) OR (w.date = ? AND w.created_at = ? AND w.id > ?))');
+      values.push(after.date, after.date, after.createdAt, after.date, after.createdAt, after.id);
+    }
+    const where = conditions.length === 0 ? '' : ' WHERE ' + conditions.join(' AND ');
+    values.push(input.limit + 1);
+    const rows = this.db.prepare('SELECT w.* FROM workouts w' + where
+      + ' ORDER BY w.date DESC, w.created_at DESC, w.id ASC LIMIT ?').all(...values);
+    const result: Workout[] = [];
+    let remainingSets = WORKOUT_HISTORY_LIMITS.maxPageSets;
+    for (const row of rows.slice(0, input.limit)) {
+      const workout = this.workoutFromRow(row, {
+        exerciseId: input.sets === 'matching' ? filter.exerciseId : null, limit: remainingSets + 1,
+      });
+      if (workout.sets.length > remainingSets) {
+        throw new FormaError('INVALID_INPUT', 'The query exceeds the 10000-set page budget.', {
+          field: input.sets === 'matching' ? 'dateRange' : 'limit',
+        });
+      }
+      remainingSets -= workout.sets.length;
+      result.push(workout);
+    }
+    return { items: result, hasMore: rows.length > input.limit };
   }
 
   private saveWorkout(workout: Workout): void {

@@ -16,18 +16,19 @@ import { workoutContract } from './workout-contract.js';
 import { requestContract } from './request-contract.js';
 import { loadContract } from './load-contract.js';
 import { sessionContract } from './session-contract.js';
+import { historyContract } from './history-contract.js';
 
 interface SqliteFixture extends Fixture {
   readonly databasePath: string;
   reopen(): Promise<FormaService>;
 }
 
-async function sqliteFixture(t: TestContext): Promise<SqliteFixture> {
+async function sqliteFixture(t: TestContext, ids?: readonly string[]): Promise<SqliteFixture> {
   const directory = await mkdtemp(join(tmpdir(), 'forma-test-'));
   const databasePath = join(directory, 'workouts.sqlite');
   let next = 0;
   const open = (): FormaService => openNodeForma({
-    databasePath, clock: { nowUtc: () => TEST_TIME }, ids: { next: () => 'id-' + ++next },
+    databasePath, clock: { nowUtc: () => TEST_TIME }, ids: { next: () => { const id = ids?.[next]; next++; return id ?? 'id-' + next; } },
   });
   let service: FormaService;
   try { service = open(); }
@@ -51,6 +52,7 @@ workoutContract('Node SQLite adapter', sqliteFixture);
 requestContract('SQLite request receipts', sqliteFixture);
 loadContract('SQLite load contract', sqliteFixture);
 sessionContract('SQLite session contract', sqliteFixture);
+historyContract('SQLite history contract', sqliteFixture);
 
 test('a real SQLite file retains exact records after close and reopen', async (t) => {
   const fixture = await sqliteFixture(t);

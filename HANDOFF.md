@@ -5,8 +5,10 @@
 Issue #5 passed the critic at `93abccc` and merged in [PR #41](https://github.com/zo-ll/forma/pull/41).
 Issue #6 passed the critic at `f2a0e99` and merged in [PR #42](https://github.com/zo-ll/forma/pull/42).
 The implementation baseline is `e10eb8d` on `master`.
-The next task is [#7: paged history and deterministic statistics](https://github.com/zo-ll/forma/issues/7).
-Finalize its pagination and numerical-result DTOs before implementation.
+The current branch implements [#7: paged history and deterministic statistics](https://github.com/zo-ll/forma/issues/7) for the core and Node SQLite.
+The approved DTOs and rules are in [docs/history-contract.md](docs/history-contract.md).
+Follow the exact-head critic gate before merge. Do not close #7 yet: its Android query tests have not run.
+Next implement [#8: Android OP-SQLite storage](https://github.com/zo-ll/forma/issues/8) and run the same history fixtures there.
 
 Current checkout: `/home/az/projects/forma`.
 The old `/home/andrea/personal/forma` and `/home/andrea/personal/fitrag` paths belong to an earlier host.
@@ -24,13 +26,15 @@ Complete:
 - Calendar context and explicit load conventions.
 - Persisted start, resume, finish, and discard, with one in-progress workout.
 - Metadata edits and whole-workout deletion.
+- Bounded history, previous sets, and source-linked statistics on memory and Node SQLite.
 - Atomic writes, rollback, shared migrations, and schema version checks.
 - Persistent request receipts for every workout write command.
 - Full app contracts, phase gates, and a decision register.
 
 Schema version 3 preserves old sets as unknown. Version 4 preserves old workouts as finished historical records with no invented finish timestamp.
 Both upgrades preserve request receipts. Committed in-progress sets survive an abrupt Node process stop.
-The last local verification passed all 368 tests, type checks, and the persistence example.
+Schema version 5 adds persistent history revisions. Record changes invalidate earlier cursors.
+The last local verification passed all 418 tests, type checks, and the persistence example.
 This is not a critic verdict or an Android device result.
 The earlier completed issues passed an independent GLM 5.3 critic review before merge:
 
@@ -43,7 +47,8 @@ The earlier completed issues passed an independent GLM 5.3 critic review before 
 | #6 | Metadata, deletion, and persisted workout sessions | [#42](https://github.com/zo-ll/forma/pull/42) |
 
 The merged implementation baseline has 26 required tasks left and four separate later enhancements.
-Android storage, screens, backup, statistics, nutrition, independent notes, and the assistant remain incomplete.
+Android storage, screens, backup, nutrition, independent notes, and the assistant remain incomplete.
+The Android statistics acceptance check also remains incomplete.
 
 ## Read first
 
@@ -56,7 +61,9 @@ Android storage, screens, backup, statistics, nutrition, independent notes, and 
 ## Ownership and important files
 
 - `packages/core/src/`: domain rules and plain DTOs; no platform imports or runtime dependencies.
-- `packages/core/src/workouts/service.ts`: workout commands and queries.
+- `packages/core/src/workouts/service.ts`: workout API composition and set commands.
+- `packages/core/src/workouts/history.ts`: bounded queries and numerical facts.
+- `tests/fixtures/history-cases.ts`: platform-independent query fixtures for Node and future Android execution.
 - `packages/core/src/requests/service.ts`: shared request identity and replay.
 - `packages/core/src/workouts/results.ts`: saved result validation.
 - `packages/adapters/src/sqlite/`: shared migration registry and synchronous driver contract.
@@ -109,7 +116,14 @@ Discard deletes an in-progress record. Finished records remain editable and dele
 Old records migrate to finished with no invented finish time.
 [ROADMAP.md](ROADMAP.md#approved-workout-session-contract--issue-6) records the full contract.
 
-Before issue #7, define stable pagination, exercise filters, previous-set facts, personal-best rules, and supported volume totals.
+The user approved the issue #7 fact and history rules.
+Use finished workouts, highest comparable load, and most reps at each exact comparable load.
+Do not estimate a one-rep maximum. Volume uses reps per implement for per-hand sets.
+Keep incompatible groups separate and report excluded records. Reject stale cursors and restart.
+[docs/history-contract.md](docs/history-contract.md) records the finalized DTOs and limits.
+
+No device is connected to this host. Android SDK 35 images and writable KVM are available for emulator checks.
+Emulator checks can validate Android storage but cannot satisfy the Nothing Phone (2a) device gate.
 
 `weightKg` stores the entered load in kilograms.
 The service never infers combined load or adds body weight.

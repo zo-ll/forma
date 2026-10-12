@@ -4,6 +4,20 @@ Forma records workouts and their explicitly confirmed meaning.
 
 ## Language
 
+**Previous sets**:
+The sets for an exercise in the latest finished workout before a specified workout date.
+
+**Best load**:
+The highest comparable recorded load for an exercise within the selected date range.
+It is not an estimated one-rep maximum.
+
+**Best reps at a load**:
+The most recorded repetitions at one exact comparable load within the selected date range.
+
+**Volume**:
+Comparable load multiplied by recorded repetitions, in kilogram-repetitions.
+Per-hand repetitions count repetitions per implement, not an alternating total across both hands.
+
 **In-progress workout**:
 A started workout that the user has not finished or discarded.
 Closing the app does not finish it.
