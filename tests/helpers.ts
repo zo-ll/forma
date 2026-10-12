@@ -81,6 +81,9 @@ export class MemoryWorkoutStore implements WorkoutStore {
 
 export const TEST_TIME = '2026-10-12T09:00:00.000Z';
 
+let request = 0;
+export function nextRequestId(): string { return 'test-request-' + ++request; }
+
 export interface Fixture {
   readonly service: FormaService;
 }

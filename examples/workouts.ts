@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -16,23 +17,26 @@ try {
   console.log('Exercise count:', (await service.exercises.list()).length);
 
   const exercise = await service.exercises.resolveAlias('Incline DB Press');
-  const workout = await service.workouts.create({
-    date: '2026-10-12', splitDayId: 'upper', notes: 'Fictional demonstration workout.',
-  });
-  const first = await service.workouts.addSet({
+  const createCommand = {
+    requestId: randomUUID(), date: '2026-10-12', splitDayId: 'upper', notes: 'Fictional demonstration workout.',
+  };
+  const workout = await service.workouts.create(createCommand);
+  const first = await service.workouts.addSet({ requestId: randomUUID(),
     workoutId: workout.id, exerciseId: exercise.id, reps: 8, weightKg: 20, rpe: 7.5,
   });
-  const second = await service.workouts.addSet({
+  const second = await service.workouts.addSet({ requestId: randomUUID(),
     workoutId: workout.id, exerciseId: exercise.id, reps: 7, weightKg: 20,
   });
-  await service.workouts.updateSet({ workoutId: workout.id, setId: second.id, reps: 8, rpe: 8 });
-  await service.workouts.deleteSet({ workoutId: workout.id, setId: first.id });
+  await service.workouts.updateSet({ requestId: randomUUID(), workoutId: workout.id, setId: second.id, reps: 8, rpe: 8 });
+  await service.workouts.deleteSet({ requestId: randomUUID(), workoutId: workout.id, setId: first.id });
   const beforeClose = await service.workouts.get(workout.id);
   await service.close();
 
   service = openNodeForma({ databasePath });
   const restored = await service.workouts.get(workout.id);
   assert.deepEqual(restored, beforeClose);
+  assert.deepEqual(await service.workouts.create(createCommand), workout);
+  assert.equal((await service.workouts.list()).length, 1);
   assert.equal(restored.sets[0]?.position, 0);
   console.log('Saved workout after reopen:', JSON.stringify(restored, null, 2));
   console.log('Persistence check passed. No app or model was required.');

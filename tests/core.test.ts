@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { readdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createFormaService } from '@forma/core';
-import { MemoryWorkoutStore, memoryFixture, errorCode, TEST_TIME } from './helpers.js';
+import { nextRequestId, MemoryWorkoutStore, memoryFixture, errorCode, TEST_TIME } from './helpers.js';
 import { workoutContract } from './workout-contract.js';
 
 workoutContract('portable core with memory port', memoryFixture);
@@ -34,7 +34,7 @@ test('invalid set input is rejected before the storage port receives a write', a
     store, clock: { nowUtc: () => TEST_TIME }, ids: { next: () => 'id' },
   });
   try {
-    await assert.rejects(service.workouts.addSet({
+    await assert.rejects(service.workouts.addSet({ requestId: nextRequestId(),
       workoutId: 'not-loaded', exerciseId: 'leg-curls', reps: 0, weightKg: 20,
     }), errorCode('INVALID_INPUT', 'reps'));
     assert.equal(store.writes, 0);
@@ -48,10 +48,10 @@ test('injected clock controls audit time but not the explicit workout day', asyn
   let id = 0;
   const service = createFormaService({ store, clock: { nowUtc: () => time }, ids: { next: () => 'id-' + ++id } });
   try {
-    const workout = await service.workouts.create({ date: '2026-10-13' });
+    const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-13' });
     assert.equal(workout.date, '2026-10-13');
     time = '2026-10-13T00:00:01.000Z';
-    await service.workouts.addSet({ workoutId: workout.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20 });
+    await service.workouts.addSet({ requestId: nextRequestId(), workoutId: workout.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20 });
     const updated = await service.workouts.get(workout.id);
     assert.equal(updated.createdAt, '2026-10-12T23:59:59.000Z');
     assert.equal(updated.updatedAt, time);
@@ -62,8 +62,8 @@ test('duplicate generated workout IDs do not replace an existing workout', async
   const store = new MemoryWorkoutStore();
   const service = createFormaService({ store, clock: { nowUtc: () => TEST_TIME }, ids: { next: () => 'same' } });
   try {
-    const first = await service.workouts.create({ date: '2026-10-12' });
-    await assert.rejects(service.workouts.create({ date: '2026-10-11' }), errorCode('CONFLICT', 'id'));
+    const first = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
+    await assert.rejects(service.workouts.create({ requestId: nextRequestId(), date: '2026-10-11' }), errorCode('CONFLICT', 'id'));
     assert.deepEqual(await service.workouts.get(first.id), first);
   } finally { await service.close(); }
 });
@@ -75,9 +75,9 @@ test('duplicate generated set IDs are rejected by the core', async () => {
     store, clock: { nowUtc: () => TEST_TIME }, ids: { next: () => next++ === 0 ? 'workout' : 'same-set' },
   });
   try {
-    const workout = await service.workouts.create({ date: '2026-10-12' });
-    await service.workouts.addSet({ workoutId: workout.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20 });
-    await assert.rejects(service.workouts.addSet({
+    const workout = await service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' });
+    await service.workouts.addSet({ requestId: nextRequestId(), workoutId: workout.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20 });
+    await assert.rejects(service.workouts.addSet({ requestId: nextRequestId(),
       workoutId: workout.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20,
     }), errorCode('CONFLICT', 'id'));
     assert.equal((await service.workouts.get(workout.id)).sets.length, 1);
@@ -94,7 +94,7 @@ test('invalid injected IDs and clock values cannot create records', async () => 
     const store = new MemoryWorkoutStore();
     const service = createFormaService({ store, clock: { nowUtc: () => clock }, ids: { next: () => id } });
     try {
-      await assert.rejects(service.workouts.create({ date: '2026-10-12' }), errorCode('INVALID_INPUT', field));
+      await assert.rejects(service.workouts.create({ requestId: nextRequestId(), date: '2026-10-12' }), errorCode('INVALID_INPUT', field));
       assert.equal(store.workouts.size, 0);
     } finally { await service.close(); }
   }

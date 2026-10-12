@@ -1,4 +1,6 @@
 import { FormaError } from '../errors.js';
+import { withRequest } from '../requests/service.js';
+import { setResult, voidResult, workoutResult } from './results.js';
 import type { Clock, IdGenerator, WorkoutReader, WorkoutStore } from '../ports.js';
 import type { ListWorkoutsInput, Workout, WorkoutApi, WorkoutSet } from '../types.js';
 import {
@@ -27,12 +29,13 @@ export function createWorkoutApi(
   return {
     async create(input) {
       ensureOpen();
-      objectInput(input, ['date', 'splitDayId', 'notes', 'durationMin']);
+      objectInput(input, ['requestId', 'date', 'splitDayId', 'notes', 'durationMin']);
+      const requestId = identifier(input.requestId, 'requestId');
       const date = calendarDate(input.date, 'date');
       const splitDayId = input.splitDayId === undefined ? null : identifier(input.splitDayId, 'splitDayId');
       const notes = input.notes === undefined ? '' : text(input.notes, 'notes');
       const durationMin = input.durationMin === undefined ? null : finiteNumber(input.durationMin, 'durationMin', 0);
-      return store.write(async (writer) => {
+      return withRequest(store, requestId, 'workouts.create', { date, splitDayId, notes, durationMin }, workoutResult, async (writer) => {
         if (splitDayId !== null && !(await writer.getSplitDay(splitDayId))) {
           throw new FormaError('NOT_FOUND', 'The split day does not exist.', { field: 'splitDayId' });
         }
@@ -51,13 +54,14 @@ export function createWorkoutApi(
 
     async addSet(input) {
       ensureOpen();
-      objectInput(input, ['workoutId', 'exerciseId', 'reps', 'weightKg', 'rpe']);
+      objectInput(input, ['requestId', 'workoutId', 'exerciseId', 'reps', 'weightKg', 'rpe']);
+      const requestId = identifier(input.requestId, 'requestId');
       const workoutId = identifier(input.workoutId, 'workoutId');
       const exerciseId = identifier(input.exerciseId, 'exerciseId');
       const reps = repetitions(input.reps);
       const weightKg = finiteNumber(input.weightKg, 'weightKg', 0);
       const rpe = input.rpe === undefined ? null : effort(input.rpe);
-      return store.write(async (writer) => {
+      return withRequest(store, requestId, 'workouts.addSet', { workoutId, exerciseId, reps, weightKg, rpe }, setResult, async (writer) => {
         const workout = await requiredWorkout(writer, workoutId);
         await requiredExercise(writer, exerciseId);
         const id = identifier(ids.next(), 'id');
@@ -78,7 +82,8 @@ export function createWorkoutApi(
 
     async updateSet(input) {
       ensureOpen();
-      objectInput(input, ['workoutId', 'setId', 'exerciseId', 'reps', 'weightKg', 'rpe']);
+      objectInput(input, ['requestId', 'workoutId', 'setId', 'exerciseId', 'reps', 'weightKg', 'rpe']);
+      const requestId = identifier(input.requestId, 'requestId');
       const workoutId = identifier(input.workoutId, 'workoutId');
       const setId = identifier(input.setId, 'setId');
       const exerciseId = input.exerciseId === undefined ? undefined : identifier(input.exerciseId, 'exerciseId');
@@ -88,7 +93,7 @@ export function createWorkoutApi(
       if ([exerciseId, reps, weightKg, rpe].every((value) => value === undefined)) {
         invalid('input', 'A set update must contain at least one changed field.');
       }
-      return store.write(async (writer) => {
+      return withRequest(store, requestId, 'workouts.updateSet', { workoutId, setId, exerciseId, reps, weightKg, rpe }, setResult, async (writer) => {
         const workout = await requiredWorkout(writer, workoutId);
         const current = workout.sets.find((set) => set.id === setId);
         if (!current) throw new FormaError('NOT_FOUND', 'The set does not exist in this workout.', { field: 'setId' });
@@ -110,10 +115,11 @@ export function createWorkoutApi(
 
     async deleteSet(input) {
       ensureOpen();
-      objectInput(input, ['workoutId', 'setId']);
+      objectInput(input, ['requestId', 'workoutId', 'setId']);
+      const requestId = identifier(input.requestId, 'requestId');
       const workoutId = identifier(input.workoutId, 'workoutId');
       const setId = identifier(input.setId, 'setId');
-      return store.write(async (writer) => {
+      return withRequest(store, requestId, 'workouts.deleteSet', { workoutId, setId }, voidResult, async (writer) => {
         const workout = await requiredWorkout(writer, workoutId);
         if (!workout.sets.some((set) => set.id === setId)) {
           throw new FormaError('NOT_FOUND', 'The set does not exist in this workout.', { field: 'setId' });

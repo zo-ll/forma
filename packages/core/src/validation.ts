@@ -24,7 +24,7 @@ export function finiteNumber(value: unknown, field: string, minimum: number): nu
   if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum) {
     invalid(field, field + ' must be a finite number of at least ' + minimum + '.');
   }
-  return value;
+  return value === 0 ? 0 : value;
 }
 
 export function repetitions(value: unknown): number {

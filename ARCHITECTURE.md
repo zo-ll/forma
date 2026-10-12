@@ -2,7 +2,7 @@
 
 ## Ownership
 
-`@forma/core` owns workout validation, exercise resolution, and set order.
+`@forma/core` owns workout validation, exercise resolution, set order, and request replay.
 Its public API uses plain objects, strings, numbers, and promises.
 The core has no runtime package dependencies.
 Its compiler configuration has no Node or DOM types.
@@ -19,6 +19,7 @@ The Node factory provides UTC timestamps and UUIDs by default.
 ## Composition
 
 ```ts
+import { randomUUID } from 'node:crypto';
 import { openNodeForma } from '@forma/adapters/node';
 
 const service = openNodeForma({ databasePath: './workouts.sqlite' });
@@ -26,11 +27,13 @@ const service = openNodeForma({ databasePath: './workouts.sqlite' });
 try {
   const exercise = await service.exercises.resolveAlias('Incline DB Press');
   const workout = await service.workouts.create({
+    requestId: randomUUID(),
     date: '2026-10-12',
     splitDayId: 'upper',
   });
 
   await service.workouts.addSet({
+    requestId: randomUUID(),
     workoutId: workout.id,
     exerciseId: exercise.id,
     reps: 8,
@@ -62,10 +65,10 @@ The core does not need a server or an HTTP connection.
 | `exercises.resolveAlias(alias)` | One exercise |
 | `splitDays.list()` | The three split days, in catalog order |
 | `splitDays.get(splitDayId)` | One split day, with ordered exercise IDs |
-| `workouts.create({ date, splitDayId?, notes?, durationMin? })` | A workout with no sets |
-| `workouts.addSet({ workoutId, exerciseId, reps, weightKg, rpe? })` | The new set |
-| `workouts.updateSet({ workoutId, setId, exerciseId?, reps?, weightKg?, rpe? })` | The updated set |
-| `workouts.deleteSet({ workoutId, setId })` | No value |
+| `workouts.create({ requestId, date, splitDayId?, notes?, durationMin? })` | A workout with no sets |
+| `workouts.addSet({ requestId, workoutId, exerciseId, reps, weightKg, rpe? })` | The new set |
+| `workouts.updateSet({ requestId, workoutId, setId, exerciseId?, reps?, weightKg?, rpe? })` | The updated set |
+| `workouts.deleteSet({ requestId, workoutId, setId })` | No value |
 | `workouts.get(workoutId)` | A workout with ordered sets |
 | `workouts.list({ dateFrom?, dateTo? }?)` | Complete workouts, newest date first |
 | `close()` | No value |
@@ -77,6 +80,33 @@ The core does not guess an exercise from a general word such as `bench`.
 
 A split day suggests exercises. It does not restrict the exercises in a workout.
 The catalog remains read-only in this milestone.
+
+## Repeated writes
+
+Every write requires a nonempty `requestId` with valid Unicode and no outer whitespace.
+Each client creates one `requestId` per intended command.
+Before a write, save its `requestId` with the pending command.
+Use the same `requestId` and input for every retry.
+Use a new `requestId` for a new command.
+
+The core compares normalized inputs, not object property order.
+The receipt and record change share one transaction.
+A repeated command returns its original result snapshot, not the current record.
+Use `workouts.get()` for the current record.
+A different input or operation with the same key produces `CONFLICT` with field `requestId`.
+Input validation occurs before receipt lookup.
+
+A failed transaction leaves no successful receipt.
+Receipts survive close and reopen.
+The store never expires receipts automatically.
+Receipts retain input signatures and result snapshots, including data from deleted sets.
+History APIs read primary records, not receipt snapshots.
+
+`RequestReader` and `RequestWriter` define shared receipt capabilities.
+`withRequest()` accepts each module's writer, normalized input, and synchronous result codec.
+The core validates saved results before it returns them.
+A malformed result produces `STORAGE_FAILURE` without another record change.
+Future API changes must preserve supported receipt formats or provide an explicit upgrade.
 
 ## Record rules
 
@@ -110,6 +140,7 @@ The adapter maps these names to `SplitDay` and `splitDayId`.
 `@forma/adapters/sqlite` exports platform-independent migrations and a synchronous driver contract.
 The Node adapter supplies the driver. A future Android adapter can use `executeSync` for the same contract.
 The registry contains consecutive versions, starting at 1. Each item contains one complete SQL statement.
+
 The runner applies every pending version in one transaction and rechecks the version after it acquires the write lock.
 A failure rolls back both schema changes and the version marker.
 
@@ -122,7 +153,7 @@ A callback must not start another operation on the same store.
 
 The Node adapter serializes operations on its connection.
 Concurrent commands through one service cannot overwrite each other's sets.
-A failed write rolls back the workout and its sets.
+A failed write rolls back the workout, its sets, and its request receipt.
 The adapter prevents duplicate set IDs across workouts.
 Transaction views expire after their callback returns.
 
@@ -143,7 +174,7 @@ Repeated calls to `close()` use the same promise.
 | --- | --- |
 | `INVALID_INPUT` | The request violates a record rule |
 | `NOT_FOUND` | A record or alias does not exist |
-| `CONFLICT` | An ID or unique value already exists |
+| `CONFLICT` | An ID already exists, or a request key identifies different input |
 | `SERVICE_CLOSED` | The service or store no longer accepts operations |
 | `STORAGE_FAILURE` | Storage cannot complete the operation |
 
@@ -163,7 +194,7 @@ The tests check the catalog, validation, set operations, history, and lifecycle.
 
 Additional SQLite tests check:
 
-- Exact records after close and reopen.
+- Exact records and request receipts after close and reopen.
 - Atomic rollback after a failed save or callback.
 - Concurrent write commands and close.
 - Duplicate IDs and expired transaction views.

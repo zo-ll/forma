@@ -16,6 +16,7 @@ The service can:
 - Add, edit, and delete sets.
 - Retrieve workouts and filter history by date.
 - Preserve records after the database closes and reopens.
+- Replay successful write commands without duplicate changes, including after restart.
 
 The core does not use React, Expo, a SQLite driver, or a model.
 
@@ -42,15 +43,27 @@ Use Node 24 or later. The Node SQLite API still has experimental status.
    ```
 
 The example creates fictional records in a temporary SQLite file.
-It edits and deletes sets, closes the service, and verifies the records after reopen.
+It edits and deletes sets, closes the service, and verifies the records and request replay after reopen.
 It removes the temporary database after the check.
 
 Use `npm run typecheck` to check the types.
 This command also emits the libraries and their type declarations.
 
+## Repeated writes
+
+Every write requires a `requestId`.
+Before a write, save its `requestId` and input.
+Reuse both values for every retry of that command.
+A new command requires a new `requestId`.
+
+A repeated command returns its original result, not the current record.
+A different input with the same key produces `CONFLICT`.
+The client must retrieve the record if it needs the current state.
+
 ## Packages
 
 - [`@forma/core`](packages/core/src/index.ts) owns the domain rules and public API.
+- [`@forma/adapters/sqlite`](packages/adapters/src/sqlite/index.ts) exports shared migrations and the synchronous driver contract.
 - [`@forma/adapters/node`](packages/adapters/src/node/index.ts) implements the storage port and constructs the Node service.
 - [`examples/workouts.ts`](examples/workouts.ts) acts as a client of the service.
 - [`tests/`](tests/) checks the same behavior with memory and SQLite adapters.
@@ -66,8 +79,8 @@ Read [SPEC.md](SPEC.md) for the current scope and exercise catalog.
 This milestone has no mobile UI, Android adapter, nutrition module, or inference.
 The catalog has no edit API.
 History lists have no pagination.
-Write commands have no request ID for duplicate prevention.
-Clients must not automatically retry write commands.
+Request receipts have no automatic expiration.
+They can retain input and result data from deleted sets.
 SQLite files contain unencrypted data.
 
 ## Separate validation app
