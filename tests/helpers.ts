@@ -2,11 +2,12 @@ import {
   createFormaService, DEFAULT_EXERCISES, DEFAULT_SPLIT_DAYS,
   FormaError, normalizeExerciseAlias,
 } from '@forma/core';
-import type { FormaService, Workout, WorkoutReader, WorkoutStore, WorkoutWriter } from '@forma/core';
+import type { FormaService, RequestReceipt, Workout, WorkoutReader, WorkoutStore, WorkoutWriter } from '@forma/core';
 import type { TestContext } from 'node:test';
 
 export class MemoryWorkoutStore implements WorkoutStore {
   readonly workouts = new Map<string, Workout>();
+  readonly receipts = new Map<string, RequestReceipt>();
   writes = 0;
   saves = 0;
   closeCalls = 0;
@@ -23,6 +24,11 @@ export class MemoryWorkoutStore implements WorkoutStore {
       ) ?? null),
       listSplitDays: async () => structuredClone(DEFAULT_SPLIT_DAYS),
       getSplitDay: async (id) => structuredClone(DEFAULT_SPLIT_DAYS.find((splitDay) => splitDay.id === id) ?? null),
+      getRequestReceipt: async (id) => structuredClone(this.receipts.get(id) ?? null),
+      saveRequestReceipt: async (receipt) => {
+        if (this.receipts.has(receipt.requestId)) throw new FormaError('CONFLICT', 'The request receipt already exists.');
+        this.receipts.set(receipt.requestId, structuredClone(receipt));
+      },
       getWorkout: async (id) => structuredClone(this.workouts.get(id) ?? null),
       listWorkouts: async (input) => structuredClone([...this.workouts.values()]
         .filter((workout) => (input.dateFrom === undefined || workout.date >= input.dateFrom)
@@ -50,11 +56,14 @@ export class MemoryWorkoutStore implements WorkoutStore {
     return this.enqueue(async () => {
       this.writes++;
       const before = structuredClone(this.workouts);
+      const beforeReceipts = structuredClone(this.receipts);
       try {
         return await run(this.view());
       } catch (cause) {
         this.workouts.clear();
         for (const [id, workout] of before) this.workouts.set(id, workout);
+        this.receipts.clear();
+        for (const [id, receipt] of beforeReceipts) this.receipts.set(id, receipt);
         throw cause;
       }
     });

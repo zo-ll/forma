@@ -136,7 +136,9 @@ The SQLite schema has these tables:
 - `sets`
 
 The adapter owns table names, row conversion, and migrations.
-The initial schema has version 1 in `PRAGMA user_version`.
+The initial workout schema has version 1 in `PRAGMA user_version`.
+Version 2 adds a shared table for command receipts.
+
 The adapter keeps the original table names and the `group_id` column for compatibility.
 The public API uses `SplitDay`, `splitDays`, and `splitDayId`.
 The initial migration inserts the catalog once.

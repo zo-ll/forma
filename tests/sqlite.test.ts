@@ -7,6 +7,8 @@ import { test } from 'node:test';
 import type { TestContext } from 'node:test';
 import { openNodeForma, SqliteWorkoutStore } from '@forma/adapters/node';
 import { createFormaService } from '@forma/core';
+import { runSqliteMigrations, SCHEMA_VERSION, SQLITE_MIGRATIONS } from '@forma/adapters/sqlite';
+import { migrationDriver } from './sqlite-helpers.js';
 import type { FormaService, WorkoutWriter } from '@forma/core';
 import { errorCode, TEST_TIME } from './helpers.js';
 import type { Fixture } from './helpers.js';
@@ -64,11 +66,13 @@ test('a real SQLite file retains exact records after close and reopen', async (t
   assert.equal((await reopened.splitDays.get('lower')).exerciseIds.length, 6);
 });
 
-test('existing version 1 records map group_id to splitDayId without a migration', async (t) => {
-  const fixture = await sqliteFixture(t);
-  await fixture.service.close();
-  const db = new DatabaseSync(fixture.databasePath);
+test('existing version 1 records retain group_id through the receipt migration', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'forma-v1-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const databasePath = join(directory, 'workouts.sqlite');
+  const db = new DatabaseSync(databasePath);
   try {
+    runSqliteMigrations(migrationDriver(db), SQLITE_MIGRATIONS.slice(0, 1));
     assert.equal(db.prepare('PRAGMA user_version').get()?.user_version, 1);
     db.prepare(
       'INSERT INTO workouts (id, date, group_id, notes, duration_min, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -78,7 +82,8 @@ test('existing version 1 records map group_id to splitDayId without a migration'
     ).run('existing-set', 'existing-workout', 'leg-curls', 10, 20.5, 8, 0);
   } finally { db.close(); }
 
-  const service = await fixture.reopen();
+  const service = openNodeForma({ databasePath, clock: { nowUtc: () => TEST_TIME } });
+  t.after(() => service.close());
   const workout = await service.workouts.get('existing-workout');
   assert.deepEqual(workout, {
     id: 'existing-workout', date: '2026-10-12', splitDayId: 'lower',
@@ -88,11 +93,11 @@ test('existing version 1 records map group_id to splitDayId without a migration'
   assert.equal(Object.hasOwn(workout, 'groupId'), false);
   assert.equal((await service.splitDays.get('lower')).exerciseIds.length, 6);
   await service.workouts.updateSet({ workoutId: workout.id, setId: 'existing-set', weightKg: 25.5 });
-  await fixture.service.close();
+  await service.close();
 
-  const check = new DatabaseSync(fixture.databasePath);
+  const check = new DatabaseSync(databasePath);
   try {
-    assert.equal(check.prepare('PRAGMA user_version').get()?.user_version, 1);
+    assert.equal(check.prepare('PRAGMA user_version').get()?.user_version, SCHEMA_VERSION);
     assert.equal(check.prepare('SELECT group_id FROM workouts WHERE id = ?').get(workout.id)?.group_id, 'lower');
     assert.equal(check.prepare('SELECT weight_kg FROM sets WHERE id = ?').get('existing-set')?.weight_kg, 25.5);
   } finally { check.close(); }
@@ -104,7 +109,7 @@ test('catalog and schema initialization do not duplicate records on reopen', asy
   await fixture.reopen();
   const db = new DatabaseSync(fixture.databasePath);
   try {
-    assert.equal(db.prepare('PRAGMA user_version').get()?.user_version, 1);
+    assert.equal(db.prepare('PRAGMA user_version').get()?.user_version, SCHEMA_VERSION);
     assert.equal(db.prepare('SELECT count(*) AS count FROM exercises').get()?.count, 19);
     assert.equal(db.prepare('SELECT count(*) AS count FROM workout_groups').get()?.count, 3);
     assert.equal(db.prepare('SELECT count(*) AS count FROM workout_group_exercises').get()?.count, 20);

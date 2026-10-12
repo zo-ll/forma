@@ -10,21 +10,9 @@ import { pendingMigrations, runSqliteMigrations, SCHEMA_VERSION, SQLITE_MIGRATIO
 import type { MigrationDriver, SqliteMigration } from '@forma/adapters/sqlite';
 import { FormaError } from '@forma/core';
 import { errorCode, TEST_TIME } from './helpers.js';
+import { migrationDriver as driverFor } from './sqlite-helpers.js';
 
-function driverFor(db: DatabaseSync): MigrationDriver {
-  return {
-    getVersion: () => Number(db.prepare('PRAGMA user_version').get()?.user_version),
-    beginImmediate: () => { db.exec('BEGIN IMMEDIATE'); return undefined; },
-    execute: (statement) => {
-      if (statement.parameters === undefined) db.exec(statement.sql);
-      else db.prepare(statement.sql).run(...statement.parameters);
-      return undefined;
-    },
-    setVersion: (version) => { db.exec('PRAGMA user_version = ' + version); return undefined; },
-    commit: () => { db.exec('COMMIT'); return undefined; },
-    rollback: () => { db.exec('ROLLBACK'); return undefined; },
-  };
-}
+const initial = SQLITE_MIGRATIONS.slice(0, 1);
 
 function database(t: TestContext): DatabaseSync {
   const db = new DatabaseSync(':memory:');
@@ -43,7 +31,7 @@ const version3: SqliteMigration = {
   version: 3, name: 'Extend preferences',
   statements: [{ sql: 'ALTER TABLE preferences ADD COLUMN confirmed INTEGER NOT NULL DEFAULT 0' }],
 };
-const future = [...SQLITE_MIGRATIONS, version2, version3];
+const future = [...initial, version2, version3];
 
 function primaryData(db: DatabaseSync): unknown {
   return ['exercises', 'exercise_aliases', 'workout_groups', 'workout_group_exercises', 'workouts', 'sets']
@@ -74,7 +62,7 @@ test('the released version 1 migration and catalog have a fixed digest', () => {
 });
 
 test('the shared SQLite entry point has no platform imports', async () => {
-  for (const file of ['index.ts', 'migrations.ts', 'registry.ts', 'schema.ts']) {
+  for (const file of ['index.ts', 'migrations.ts', 'registry.ts', 'schema.ts', 'schema-v2.ts']) {
     const source = await readFile('packages/adapters/src/sqlite/' + file, 'utf8');
     for (const match of source.matchAll(/(?:from|import)\s*(?:\(\s*)?['"]([^'"]+)['"]/gu)) {
       assert(match[1]?.startsWith('.') || match[1] === '@forma/core', 'Unexpected platform import: ' + match[1]);
@@ -90,7 +78,7 @@ test('migration drivers reject asynchronous operations at compile time', () => {
 
 test('an empty database receives the initial catalog and one version marker', (t) => {
   const db = database(t);
-  assert.deepEqual(runSqliteMigrations(driverFor(db), SQLITE_MIGRATIONS), [1]);
+  assert.deepEqual(runSqliteMigrations(driverFor(db), initial), [1]);
   assert.equal(driverFor(db).getVersion(), 1);
   assert.equal(db.prepare('SELECT count(*) AS count FROM exercises').get()?.count, 19);
   assert.equal(db.prepare('SELECT count(*) AS count FROM workout_groups').get()?.count, 3);
@@ -107,7 +95,7 @@ test('the registry works with a binding that executes one prepared statement at 
       return undefined;
     },
   }, SQLITE_MIGRATIONS);
-  assert.equal(driver.getVersion(), 1);
+  assert.equal(driver.getVersion(), SCHEMA_VERSION);
   assert.equal(db.prepare('SELECT count(*) AS count FROM exercises').get()?.count, 19);
   assert.equal(db.prepare('SELECT count(*) AS count FROM workout_group_exercises').get()?.count, 20);
 });
@@ -115,7 +103,7 @@ test('the registry works with a binding that executes one prepared statement at 
 test('several new versions apply in order without a catalog reset', (t) => {
   const db = database(t);
   const driver = driverFor(db);
-  runSqliteMigrations(driver, SQLITE_MIGRATIONS);
+  runSqliteMigrations(driver, initial);
   addPersonalRecords(db);
   const before = primaryData(db);
   assert.deepEqual(runSqliteMigrations(driver, future), [2, 3]);
@@ -128,7 +116,7 @@ test('several new versions apply in order without a catalog reset', (t) => {
 test('an up-to-date database does not start a transaction or execute SQL', (t) => {
   const db = database(t);
   const driver = driverFor(db);
-  runSqliteMigrations(driver, SQLITE_MIGRATIONS);
+  runSqliteMigrations(driver, initial);
   const before = primaryData(db);
   const guarded: MigrationDriver = {
     ...driver,
@@ -136,14 +124,14 @@ test('an up-to-date database does not start a transaction or execute SQL', (t) =
     execute: () => { assert.fail('Unexpected SQL'); },
     setVersion: () => { assert.fail('Unexpected version change'); },
   };
-  assert.deepEqual(runSqliteMigrations(guarded, SQLITE_MIGRATIONS), []);
+  assert.deepEqual(runSqliteMigrations(guarded, initial), []);
   assert.deepEqual(primaryData(db), before);
 });
 
 test('a failure in a later version rolls back every pending version on a new database', (t) => {
   const db = database(t);
   const failed: SqliteMigration = { version: 3, name: 'Failure', statements: [{ sql: 'INVALID SQL' }] };
-  assert.throws(() => runSqliteMigrations(driverFor(db), [...SQLITE_MIGRATIONS, version2, failed]), errorCode('STORAGE_FAILURE'));
+  assert.throws(() => runSqliteMigrations(driverFor(db), [...initial, version2, failed]), errorCode('STORAGE_FAILURE'));
   assert.equal(driverFor(db).getVersion(), 0);
   assert.equal(db.prepare("SELECT count(*) AS count FROM sqlite_master WHERE type = 'table'").get()?.count, 0);
   assert.deepEqual(runSqliteMigrations(driverFor(db), future), [1, 2, 3]);
@@ -152,11 +140,11 @@ test('a failure in a later version rolls back every pending version on a new dat
 test('a failed upgrade retains the old schema, personal records, and version', (t) => {
   const db = database(t);
   const driver = driverFor(db);
-  runSqliteMigrations(driver, SQLITE_MIGRATIONS);
+  runSqliteMigrations(driver, initial);
   addPersonalRecords(db);
   const before = primaryData(db);
   const failed: SqliteMigration = { version: 3, name: 'Failure', statements: [{ sql: 'INSERT INTO missing_table VALUES (1)' }] };
-  assert.throws(() => runSqliteMigrations(driver, [...SQLITE_MIGRATIONS, version2, failed]), errorCode('STORAGE_FAILURE'));
+  assert.throws(() => runSqliteMigrations(driver, [...initial, version2, failed]), errorCode('STORAGE_FAILURE'));
   assert.equal(driver.getVersion(), 1);
   assert.equal(db.prepare("SELECT count(*) AS count FROM sqlite_master WHERE name = 'preferences'").get()?.count, 0);
   assert.deepEqual(primaryData(db), before);
@@ -176,7 +164,7 @@ test('a newer schema fails before any database write', (t) => {
     execute: () => { assert.fail('Unexpected SQL'); },
     setVersion: () => { assert.fail('Unexpected version change'); },
   };
-  assert.throws(() => runSqliteMigrations(guarded, SQLITE_MIGRATIONS), errorCode('STORAGE_FAILURE'));
+  assert.throws(() => runSqliteMigrations(guarded, initial), errorCode('STORAGE_FAILURE'));
   assert.equal(driver.getVersion(), 3);
   assert.deepEqual(primaryData(db), before);
 });
@@ -195,20 +183,20 @@ for (const versions of [[0], [2], [1, 1], [1, 3], [2, 1], [1.5], [NaN]]) {
 
 for (const version of [-1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
   test('invalid current version ' + String(version) + ' has a typed error', () => {
-    assert.throws(() => pendingMigrations(version, SQLITE_MIGRATIONS), errorCode('STORAGE_FAILURE'));
+    assert.throws(() => pendingMigrations(version, initial), errorCode('STORAGE_FAILURE'));
   });
 }
 
 test('the runner rechecks the version after the write lock', (t) => {
   const db = database(t);
   const driver = driverFor(db);
-  runSqliteMigrations(driver, SQLITE_MIGRATIONS);
+  runSqliteMigrations(driver, initial);
   let reads = 0;
   assert.deepEqual(runSqliteMigrations({
     ...driver,
     getVersion: () => ++reads === 1 ? 0 : driver.getVersion(),
     execute: () => { assert.fail('The initial migration must not run twice'); },
-  }, SQLITE_MIGRATIONS), []);
+  }, initial), []);
   assert.equal(reads, 2);
   assert.equal(driver.getVersion(), 1);
 });
@@ -223,7 +211,7 @@ test('a future version after lock acquisition causes rollback before migration S
     getVersion: () => ++reads === 1 ? 0 : 2,
     execute: () => { assert.fail('Unexpected SQL'); },
     rollback: () => { rollbacks++; driver.rollback(); return undefined; },
-  }, SQLITE_MIGRATIONS), errorCode('STORAGE_FAILURE'));
+  }, initial), errorCode('STORAGE_FAILURE'));
   assert.equal(rollbacks, 1);
 });
 
@@ -234,7 +222,7 @@ test('a begin failure preserves its cause without an unnecessary rollback', (t) 
     ...driverFor(db),
     beginImmediate: () => { throw cause; },
     rollback: () => { assert.fail('No transaction started'); },
-  }, SQLITE_MIGRATIONS), (error: unknown) => error instanceof FormaError && error.cause === cause);
+  }, initial), (error: unknown) => error instanceof FormaError && error.cause === cause);
 });
 
 test('a commit failure rolls back schema and the version marker', (t) => {
@@ -242,7 +230,7 @@ test('a commit failure rolls back schema and the version marker', (t) => {
   const cause = new Error('Simulated commit failure');
   assert.throws(() => runSqliteMigrations({
     ...driverFor(db), commit: () => { throw cause; },
-  }, SQLITE_MIGRATIONS), (error: unknown) => error instanceof FormaError && error.cause === cause);
+  }, initial), (error: unknown) => error instanceof FormaError && error.cause === cause);
   assert.equal(driverFor(db).getVersion(), 0);
   assert.equal(db.prepare("SELECT count(*) AS count FROM sqlite_master WHERE type = 'table'").get()?.count, 0);
 });
@@ -255,7 +243,7 @@ test('a rollback failure does not replace the original migration error', (t) => 
     ...driver,
     execute: () => { throw cause; },
     rollback: () => { driver.rollback(); throw new Error('Secondary failure'); },
-  }, SQLITE_MIGRATIONS), (error: unknown) => error instanceof FormaError && error.cause === cause);
+  }, initial), (error: unknown) => error instanceof FormaError && error.cause === cause);
 });
 
 test('upgraded records survive close and reopen without another migration', async (t) => {
@@ -265,7 +253,7 @@ test('upgraded records survive close and reopen without another migration', asyn
   const first = new DatabaseSync(path);
   let before: unknown;
   try {
-    runSqliteMigrations(driverFor(first), SQLITE_MIGRATIONS);
+    runSqliteMigrations(driverFor(first), initial);
     addPersonalRecords(first);
     before = primaryData(first);
     runSqliteMigrations(driverFor(first), future);

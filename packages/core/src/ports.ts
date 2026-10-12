@@ -8,7 +8,24 @@ export interface IdGenerator {
   next(): string;
 }
 
-export interface WorkoutReader {
+/** The receipt format covers the normalized input signature and original result. */
+export interface RequestReceipt {
+  readonly requestId: string;
+  readonly operation: string;
+  readonly inputSignature: string;
+  readonly resultJson: string;
+  readonly formatVersion: 1;
+}
+
+export interface RequestReader {
+  getRequestReceipt(requestId: string): Promise<RequestReceipt | null>;
+}
+
+export interface RequestWriter extends RequestReader {
+  saveRequestReceipt(receipt: RequestReceipt): Promise<void>;
+}
+
+export interface WorkoutReader extends RequestReader {
   listExercises(): Promise<readonly Exercise[]>;
   getExercise(exerciseId: string): Promise<Exercise | null>;
   findExerciseByAlias(normalizedAlias: string): Promise<Exercise | null>;
@@ -18,7 +35,7 @@ export interface WorkoutReader {
   listWorkouts(input: ListWorkoutsInput): Promise<readonly Workout[]>;
 }
 
-export interface WorkoutWriter extends WorkoutReader {
+export interface WorkoutWriter extends WorkoutReader, RequestWriter {
   saveWorkout(workout: Workout): Promise<void>;
 }
 
