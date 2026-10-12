@@ -8,7 +8,8 @@ Product work remains paused at the user's request.
 The next task is [#5: calendar context and load conventions](https://github.com/zo-ll/forma/issues/5) when the user resumes work.
 
 Current checkout: `/home/andrea/personal/forma`.
-The old `/home/andrea/personal/fitrag` path no longer exists.
+The old `/home/andrea/personal/fitrag` path is not the repository.
+An old session can create a temporary bridge directory there.
 Start a new session in the current checkout.
 
 ## Current state
