@@ -64,6 +64,40 @@ test('a real SQLite file retains exact records after close and reopen', async (t
   assert.equal((await reopened.splitDays.get('lower')).exerciseIds.length, 6);
 });
 
+test('existing version 1 records map group_id to splitDayId without a migration', async (t) => {
+  const fixture = await sqliteFixture(t);
+  await fixture.service.close();
+  const db = new DatabaseSync(fixture.databasePath);
+  try {
+    assert.equal(db.prepare('PRAGMA user_version').get()?.user_version, 1);
+    db.prepare(
+      'INSERT INTO workouts (id, date, group_id, notes, duration_min, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    ).run('existing-workout', '2026-10-12', 'lower', 'Existing workout', 40, TEST_TIME, TEST_TIME);
+    db.prepare(
+      'INSERT INTO sets (id, workout_id, exercise_id, reps, weight_kg, rpe, position) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    ).run('existing-set', 'existing-workout', 'leg-curls', 10, 20.5, 8, 0);
+  } finally { db.close(); }
+
+  const service = await fixture.reopen();
+  const workout = await service.workouts.get('existing-workout');
+  assert.deepEqual(workout, {
+    id: 'existing-workout', date: '2026-10-12', splitDayId: 'lower',
+    notes: 'Existing workout', durationMin: 40, createdAt: TEST_TIME, updatedAt: TEST_TIME,
+    sets: [{ id: 'existing-set', exerciseId: 'leg-curls', reps: 10, weightKg: 20.5, rpe: 8, position: 0 }],
+  });
+  assert.equal(Object.hasOwn(workout, 'groupId'), false);
+  assert.equal((await service.splitDays.get('lower')).exerciseIds.length, 6);
+  await service.workouts.updateSet({ workoutId: workout.id, setId: 'existing-set', weightKg: 25.5 });
+  await fixture.service.close();
+
+  const check = new DatabaseSync(fixture.databasePath);
+  try {
+    assert.equal(check.prepare('PRAGMA user_version').get()?.user_version, 1);
+    assert.equal(check.prepare('SELECT group_id FROM workouts WHERE id = ?').get(workout.id)?.group_id, 'lower');
+    assert.equal(check.prepare('SELECT weight_kg FROM sets WHERE id = ?').get('existing-set')?.weight_kg, 25.5);
+  } finally { check.close(); }
+});
+
 test('catalog and schema initialization do not duplicate records on reopen', async (t) => {
   const fixture = await sqliteFixture(t);
   await fixture.reopen();

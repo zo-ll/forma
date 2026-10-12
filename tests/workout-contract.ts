@@ -29,6 +29,14 @@ export function workoutContract(
     assert.equal((await service.splitDays.get('arms-shoulders')).exerciseIds.length, 7);
   });
 
+  check('the public API uses split day names and rejects the old groupId field', async (service) => {
+    assert.equal(Object.hasOwn(service, 'groups'), false);
+    assert.equal(Object.hasOwn(service, 'splitDays'), true);
+    const input = { date: '2026-10-12', groupId: 'upper' } as unknown as CreateWorkoutInput;
+    await assert.rejects(service.workouts.create(input), errorCode('INVALID_INPUT', 'groupId'));
+    assert.deepEqual(await service.workouts.list(), []);
+  });
+
   check('Triceps Pushdowns shares one exercise ID across split days', async (service) => {
     const exercises = await service.exercises.list();
     assert.equal(exercises.filter((exercise) => exercise.name === 'Triceps Pushdowns').length, 1);
