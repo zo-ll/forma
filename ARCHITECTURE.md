@@ -253,7 +253,11 @@ Android filenames are bounded sandbox names, not paths.
 A runtime-global name registry rejects duplicate owners and survives Fast Refresh/module copies.
 Ownership ends only after accepted work drains and native close succeeds.
 An unknown close state keeps ownership until runtime restart. Startup failures close the handle and release ownership when closure succeeds.
-Only SQLite extended codes 1555/2067 map to CONFLICT. Other native errors map to STORAGE_FAILURE; existing FormaError values retain their codes.
+SQLite extended codes 1555/2067 map to CONFLICT when present.
+Published OP-SQLite 18.2.5 provides message-only native errors, unlike newer upstream code.
+For that binding, only exact vendor-prefixed UNIQUE messages for known Forma columns map to CONFLICT.
+CHECK, foreign-key, unrelated, and unprefixed failures remain STORAGE_FAILURE. A non-unique extended code disables the fallback.
+Existing FormaError values retain their codes.
 
 Portable package exports have explicit React Native conditions.
 The standalone ARM64 test host embeds a release bundle and verifies its module graph.

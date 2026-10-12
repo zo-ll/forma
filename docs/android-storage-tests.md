@@ -55,7 +55,9 @@ Node binding simulations and an APK build do not satisfy them.
 ## Current state
 
 The release APK build passed. Its mobile graph had 558 source entries and used OP-SQLite's native `lib/module` entry.
-No connected phone or emulator has executed the cases yet.
+The connected Nothing Phone (2a), A142, Android 16/API 36, passed all 132 shared service/history cases and three diagnostics at `903b6b9`.
+The next diagnostic failed on message-only native errors. The compatibility fix and full rerun remain pending.
+The APK update currently needs investigation of a possible phone-side installation/security prompt.
 Issues #7 and #8 remain open. No workout UI/device gate #14 approval is implied.
 Rebuild after any source change before recording final exact-head device evidence.
 

@@ -11,7 +11,8 @@ const host = resolve(process.env.FORMA_ANDROID_TEST_HOST ?? join(tmpdir(), 'form
 const packageName = 'dev.forma.storage.fixturehost';
 const command = process.argv[2];
 function run(executable, args, cwd = root) {
-  const result = spawnSync(executable, args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 30 * 1024 * 1024 });
+  const result = spawnSync(executable, args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 30 * 1024 * 1024,
+    timeout: executable === 'adb' ? (args.includes('install') ? 120000 : 15000) : undefined });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(executable + ' exited ' + result.status + '\n' + result.stdout + result.stderr);
   return result.stdout;
@@ -117,7 +118,7 @@ async function deviceRun() {
   const adb = (args) => run('adb', ['-s', device, ...args]);
   const apk = join(host, 'android/app/build/outputs/apk/release/app-release.apk');
   if (!existsSync(apk)) throw new Error('Build the test APK first.');
-  const probe = spawnSync('adb', ['-s', device, 'shell', 'pm', 'path', packageName], { encoding: 'utf8' });
+  const probe = spawnSync('adb', ['-s', device, 'shell', 'pm', 'path', packageName], { encoding: 'utf8', timeout: 15000 });
   if (probe.error) throw probe.error;
   // Android pm returns 1 with empty output when the package is absent.
   if (probe.status !== 0 && !(probe.status === 1 && !probe.stdout.trim() && !probe.stderr.trim())) {

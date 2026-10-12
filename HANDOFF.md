@@ -37,7 +37,7 @@ Complete:
 Schema version 3 preserves old sets as unknown. Version 4 preserves old workouts as finished historical records with no invented finish timestamp.
 Both upgrades preserve request receipts. Committed in-progress sets survive an abrupt Node process stop.
 Schema version 5 adds persistent history revisions. Record changes invalidate earlier cursors.
-The current Node suite passes 581 tests (including binding simulations, not Android verification).
+The current Node suite passes 582 tests (including binding simulations, not Android verification).
 The last full merged-baseline verification passed all 418 tests, type checks, and the persistence example.
 This is not a critic verdict or an Android device result.
 The earlier completed issues passed an independent GLM 5.3 critic review before merge:
@@ -133,7 +133,12 @@ Keep incompatible groups separate and report excluded records. Reject stale curs
 The user's Nothing Phone (2a), model A142, is now connected through wireless ADB.
 It runs Android 16/API 36 on ARM64. The connection endpoint is temporary; do not commit it or pairing codes.
 The first run found two host-runner problems before installation: pm returns 1 for an absent package, and Gradle can reuse a stale bundle from external sources.
-The runner now accepts only the empty absent-package result and forces fresh bundle generation. These fixes need a new exact-head review and native execution.
+The runner accepts only the empty absent-package result and forces fresh bundles. The critic passed those fixes at `903b6b9e9f9b75283fd24e0f1be26d26ca572937`.
+At that head the phone passed all 132 shared service/history cases plus three native diagnostics.
+The next diagnostic exposed an error-field mismatch: the published 18.2.5 archive throws message-only errors, but research had described newer upstream structured fields.
+The adapter now has a narrowly scoped known-column UNIQUE fallback. Diagnostics verify native message evidence as well as public codes.
+This new source needs another exact-head review. An APK update is currently waiting; ask the user about any phone-side install/security prompt. No full native PASS or restart PASS exists yet.
+ADB commands now have timeouts so the host does not wait indefinitely.
 SDK Platform 37.0, Build-Tools 37.0.0, and NDK 27.1.12297006 are now installed.
 The external React Native 0.87.1 / OP-SQLite 18.2.5 test host built successfully with JDK 25.
 Its release bundle used the native OP entry and excluded Forma's Node entry.

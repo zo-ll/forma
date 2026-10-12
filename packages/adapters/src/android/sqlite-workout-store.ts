@@ -21,8 +21,12 @@ const owners = globals[key] ?? (globals[key] = new Set<string>());
 
 function storageError(cause: unknown): FormaError {
   if (cause instanceof FormaError) return cause;
-  if (cause !== null && typeof cause === 'object' && 'extendedCode' in cause
-    && (cause.extendedCode === 1555 || cause.extendedCode === 2067)) {
+  const native = cause !== null && typeof cause === 'object' ? cause as { extendedCode?: unknown; message?: unknown } : null;
+  const uniqueCode = native?.extendedCode === 1555 || native?.extendedCode === 2067;
+  // Published 18.2.5 throws message-only C++ runtime errors. Upstream structured fields are newer.
+  const uniqueMessage = native?.extendedCode === undefined && typeof native?.message === 'string'
+    && /^(?:Exception in HostFunction: )?\[op-sqlite\] statement execution error: UNIQUE constraint failed: (?:sets\.id|sets\.workout_id, sets\.position|workouts\.id|workouts\.status|request_receipts\.request_id)$/.test(native.message);
+  if (uniqueCode || uniqueMessage) {
     return new FormaError('CONFLICT', 'A stored ID or unique value already exists.', { cause });
   }
   return new FormaError('STORAGE_FAILURE', 'The OP-SQLite operation failed.', { cause });

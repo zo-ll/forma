@@ -10,7 +10,9 @@ This document records API evidence, not Android execution approval.
 - [`open({ name })`](https://github.com/OP-Engineering/op-sqlite/blob/18.2.5/src/types.ts) returns the local native database synchronously. `openSync` is a different replica API; do not use it here.
 - `executeSync(sql, params?)` returns `rows: Array<Record<string, Scalar>>`. Scalar values include strings, numbers, null, booleans, ArrayBuffer, and ArrayBufferView. Forma's migration parameters are a supported subset.
 - `close()` closes the native connection synchronously.
-- Native SQLite errors expose numeric `code` and `extendedCode`. [Native error construction](https://github.com/OP-Engineering/op-sqlite/blob/18.2.5/cpp/OPUtils.cpp) preserves these fields. Map only 1555/2067 to ID conflicts. CHECK and foreign-key constraints remain storage failures.
+- **Correction from physical execution:** the published 18.2.5 archive has no structured SQLite error fields. Its `cpp/OPBridge.cpp` throws `std::runtime_error("[op-sqlite] statement execution error: " + sqlite3_errmsg(db))`. The initial research incorrectly attributed newer upstream HEAD code/types to the published package. The phone exposed this mismatch after all 132 service/history cases passed.
+- The adapter accepts numeric 1555/2067 when a binding supplies them. For published 18.2.5, it recognizes only the exact vendor-prefixed UNIQUE message for known Forma unique columns. It never treats CHECK, foreign-key, unrelated, or unprefixed errors as ID conflicts. A supplied non-unique extended code overrides any message fallback.
+- Published source evidence: [immutable npm archive](https://registry.npmjs.org/@op-engineering/op-sqlite/-/op-sqlite-18.2.5.tgz), `cpp/OPBridge.cpp`, execution failure branch. Do not use newer upstream declarations as evidence for this archive.
 - [`db.transaction()`](https://github.com/OP-Engineering/op-sqlite/blob/18.2.5/src/functions.ts) uses a deferred transaction. Forma instead sends BEGIN IMMEDIATE/COMMIT/ROLLBACK through executeSync and its own serialized queue.
 - [Foreign keys are off by default](https://op-engineering.github.io/op-sqlite/docs/gotchas). The adapter enables foreign keys, WAL, and a 5000 ms busy timeout before migration.
 - [Synchronous execution blocks the JavaScript thread](https://op-engineering.github.io/op-sqlite/docs/api). Query budgets and the client write queue do not make it asynchronous.
@@ -41,7 +43,8 @@ Later builds must repeat this graph check after source changes.
 
 ## Limits
 
-No phone or emulator has executed these fixtures yet.
+The Nothing Phone (2a), A142, Android 16/API 36, passed all 132 shared service/history cases and the first three native diagnostics.
+The next diagnostic exposed the message-only error mismatch. Full native acceptance and restart verification are still pending.
 The adapter's Node binding simulations are not Android verification.
 Issues #7 and #8 remain open for native fixtures and process-restart checks.
 A storage-only test host cannot approve workout UI/device gate #14.

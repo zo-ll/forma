@@ -76,7 +76,7 @@ export const NATIVE_STORAGE_CASES: readonly NativeStorageCase[] = [
       assert.equal(await f.store.read((reader) => reader.getHistoryRevision()), revision);
     } finally { await f.service.close(); }
   } },
-  { name: 'native unique errors expose the supported extended code and translate to CONFLICT', async run(open) {
+  { name: 'native unique errors translate to CONFLICT with verified native evidence', async run(open) {
     const f = nativeFixture(open);
     try {
       const a = await f.service.workouts.create({ requestId: 'a', date: '2026-10-12' });
@@ -84,9 +84,15 @@ export const NATIVE_STORAGE_CASES: readonly NativeStorageCase[] = [
       const set = await f.service.workouts.addSet({ requestId: 'set', workoutId: a.id, exerciseId: 'leg-curls', reps: 8, weightKg: 20 });
       const revision = await f.store.read((reader) => reader.getHistoryRevision());
       await assert.rejects(f.store.write(async (writer) => writer.saveWorkout({ ...b, sets: [set] })), (error) => {
-        if (!errorCode('CONFLICT')(error)) return false;
-        const cause = (error as Error).cause as { code?: number; extendedCode?: number };
-        return cause.code === 19 && (cause.extendedCode === 1555 || cause.extendedCode === 2067);
+        const cause = (error as Error).cause as { code?: number; extendedCode?: number; message?: string } | undefined;
+        const numeric = cause?.code === 19 && (cause.extendedCode === 1555 || cause.extendedCode === 2067);
+        const messageOnly = cause?.extendedCode === undefined && typeof cause?.message === 'string'
+          && /^(?:Exception in HostFunction: )?\[op-sqlite\] statement execution error: UNIQUE constraint failed: sets\.id$/.test(cause.message);
+        if (!errorCode('CONFLICT')(error) || (!numeric && !messageOnly)) {
+          throw new Error('Native unique diagnostic: public=' + String((error as { code?: string }).code)
+            + ', code=' + String(cause?.code) + ', extendedCode=' + String(cause?.extendedCode) + ', message=' + String(cause?.message));
+        }
+        return true;
       });
       assert.deepEqual(await f.service.workouts.get(b.id), b);
       assert.equal(await f.store.read((reader) => reader.getHistoryRevision()), revision);
@@ -98,8 +104,10 @@ export const NATIVE_STORAGE_CASES: readonly NativeStorageCase[] = [
       const workout = await f.service.workouts.create({ requestId: 'create', date: '2026-10-12' });
       await assert.rejects(f.store.write(async (writer) => writer.saveWorkout({ ...workout, durationMin: -1 })), (error) => {
         if (!errorCode('STORAGE_FAILURE')(error)) return false;
-        const cause = (error as Error).cause as { code?: number; extendedCode?: number };
-        return cause.code === 19 && cause.extendedCode === 275;
+        const cause = (error as Error).cause as { code?: number; extendedCode?: number; message?: string } | undefined;
+        return (cause?.code === 19 && cause.extendedCode === 275)
+          || (cause?.extendedCode === undefined && typeof cause?.message === 'string'
+            && /^(?:Exception in HostFunction: )?\[op-sqlite\] statement execution error: CHECK constraint failed: /.test(cause.message));
       });
       assert.deepEqual(await f.service.workouts.get(workout.id), workout);
     } finally { await f.service.close(); }

@@ -135,6 +135,30 @@ test('Android unique IDs translate extended errors to CONFLICT without partial w
   } finally { await store.close(); }
 });
 
+test('published OP message-only unique errors have a narrow, code-aware fallback', async () => {
+  const native = shim(':memory:'); const original = native.executeSync;
+  const store = AndroidSqliteWorkoutStore.open({ databaseName: 'message-' + ++sequence, openDatabase: () => native });
+  try {
+    const cases = [
+      { message: '[op-sqlite] statement execution error: UNIQUE constraint failed: sets.id', code: 'CONFLICT' as const },
+      { message: 'Exception in HostFunction: [op-sqlite] statement execution error: UNIQUE constraint failed: sets.id', code: 'CONFLICT' as const },
+      { message: 'UNIQUE constraint failed: sets.id', code: 'STORAGE_FAILURE' as const },
+      { message: '[op-sqlite] statement execution error: UNIQUE constraint failed: unrelated.id', code: 'STORAGE_FAILURE' as const },
+      { message: '[op-sqlite] statement execution error: CHECK constraint failed: duration_min >= 0', code: 'STORAGE_FAILURE' as const },
+      { message: '[op-sqlite] statement execution error: FOREIGN KEY constraint failed', code: 'STORAGE_FAILURE' as const },
+      { message: '[op-sqlite] statement execution error: UNIQUE constraint failed: sets.id', extendedCode: 275, code: 'STORAGE_FAILURE' as const },
+    ];
+    for (const value of cases) {
+      native.executeSync = (sql, parameters) => {
+        if (sql.startsWith('SELECT * FROM exercises')) throw Object.assign(new Error(value.message),
+          'extendedCode' in value ? { extendedCode: value.extendedCode } : {});
+        return original(sql, parameters);
+      };
+      await assert.rejects(store.read((reader) => reader.listExercises()), errorCode(value.code));
+    }
+  } finally { await store.close(); }
+});
+
 test('other Android SQLite constraints stay STORAGE_FAILURE, not invented ID conflicts', async () => {
   const native = shim(':memory:'); const original = native.executeSync;
   const store = AndroidSqliteWorkoutStore.open({ databaseName: 'constraint-' + ++sequence, openDatabase: () => native });
