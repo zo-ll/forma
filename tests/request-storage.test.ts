@@ -10,7 +10,7 @@ const receipt: RequestReceipt = {
 };
 const workout: Workout = {
   id: 'storage-workout', date: '2026-10-12', splitDayId: 'lower', notes: 'Storage test',
-  durationMin: null, createdAt: TEST_TIME, updatedAt: TEST_TIME, sets: [],
+  durationMin: null, createdAt: TEST_TIME, updatedAt: TEST_TIME, sets: [], status: 'finished', finishedAt: null,
 };
 
 test('the adapter stores a generic receipt without a module-specific schema', async (t) => {

@@ -1,9 +1,9 @@
 import { DatabaseSync } from 'node:sqlite';
 import type { SQLInputValue, SQLOutputValue } from 'node:sqlite';
-import { FormaError, normalizeExerciseAlias, validateSetLoadDetails } from '@forma/core';
+import { FormaError, normalizeExerciseAlias, validateSetLoadDetails, validateWorkoutSession } from '@forma/core';
 import type {
   Exercise, ListWorkoutsInput, Workout, SplitDay, WorkoutReader, WorkoutSet,
-  RequestReceipt, SetLoadDetails, WorkoutStore, WorkoutWriter,
+  RequestReceipt, SetLoadDetails, WorkoutSessionDetails, WorkoutStore, WorkoutWriter,
 } from '@forma/core';
 import { pendingMigrations, runSqliteMigrations } from '../sqlite/migrations.js';
 import { SQLITE_MIGRATIONS } from '../sqlite/registry.js';
@@ -138,6 +138,16 @@ export class SqliteWorkoutStore implements WorkoutStore {
         ).run(receipt.requestId, receipt.operation, receipt.inputSignature, receipt.resultJson, receipt.formatVersion);
       },
       getWorkout: async (id) => { check(); return this.getWorkout(id); },
+      getInProgressWorkout: async () => {
+        check();
+        const row = this.db.prepare("SELECT * FROM workouts WHERE status = 'in-progress'").get();
+        return row ? this.workoutFromRow(row) : null;
+      },
+      deleteWorkout: async (id) => {
+        check();
+        if (!writable) throw new FormaError('STORAGE_FAILURE', 'A read transaction cannot delete a workout.');
+        this.db.prepare('DELETE FROM workouts WHERE id = ?').run(id);
+      },
       listWorkouts: async (input) => { check(); return this.listWorkouts(input); },
       saveWorkout: async (workout) => {
         check();
@@ -226,6 +236,7 @@ export class SqliteWorkoutStore implements WorkoutStore {
       id, date: stringValue(row, 'date'), splitDayId: nullableString(row, 'group_id'),
       notes: stringValue(row, 'notes'), durationMin: nullableNumber(row, 'duration_min'),
       createdAt: stringValue(row, 'created_at'), updatedAt: stringValue(row, 'updated_at'), sets,
+      ...this.sessionFromRow(row),
     };
   }
 
@@ -234,6 +245,14 @@ export class SqliteWorkoutStore implements WorkoutStore {
       return validateSetLoadDetails(stringValue(row, 'load_convention'), nullableNumber(row, 'implement_count'));
     } catch (cause) {
       throw new FormaError('STORAGE_FAILURE', 'Invalid load convention in storage.', { cause });
+    }
+  }
+
+  private sessionFromRow(row: Row): WorkoutSessionDetails {
+    try {
+      return validateWorkoutSession(stringValue(row, 'status'), nullableString(row, 'finished_at'));
+    } catch (cause) {
+      throw new FormaError('STORAGE_FAILURE', 'Invalid workout session in storage.', { cause });
     }
   }
 
@@ -255,13 +274,14 @@ export class SqliteWorkoutStore implements WorkoutStore {
 
   private saveWorkout(workout: Workout): void {
     this.db.prepare(
-      'INSERT INTO workouts (id, date, group_id, notes, duration_min, created_at, updated_at) '
-      + 'VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET '
+      'INSERT INTO workouts (id, date, group_id, notes, duration_min, created_at, updated_at, status, finished_at) '
+      + 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET '
       + 'date = excluded.date, group_id = excluded.group_id, notes = excluded.notes, '
-      + 'duration_min = excluded.duration_min, updated_at = excluded.updated_at',
+      + 'duration_min = excluded.duration_min, updated_at = excluded.updated_at, '
+      + 'status = excluded.status, finished_at = excluded.finished_at',
     ).run(
       workout.id, workout.date, workout.splitDayId, workout.notes, workout.durationMin,
-      workout.createdAt, workout.updatedAt,
+      workout.createdAt, workout.updatedAt, workout.status, workout.finishedAt,
     );
     this.db.prepare('DELETE FROM sets WHERE workout_id = ?').run(workout.id);
     const insert = this.db.prepare(

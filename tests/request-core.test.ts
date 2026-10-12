@@ -71,7 +71,7 @@ test('a result codec failure rolls back a generic module write', async (t) => {
   await assert.rejects(withRequest(store, 'invalid-result', 'generic.write', {}, codec, async (writer) => {
     await writer.saveWorkout({
       id: 'must-rollback', date: '2026-10-12', splitDayId: null, notes: '', durationMin: null,
-      createdAt: TEST_TIME, updatedAt: TEST_TIME, sets: [],
+      createdAt: TEST_TIME, updatedAt: TEST_TIME, sets: [], status: 'finished', finishedAt: null,
     });
     return 'result';
   }), errorCode('STORAGE_FAILURE'));

@@ -4,6 +4,23 @@ Forma records workouts and their explicitly confirmed meaning.
 
 ## Language
 
+**In-progress workout**:
+A started workout that the user has not finished or discarded.
+Closing the app does not finish it.
+
+**Finished workout**:
+A completed session or a manually entered historical workout.
+Its records remain editable.
+
+**Resume**:
+Retrieve the saved in-progress workout without changing it.
+
+**Finish**:
+Mark an in-progress workout as finished.
+
+**Discard**:
+Delete an in-progress workout and its sets.
+
 **Workout date**:
 The calendar day assigned to a workout by the user.
 It does not change when the user's timezone changes.

@@ -62,7 +62,7 @@ test('the released version 1 migration and catalog have a fixed digest', () => {
 });
 
 test('the shared SQLite entry point has no platform imports', async () => {
-  for (const file of ['index.ts', 'migrations.ts', 'registry.ts', 'schema.ts', 'schema-v2.ts', 'schema-v3.ts']) {
+  for (const file of ['index.ts', 'migrations.ts', 'registry.ts', 'schema.ts', 'schema-v2.ts', 'schema-v3.ts', 'schema-v4.ts']) {
     const source = await readFile('packages/adapters/src/sqlite/' + file, 'utf8');
     for (const match of source.matchAll(/(?:from|import)\s*(?:\(\s*)?['"]([^'"]+)['"]/gu)) {
       assert(match[1]?.startsWith('.') || match[1] === '@forma/core', 'Unexpected platform import: ' + match[1]);

@@ -1,19 +1,15 @@
 import { FormaError } from '../errors.js';
 import { withRequest } from '../requests/service.js';
-import { setResult, voidResult, workoutResult } from './results.js';
+import { setResult, voidResult } from './results.js';
 import { validateSetLoadDetails } from './loads.js';
 import type { Clock, IdGenerator, WorkoutReader, WorkoutStore } from '../ports.js';
 import type { ListWorkoutsInput, Workout, WorkoutApi, WorkoutSet } from '../types.js';
 import {
   calendarDate, effort, finiteNumber, identifier, invalid,
-  objectInput, repetitions, text, utcTimestamp,
+  objectInput, repetitions, utcTimestamp,
 } from '../validation.js';
-
-async function requiredWorkout(reader: WorkoutReader, workoutId: string): Promise<Workout> {
-  const workout = await reader.getWorkout(workoutId);
-  if (!workout) throw new FormaError('NOT_FOUND', 'The workout does not exist.', { field: 'workoutId' });
-  return workout;
-}
+import { requiredWorkout } from './required.js';
+import { createWorkoutRecordsApi } from './records.js';
 
 async function requiredExercise(reader: WorkoutReader, exerciseId: string): Promise<void> {
   if (!(await reader.getExercise(exerciseId))) {
@@ -28,30 +24,7 @@ export function createWorkoutApi(
   ensureOpen: () => void,
 ): WorkoutApi {
   return {
-    async create(input) {
-      ensureOpen();
-      objectInput(input, ['requestId', 'date', 'splitDayId', 'notes', 'durationMin']);
-      const requestId = identifier(input.requestId, 'requestId');
-      const date = calendarDate(input.date, 'date');
-      const splitDayId = input.splitDayId === undefined ? null : identifier(input.splitDayId, 'splitDayId');
-      const notes = input.notes === undefined ? '' : text(input.notes, 'notes');
-      const durationMin = input.durationMin === undefined ? null : finiteNumber(input.durationMin, 'durationMin', 0);
-      return withRequest(store, requestId, 'workouts.create', { date, splitDayId, notes, durationMin }, workoutResult, async (writer) => {
-        if (splitDayId !== null && !(await writer.getSplitDay(splitDayId))) {
-          throw new FormaError('NOT_FOUND', 'The split day does not exist.', { field: 'splitDayId' });
-        }
-        const id = identifier(ids.next(), 'id');
-        if (await writer.getWorkout(id)) {
-          throw new FormaError('CONFLICT', 'The generated workout ID already exists.', { field: 'id' });
-        }
-        const timestamp = utcTimestamp(clock.nowUtc());
-        const workout: Workout = {
-          id, date, splitDayId, notes, durationMin, createdAt: timestamp, updatedAt: timestamp, sets: [],
-        };
-        await writer.saveWorkout(workout);
-        return workout;
-      });
-    },
+    ...createWorkoutRecordsApi(store, clock, ids, ensureOpen),
 
     async addSet(input) {
       ensureOpen();

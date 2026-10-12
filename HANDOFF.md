@@ -2,11 +2,12 @@
 
 ## Resume point
 
-Work resumed from `f4bfe62`, with implementation baseline `66821f2`.
-The current change implements [#5: calendar context and load conventions](https://github.com/zo-ll/forma/issues/5) on `issue/5-calendar-load`.
+Issue #5 passed the critic at `93abccc` and merged in [PR #41](https://github.com/zo-ll/forma/pull/41).
+The merged baseline is `4a9ad06`.
+The current change implements [#6: workout metadata, deletion, and resume behavior](https://github.com/zo-ll/forma/issues/6) on `issue/6-workout-sessions`.
 Follow the exact-head critic gate below before merge.
-The next task after that merge is [#6: workout metadata, deletion, and resume behavior](https://github.com/zo-ll/forma/issues/6).
-Confirm its session-state contract before implementation.
+The next task after that merge is [#7: paged history and deterministic statistics](https://github.com/zo-ll/forma/issues/7).
+Finalize its pagination and numerical-result DTOs before implementation.
 
 Current checkout: `/home/az/projects/forma`.
 The old `/home/andrea/personal/forma` and `/home/andrea/personal/fitrag` paths belong to an earlier host.
@@ -20,25 +21,29 @@ Complete:
 
 - Exact catalog: 19 exercises and three ordered split days.
 - Exercise names and explicit aliases.
-- Workout creation, set add/edit/delete, detail, and date-filtered history.
+- Historical workout creation, set add/edit/delete, detail, and date-filtered history.
+- Calendar context and explicit load conventions.
+- Persisted start, resume, finish, and discard, with one in-progress workout.
+- Metadata edits and whole-workout deletion.
 - Atomic writes, rollback, shared migrations, and schema version checks.
-- Persistent request receipts for all four workout write commands.
+- Persistent request receipts for every workout write command.
 - Full app contracts, phase gates, and a decision register.
 
-The resumed implementation adds device-timezone calendar helpers and explicit per-set load conventions.
-Schema version 3 preserves old sets as unknown and preserves old request receipts.
-The last local verification passed all 299 tests, type checks, and the persistence example.
+Schema version 3 preserves old sets as unknown. Version 4 preserves old workouts as finished historical records with no invented finish timestamp.
+Both upgrades preserve request receipts. Committed in-progress sets survive an abrupt Node process stop.
+The last local verification passed all 368 tests, type checks, and the persistence example.
 This is not a critic verdict or an Android device result.
-All three completed issues passed an independent GLM 5.3 critic review before merge:
+The earlier completed issues passed an independent GLM 5.3 critic review before merge:
 
 | Issue | Change | Merged PR |
 | --- | --- | --- |
 | #3 | Shared SQLite migrations and recovery checks | [#37](https://github.com/zo-ll/forma/pull/37) |
 | #4 | Safe repeated write commands | [#38](https://github.com/zo-ll/forma/pull/38) |
 | #2 | Full Android app contracts and phase gates | [#39](https://github.com/zo-ll/forma/pull/39) |
+| #5 | Calendar context and explicit load conventions | [#41](https://github.com/zo-ll/forma/pull/41) |
 
-The handoff baseline had 28 required tasks left and four separate later enhancements.
-Issue #5 reduces that count only after its reviewed merge.
+The merged baseline has 27 required tasks left and four separate later enhancements.
+Issue #6 reduces that count only after its reviewed merge.
 Android storage, screens, backup, statistics, nutrition, independent notes, and the assistant remain incomplete.
 
 ## Read first
@@ -98,7 +103,14 @@ Entered and combined loads remain separate for comparisons.
 Body-weight sets store added external load only. Their total load is not calculated or compared.
 [ROADMAP.md](ROADMAP.md#approved-calendar-and-load-contract--issue-5) records the complete contract.
 
-Before issue #6, confirm persisted session states and start, resume, finish, discard, and deletion behavior.
+The user also approved the issue #6 session rules.
+Create saves a finished historical record. Start saves the one in-progress session.
+Sets save immediately. Resume is a read. Finish records its actual UTC instant without estimating duration.
+Discard deletes an in-progress record. Finished records remain editable and deletable.
+Old records migrate to finished with no invented finish time.
+[ROADMAP.md](ROADMAP.md#approved-workout-session-contract--issue-6) records the full contract.
+
+Before issue #7, define stable pagination, exercise filters, previous-set facts, personal-best rules, and supported volume totals.
 
 `weightKg` stores the entered load in kilograms.
 The service never infers combined load or adds body weight.

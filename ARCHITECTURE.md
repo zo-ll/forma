@@ -69,7 +69,14 @@ The core does not need a server or an HTTP connection.
 | `exercises.resolveAlias(alias)` | One exercise |
 | `splitDays.list()` | The three split days, in catalog order |
 | `splitDays.get(splitDayId)` | One split day, with ordered exercise IDs |
-| `workouts.create({ requestId, date, splitDayId?, notes?, durationMin? })` | A workout with no sets |
+| `workouts.create({ requestId, date, splitDayId?, notes?, durationMin? })` | A finished historical workout with no sets |
+| `workouts.start({ requestId, date, splitDayId?, notes?, durationMin? })` | The one in-progress workout, initially with no sets |
+| `workouts.inProgress()` | The in-progress workout, or null |
+| `workouts.resume(workoutId)` | The saved in-progress workout, without a write |
+| `workouts.finish({ requestId, workoutId })` | The finished workout |
+| `workouts.update({ requestId, workoutId, date?, splitDayId?, notes?, durationMin? })` | The updated workout; null clears split day or duration |
+| `workouts.delete({ requestId, workoutId })` | No value; deletes the workout and sets |
+| `workouts.discard({ requestId, workoutId })` | No value; deletes only an in-progress workout |
 | `workouts.addSet({ requestId, workoutId, exerciseId, reps, weightKg, rpe?, loadConvention?, implementCount? })` | The new set |
 | `workouts.updateSet({ requestId, workoutId, setId, exerciseId?, reps?, weightKg?, rpe?, loadConvention?, implementCount? })` | The updated set |
 | `workouts.deleteSet({ requestId, workoutId, setId })` | No value |
@@ -116,6 +123,9 @@ An explicit unknown convention with a null count has the same signature.
 Set updates without load metadata retain their released signatures.
 Legacy set snapshots receive `loadConvention: 'unknown'` and `implementCount: null` on replay.
 Neither replay nor migration rewrites saved receipts. Confirming a set does not change earlier replay results.
+The released create signature is unchanged. Legacy workout snapshots gain finished state and a null finish timestamp.
+New session-operation receipts must contain their state and finish time; missing metadata is not a legacy format.
+Deleted workouts retain their request receipts. Replaying start, edit, or finish does not recreate a deleted record.
 
 ## Record rules
 
@@ -145,6 +155,31 @@ Use an ordinary set update with a new request key to confirm an old convention.
 Exercise names and equipment never supply a convention.
 Body-weight sets store only added external load. Zero means no added load.
 The service never adds body mass or estimates machine resistance.
+
+## Workout sessions and metadata
+
+`workouts.create()` records a finished historical workout with `finishedAt: null`.
+`workouts.start()` records `status: 'in-progress'` and `finishedAt: null`.
+The core checks for the current in-progress workout inside the atomic write transaction.
+The SQLite schema also enforces this limit with a partial unique index.
+A second start with a different key produces `CONFLICT` on `status`.
+A failed start leaves its request key available for a later retry.
+Manual historical records remain available while a session is in progress.
+
+Each set command saves immediately. App background and shutdown never finish a workout.
+`inProgress()` and `resume()` read primary records without changing audit timestamps or writing receipts.
+A finished workout cannot resume or be discarded. Those operations produce `CONFLICT` on `status`.
+Finish saves the UTC finish instant and updates the audit timestamp. It does not calculate duration or change date.
+Finishing an already finished record with a new key returns the current record without another timestamp change.
+Finished records remain editable. Edits preserve session state and finish time.
+
+Metadata updates preserve omitted fields. Null clears split day or duration. An empty string clears notes.
+A metadata update needs at least one supplied field. Status and finish time are not editable metadata.
+Deletion accepts either state. Discard accepts only in-progress state. Both delete the primary workout and its sets.
+New commands against deleted records produce `NOT_FOUND`; successful request retries still return their saved snapshots.
+The UI must confirm destructive commands before submission.
+No cancellation API exists. Cancelling an unsubmitted command means not sending it.
+After submission, an aborted wait does not prove rollback. Retry the saved request and retrieve current state.
 
 ## Calendar and load helpers
 
@@ -186,6 +221,11 @@ The initial catalog belongs to version 1 only. Later versions must not seed or r
 Version 3 adds `load_convention` and `implement_count` to sets, with SQL checks for valid metadata pairs.
 Old records receive unknown metadata. Their weights, dates, catalog memberships, and receipts remain unchanged.
 The Node adapter validates load metadata again when it reads stored sets.
+Version 4 adds `status`, `finished_at`, and the one-in-progress index.
+Old workouts receive finished state with no invented finish timestamp.
+The adapter validates session metadata on reads and deletes sets through the released foreign-key cascade.
+`WorkoutReader.getInProgressWorkout()` supplies the saved session. `WorkoutWriter.deleteWorkout()` deletes its primary record.
+Both capabilities obey the same coherent-view, read-only, and expired-view rules as the existing port.
 
 `WorkoutStore.read()` supplies a coherent read view.
 `WorkoutStore.write()` supplies an atomic write transaction.

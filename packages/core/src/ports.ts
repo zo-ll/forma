@@ -32,11 +32,13 @@ export interface WorkoutReader extends RequestReader {
   listSplitDays(): Promise<readonly SplitDay[]>;
   getSplitDay(splitDayId: string): Promise<SplitDay | null>;
   getWorkout(workoutId: string): Promise<Workout | null>;
+  getInProgressWorkout(): Promise<Workout | null>;
   listWorkouts(input: ListWorkoutsInput): Promise<readonly Workout[]>;
 }
 
 export interface WorkoutWriter extends WorkoutReader, RequestWriter {
   saveWorkout(workout: Workout): Promise<void>;
+  deleteWorkout(workoutId: string): Promise<void>;
 }
 
 /** Each callback uses one coherent read view or one atomic write transaction. */

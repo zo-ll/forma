@@ -6,8 +6,9 @@ This document defines the approved product and its phase gates.
 It does not claim that planned capabilities exist.
 [Issue #1](https://github.com/zo-ll/forma/issues/1) tracks implementation and dependencies.
 
-The baseline at `537777b` has the workout core, Node SQLite storage, shared migrations, and persistent request receipts.
-All 208 tests passed at that baseline.
+The merged baseline at `4a9ad06` has the workout core, Node SQLite storage, shared migrations, persistent request receipts, calendar context, and explicit load conventions.
+All 299 tests passed at that baseline.
+The current issue #6 change adds persisted sessions, metadata edits, and whole-workout deletion.
 The Android app, nutrition, independent notes, and local assistant do not exist yet.
 Workouts remain the only active implementation module.
 
@@ -55,8 +56,9 @@ The existing catalog and order in [SPEC.md](SPEC.md#4-exercise-catalog) remain u
 ### Public contracts
 
 - Current: `exercises`, `splitDays`, and the workout create, set, detail, and date-history APIs.
-- Planned: workout metadata edits and whole-workout deletion.
-- Planned: explicit start, resume, finish, and discard behavior.
+- Current: calendar context, explicit load conventions, and compatible set-load facts.
+- Current: workout metadata edits and whole-workout deletion.
+- Current: explicit persisted start, resume, finish, and discard behavior.
 - Planned: paged workout history with date and exercise filters.
 - Planned: previous sets, personal-best facts, and supported volume totals.
 - Planned: versioned archive export, validation, and atomic restore through platform adapters.
@@ -65,7 +67,7 @@ A history page carries an opaque cursor and stable record order.
 Each numerical result carries units, date context, load convention, and source record IDs.
 Unknown or incompatible load conventions must not produce misleading comparisons.
 Existing records keep an unknown convention until the user confirms it.
-The session contract must define persisted state before resume controls exist.
+The approved persisted session contract below must guide the future resume controls.
 
 ### Device gate — issue #14
 
@@ -258,12 +260,34 @@ The user approved these rules when work resumed on 2026-10-12.
 These contracts do not implement aggregate statistics, a confirmation screen, or device timezone access.
 Those features remain later issues.
 
+## Approved workout session contract — issue #6
+
+The user approved these rules when work resumed on 2026-10-12.
+
+- A workout has `status: 'in-progress' | 'finished'` and `finishedAt: string | null`.
+- `workouts.create(input)` saves a finished historical record. Existing records migrate to finished with no invented finish timestamp.
+- `workouts.start(input)` accepts the same fields as create and saves an in-progress workout. Only one in-progress workout can exist.
+- Every set command saves immediately. App background, shutdown, and process stop do not change session state.
+- `workouts.inProgress()` returns the saved in-progress workout or null. `workouts.resume(workoutId)` reads it without mutation.
+- `workouts.finish({ requestId, workoutId })` saves finished state and a UTC finish timestamp. It never estimates duration or changes the workout date.
+- Finishing an already finished record with a new request key returns the current record without changing its audit or finish timestamps.
+- `workouts.update({ requestId, workoutId, date?, splitDayId?, notes?, durationMin? })` edits metadata. Null clears optional split day or duration.
+- `workouts.delete({ requestId, workoutId })` deletes any workout with its sets.
+- `workouts.discard({ requestId, workoutId })` deletes only an in-progress workout. The UI must confirm discard and deletion before sending the command.
+- Finished workouts remain editable. Edits do not reopen sessions. No persisted paused state or reopening API exists.
+- All new writes use atomic request receipts. A replay returns its original snapshot even after finish or deletion.
+- New commands against deleted records return `NOT_FOUND`. Invalid state transitions return `CONFLICT`.
+- Old workout result snapshots gain finished state with a null finish timestamp on replay. Their stored receipts and signatures remain unchanged.
+
+The host cancels an unsubmitted operation by sending no command.
+An aborted UI wait does not prove rollback after submission. The host retries the saved command key and retrieves current state.
+
 ## Decision register
 
 | Decision | Required before |
 | --- | --- |
 | Calendar context and load conventions | Approved above for #5; preserve in statistics and screens |
-| Persisted session states and start, resume, finish, discard, and deletion behavior | #6 and workout screens |
+| Persisted session states and record operations | Approved above for #6; preserve in workout screens |
 | Nutrient quantity basis, precision, the rule to round values, and food-edit effects on saved meals | #15 and nutrition totals |
 | Body-part vocabulary, typed field definitions, and user confirmation rules | #19 and exact pain questions |
 | Approved weight quantization, runtime precision, and output precision | #23 and production inference |
