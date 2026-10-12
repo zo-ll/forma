@@ -1,0 +1,57 @@
+apply plugin: "com.android.application"
+apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.facebook.react"
+
+react {
+    autolinkLibrariesWithApp()
+    debuggableVariants = ["devDebug", "hostgateDebug"]
+}
+android {
+    ndkVersion rootProject.ext.ndkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+    compileSdk rootProject.ext.compileSdkVersion
+    namespace "dev.forma.mobile"
+    defaultConfig {
+        applicationId "dev.forma.mobile"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "0.1.0"
+    }
+    flavorDimensions "mode"
+    productFlavors {
+        dev { dimension "mode"; buildConfigField "boolean", "HOST_GATE", "false" }
+        hostgate {
+            dimension "mode"
+            applicationIdSuffix ".hostgate"
+            versionNameSuffix "-hostgate"
+            buildConfigField "boolean", "HOST_GATE", "true"
+        }
+    }
+    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+    buildTypes {
+        debug { signingConfig signingConfigs.debug }
+        // Local standalone development APK only. Production signing is issue #32.
+        release {
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        }
+    }
+}
+dependencies {
+    implementation("com.facebook.react:react-android")
+    implementation("com.facebook.react:hermes-android")
+}
+// Workspace packages and source metadata are outside Gradle's JS input tree.
+tasks.matching { it.name.startsWith("createBundle") && it.name.endsWith("JsAndAssets") }.configureEach {
+    outputs.upToDateWhen { false }
+    outputs.doNotCacheIf("External workspace sources require a fresh bundle") { true }
+}

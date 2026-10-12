@@ -9,7 +9,10 @@ Nutrition must wait for the workout device gate.
 The workout core and a SQLite adapter for Node exist.
 The injected Android adapter passed all 143 native storage cases on the Nothing Phone (2a).
 Exact record and receipt persistence also passed across a process restart.
-The production mobile app does not exist yet.
+Issue #9 adds a thin Android host with navigation, local preferences, and a read-only history form.
+Its source passed independent review. Its standalone build and host checks passed on the Nothing Phone (2a).
+Navigation, accessible form errors, themes, and close/restart also passed device checks.
+See [the mobile host](apps/mobile/README.md) for commands. The complete workout UI is not ready.
 See [docs/android-storage-tests.md](docs/android-storage-tests.md) for commands and remaining checks.
 The approved Android v1 plan includes workouts, nutrition, notes, local history questions, and local backup and restore.
 [ROADMAP.md](ROADMAP.md) separates that plan from current capabilities and defines each phase gate.
@@ -80,11 +83,14 @@ The client must retrieve the record if it needs the current state.
 - [`@forma/core`](packages/core/src/index.ts) owns the domain rules and public API.
 - [`@forma/adapters/sqlite`](packages/adapters/src/sqlite/index.ts) exports shared migrations and the synchronous driver contract.
 - [`@forma/adapters/node`](packages/adapters/src/node/index.ts) implements the storage port and constructs the Node service.
+- [`@forma/adapters/android`](packages/adapters/src/android/index.ts) binds injected native OP-SQLite to the same storage contract.
+- [`@forma/mobile-host`](packages/mobile-host/src/index.ts) owns portable host lifetime, preferences, and calendar context.
+- [`apps/mobile/`](apps/mobile/README.md) constructs the Android host and renders its thin client screens.
 - [`examples/workouts.ts`](examples/workouts.ts) acts as a client of the service.
 - [`tests/`](tests/) checks the same behavior with memory and SQLite adapters.
 
 Each host constructs its adapters and injects them into the core.
-The Node entry point remains separate from future mobile adapters.
+The Node entry point remains separate from the mobile adapter and bundle.
 
 Read [ARCHITECTURE.md](ARCHITECTURE.md) for the API contracts.
 Read [SPEC.md](SPEC.md) for the current scope and exercise catalog.
@@ -92,12 +98,13 @@ Read [ROADMAP.md](ROADMAP.md) for the full app contracts and unresolved decision
 
 ## Limits
 
-This milestone has no mobile UI, Android adapter, nutrition module, or inference.
+The Android host has only navigation, preferences, and a read-only history form.
+Full workout entry screens, nutrition, and inference remain incomplete.
 The catalog has no edit API.
 Use `workouts.history()` for bounded pages. The legacy `workouts.list()` remains unbounded for compatibility.
 A record change invalidates earlier page cursors. Restart the query after a cursor conflict.
 History queries and facts have explicit limits in [docs/history-contract.md](docs/history-contract.md).
-The mobile host must supply the current device timezone. No device timezone adapter exists yet.
+The mobile host supplies the current device timezone through its native adapter.
 Per-hand volume uses reps per implement, not an alternating total across both hands.
 Body-weight sets store added external load only. Total body-weight load calculations are not supported.
 Request receipts have no automatic expiration.
@@ -113,12 +120,13 @@ It owns the test UI, native inference module, model import, and device checks.
 Forma has no runtime dependency on it.
 
 The intended mobile client uses React Native and TypeScript.
-Android is first, with OP-SQLite as the storage candidate.
+Android uses the physically verified OP-SQLite adapter.
 The initial inference candidates remain EmbeddingGemma 2 Text 270M on CPU
 and Gemma 4 E2B on GPU through LiteRT-LM.
 These models do not form part of this milestone.
 
-The earlier device tests do not prove this service on Android.
+The separate validation app's device tests do not prove Forma's service on Android.
+Forma's own storage and thin-host tests now supply that evidence.
 They do not prove simultaneous model memory use.
 A future Telegram client requires a separate privacy decision.
 Telegram messages pass through its servers.

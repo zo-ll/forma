@@ -1,0 +1,142 @@
+{
+  "formatVersion": 1,
+  "scope": "Forma issue #9 thin Android host; not workout UI gate #14",
+  "sourceHead": "b474f79338c83d0cbb1b85decdc53d554bca3059",
+  "sourceDigest": "2c15d44492fe4259418887946ad3fc8233e12faee4313293e7ea1903114d20f9",
+  "dirty": false,
+  "apkSha256": "41d6c0101b5a9c203325fae01ca79387f9b8efecddb8dfddb1931d83a3bdaf4e",
+  "platform": {
+    "device": "Nothing Phone (2a)",
+    "model": "A142",
+    "android": "16",
+    "api": 36,
+    "abi": "arm64-v8a"
+  },
+  "testPackage": "dev.forma.mobile.hostgate",
+  "runtime": {
+    "reactNative": "0.87.1",
+    "opSqlite": "18.2.5"
+  },
+  "build": {
+    "passed": true,
+    "exitCode": 0,
+    "sourceMapEntries": 564,
+    "bundleRequired": {
+      "opSqlite": true,
+      "mobileHost": true,
+      "deviceSpec": true,
+      "hostGate": true
+    },
+    "nodeRuntimeExcluded": true,
+    "bracesExcluded": true,
+    "internetPermission": false,
+    "signing": "Public development debug key; not production signing"
+  },
+  "sourceReview": {
+    "head": "b474f79338c83d0cbb1b85decdc53d554bca3059",
+    "verdict": "PASS",
+    "filesReviewed": 55,
+    "filesSkipped": 0,
+    "actionableFindings": 0,
+    "rootTests": 614,
+    "appTypecheckPassed": true
+  },
+  "hostRuns": [
+    {
+      "sourceHead": "b474f79338c83d0cbb1b85decdc53d554bca3059",
+      "dirty": false,
+      "sourceDigest": "2c15d44492fe4259418887946ad3fc8233e12faee4313293e7ea1903114d20f9",
+      "fixtureCount": 12,
+      "reactNative": "0.87.1",
+      "opSqlite": "18.2.5",
+      "mode": "fixtures",
+      "runId": "799090e9-872e-4ac8-b879-93e81736ad46",
+      "ok": true,
+      "count": 12,
+      "pid": "27641"
+    },
+    {
+      "sourceHead": "b474f79338c83d0cbb1b85decdc53d554bca3059",
+      "dirty": false,
+      "sourceDigest": "2c15d44492fe4259418887946ad3fc8233e12faee4313293e7ea1903114d20f9",
+      "fixtureCount": 12,
+      "reactNative": "0.87.1",
+      "opSqlite": "18.2.5",
+      "mode": "seed",
+      "runId": "799090e9-872e-4ac8-b879-93e81736ad46",
+      "ok": true,
+      "count": 6,
+      "pid": "27751"
+    },
+    {
+      "sourceHead": "b474f79338c83d0cbb1b85decdc53d554bca3059",
+      "dirty": false,
+      "sourceDigest": "2c15d44492fe4259418887946ad3fc8233e12faee4313293e7ea1903114d20f9",
+      "fixtureCount": 12,
+      "reactNative": "0.87.1",
+      "opSqlite": "18.2.5",
+      "mode": "verify",
+      "runId": "799090e9-872e-4ac8-b879-93e81736ad46",
+      "ok": true,
+      "count": 8,
+      "pid": "27842"
+    }
+  ],
+  "seedAndVerifyPidsDistinct": true,
+  "ui": {
+    "ok": true,
+    "count": 26,
+    "checks": [
+      "Standalone Home renders without Metro or a server",
+      "Accessible navigation: Home",
+      "Accessible navigation: History",
+      "Accessible navigation: Settings",
+      "Home selection is accessible",
+      "Device UTC instant and IANA timezone agree with rendered date",
+      "History route renders and publishes selection",
+      "History date input has an accessible label",
+      "History submit is an accessible button",
+      "Invalid history date exposes typed error and field",
+      "History input accepts corrected date",
+      "Valid empty history clears the prior form error",
+      "Read-only history displays synthetic saved records",
+      "Settings route renders and publishes selection",
+      "Persisted light theme is selected after restart",
+      "Theme selection is confirmed and accessible: dark",
+      "Theme selection is confirmed and accessible: system",
+      "Theme selection is confirmed and accessible: light",
+      "Explicit close is visible in the UI",
+      "Closed host disables control: Theme: light",
+      "Closed host disables control: Theme: dark",
+      "Closed host disables control: Theme: system",
+      "Closed host disables control: Close local service",
+      "App restart creates a ready host after explicit close",
+      "UI theme survives an additional process restart",
+      "Current host process has no AndroidRuntime or ReactNativeJS errors"
+    ],
+    "scope": "dev.forma.mobile.hostgate",
+    "fullWorkoutUiGate14Approved": false
+  },
+  "postUiReceiptCheck": {
+    "mode": "verify",
+    "runId": "799090e9-872e-4ac8-b879-93e81736ad46",
+    "ok": true,
+    "count": 8,
+    "pid": "28658",
+    "primaryRecordsReadBeforeReplay": true
+  },
+  "audit": {
+    "rootExitCode": 0,
+    "mobileExitCode": 1,
+    "mobileHighEntries": 20,
+    "advisory": "GHSA-vfj7-8cjw-p6xm",
+    "affectedPackage": "braces",
+    "scope": "Build tooling; absent from the standalone app bundle"
+  },
+  "limits": {
+    "productionSigningApproved": false,
+    "fullWorkoutUiGate14Approved": false,
+    "nutritionApproved": false
+  },
+  "privacy": "Contains only synthetic gate identities, source fingerprints, and test process IDs. No device endpoint, serial, pairing code, or primary record snapshot."
+}
