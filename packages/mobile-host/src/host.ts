@@ -174,7 +174,7 @@ export function createMobileHost(dependencies: MobileHostDependencies): MobileHo
         try {
           await opened.close();
         } catch {
-          // The startup error stays primary; ownership is released above.
+          // Keep the startup error primary. The adapter retains ownership after an unknown close state.
         }
       }
       activeService = null;
