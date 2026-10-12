@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": ".build",
+    "types": [
+      "node"
+    ],
+    "tsBuildInfoFile": ".build/node.tsbuildinfo"
+  },
+  "include": [
+    "tests/**/*.ts",
+    "examples/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "packages/core"
+    },
+    {
+      "path": "packages/adapters"
+    }
+  ]
+}
