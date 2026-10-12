@@ -1,12 +1,15 @@
 # Forma
 
-Forma is a local-first fitness service. This milestone includes workouts only.
-Nutrition will follow later.
+Forma is a local-first fitness app with a portable TypeScript service.
+The current implementation includes workouts only.
+Nutrition must wait for the workout device gate.
 
 ## Status
 
 The workout core and a SQLite adapter for Node exist.
 The mobile app does not exist yet.
+The approved Android v1 plan includes workouts, nutrition, notes, local history questions, and local backup and restore.
+[ROADMAP.md](ROADMAP.md) separates that plan from current capabilities and defines each phase gate.
 
 The service can:
 
@@ -73,6 +76,7 @@ The Node entry point remains separate from future mobile adapters.
 
 Read [ARCHITECTURE.md](ARCHITECTURE.md) for the API contracts.
 Read [SPEC.md](SPEC.md) for the current scope and exercise catalog.
+Read [ROADMAP.md](ROADMAP.md) for the full app contracts and unresolved decisions.
 
 ## Limits
 
