@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "FitRAG Validation",
+    "slug": "fitrag-validation",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "newArchEnabled": true,
+    "android": {
+      "package": "com.fitrag.validation",
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-document-picker",
+      "./plugins/withLiteRtLmAndroid",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "2.3.20"
+          }
+        }
+      ]
+    ]
+  }
+}
