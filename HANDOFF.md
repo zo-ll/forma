@@ -4,14 +4,15 @@
 
 Issue #5 passed the critic at `93abccc` and merged in [PR #41](https://github.com/zo-ll/forma/pull/41).
 Issue #6 passed the critic at `f2a0e99` and merged in [PR #42](https://github.com/zo-ll/forma/pull/42).
-The implementation baseline is `e10eb8d` on `master`.
+The merged implementation baseline is `9e4c037` on `master`.
 PR #44 merged the core/Node slice of [#7](https://github.com/zo-ll/forma/issues/7) at approved HEAD `a0e5d5337a2a0ca19c8de006f963623d3f720df6`.
 Both independent critics passed all 28 files and 418 tests. Master merge: `9e4c0373d8e091963c061e14672fcae9773d9822`.
-Issue #7 stays open for the Android query acceptance check.
+The Android query acceptance check for #7 has now passed. GitHub closure follows the approved issue #8 merge.
 Branch `issue/8-android-store` now adds an injected OP-SQLite binding and a shared synchronous SQL store.
 It also extracts all 116 earlier service cases into Node-free fixtures and adds a disposable native test host.
-The Android APK builds, but no device has run its fixtures. Issue #8 is not complete.
-Run [docs/android-storage-tests.md](docs/android-storage-tests.md), then freeze and review the exact HEAD before merge.
+The physical Nothing Phone (2a) passed all 143 native cases and exact process-restart persistence at source HEAD `90781dcd75e8b54fb82f5651dbb3e0525a19ae27`.
+The critic passed that exact source HEAD with 582 Node tests. Final evidence documentation needs exact-head approval before merge.
+See [docs/android-storage-tests.md](docs/android-storage-tests.md) for commands, evidence, and limits.
 
 Current checkout: `/home/az/projects/forma`.
 The old `/home/andrea/personal/forma` and `/home/andrea/personal/fitrag` paths belong to an earlier host.
@@ -29,7 +30,8 @@ Complete:
 - Calendar context and explicit load conventions.
 - Persisted start, resume, finish, and discard, with one in-progress workout.
 - Metadata edits and whole-workout deletion.
-- Bounded history, previous sets, and source-linked statistics on memory and Node SQLite.
+- Bounded history, previous sets, and source-linked statistics on memory, Node SQLite, and Android OP-SQLite.
+- Native rollback, migrations, owner lifecycle, close/reopen, and exact process-restart persistence.
 - Atomic writes, rollback, shared migrations, and schema version checks.
 - Persistent request receipts for every workout write command.
 - Full app contracts, phase gates, and a decision register.
@@ -51,8 +53,8 @@ The earlier completed issues passed an independent GLM 5.3 critic review before 
 | #6 | Metadata, deletion, and persisted workout sessions | [#42](https://github.com/zo-ll/forma/pull/42) |
 
 The merged implementation baseline has 26 required tasks left and four separate later enhancements.
-Android storage, screens, backup, nutrition, independent notes, and the assistant remain incomplete.
-The Android statistics acceptance check also remains incomplete.
+Screens, backup, nutrition, independent notes, and the assistant remain incomplete.
+Android storage and statistics acceptance now pass. This branch still requires its final approved merge.
 
 ## Read first
 
@@ -137,7 +139,10 @@ The runner accepts only the empty absent-package result and forces fresh bundles
 At that head the phone passed all 132 shared service/history cases plus three native diagnostics.
 The next diagnostic exposed an error-field mismatch: the published 18.2.5 archive throws message-only errors, but research had described newer upstream structured fields.
 The adapter now has a narrowly scoped known-column UNIQUE fallback. Diagnostics verify native message evidence as well as public codes.
-This new source needs another exact-head review. An APK update is currently waiting; ask the user about any phone-side install/security prompt. No full native PASS or restart PASS exists yet.
+The critic passed the compatibility fix at `90781dcd75e8b54fb82f5651dbb3e0525a19ae27`.
+The APK update delay came from overlapping Android install requests, not a phone prompt. The retry succeeded after those requests finished.
+The clean source build then passed all 143 native cases. Seed PID 21830 and verify PID 21887 proved a new process.
+Sanitized evidence is in `docs/verification/android-storage-90781dc.json`. No other apps or real records were changed.
 ADB commands now have timeouts so the host does not wait indefinitely.
 SDK Platform 37.0, Build-Tools 37.0.0, and NDK 27.1.12297006 are now installed.
 The external React Native 0.87.1 / OP-SQLite 18.2.5 test host built successfully with JDK 25.

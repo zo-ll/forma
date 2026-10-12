@@ -3,17 +3,17 @@
 Research date: 2026-10-12. Versions: OP-SQLite 18.2.5, React Native 0.87.1, community CLI 20.2.0.
 The isolated research worker checked published package sources and official documentation.
 The coordinator then built a release test APK with those versions.
-This document records API evidence, not Android execution approval.
+This document records API evidence and completed storage verification. It does not approve the production UI.
 
 ## Binding
 
-- [`open({ name })`](https://github.com/OP-Engineering/op-sqlite/blob/18.2.5/src/types.ts) returns the local native database synchronously. `openSync` is a different replica API; do not use it here.
+- `open({ name })` (published archive `src/types.ts`) returns the local native database synchronously. `openSync` is a different replica API; do not use it here.
 - `executeSync(sql, params?)` returns `rows: Array<Record<string, Scalar>>`. Scalar values include strings, numbers, null, booleans, ArrayBuffer, and ArrayBufferView. Forma's migration parameters are a supported subset.
 - `close()` closes the native connection synchronously.
 - **Correction from physical execution:** the published 18.2.5 archive has no structured SQLite error fields. Its `cpp/OPBridge.cpp` throws `std::runtime_error("[op-sqlite] statement execution error: " + sqlite3_errmsg(db))`. The initial research incorrectly attributed newer upstream HEAD code/types to the published package. The phone exposed this mismatch after all 132 service/history cases passed.
 - The adapter accepts numeric 1555/2067 when a binding supplies them. For published 18.2.5, it recognizes only the exact vendor-prefixed UNIQUE message for known Forma unique columns. It never treats CHECK, foreign-key, unrelated, or unprefixed errors as ID conflicts. A supplied non-unique extended code overrides any message fallback.
 - Published source evidence: [immutable npm archive](https://registry.npmjs.org/@op-engineering/op-sqlite/-/op-sqlite-18.2.5.tgz), `cpp/OPBridge.cpp`, execution failure branch. Do not use newer upstream declarations as evidence for this archive.
-- [`db.transaction()`](https://github.com/OP-Engineering/op-sqlite/blob/18.2.5/src/functions.ts) uses a deferred transaction. Forma instead sends BEGIN IMMEDIATE/COMMIT/ROLLBACK through executeSync and its own serialized queue.
+- `db.transaction()` (published archive `src/functions.ts`) uses a deferred transaction. Forma instead sends BEGIN IMMEDIATE/COMMIT/ROLLBACK through executeSync and its own serialized queue.
 - [Foreign keys are off by default](https://op-engineering.github.io/op-sqlite/docs/gotchas). The adapter enables foreign keys, WAL, and a 5000 ms busy timeout before migration.
 - [Synchronous execution blocks the JavaScript thread](https://op-engineering.github.io/op-sqlite/docs/api). Query budgets and the client write queue do not make it asynchronous.
 
@@ -43,10 +43,11 @@ Later builds must repeat this graph check after source changes.
 
 ## Limits
 
-The Nothing Phone (2a), A142, Android 16/API 36, passed all 132 shared service/history cases and the first three native diagnostics.
-The next diagnostic exposed the message-only error mismatch. Full native acceptance and restart verification are still pending.
-The adapter's Node binding simulations are not Android verification.
-Issues #7 and #8 remain open for native fixtures and process-restart checks.
+The Nothing Phone (2a), A142, Android 16/API 36, passed all 143 native cases after the message-only compatibility fix.
+Exact records and request snapshots survived force-stop and restart in distinct processes.
+[Sanitized evidence](../verification/android-storage-90781dc.json) identifies the tested source and APK.
+The adapter's Node binding simulations alone are not Android verification.
+The native acceptance checks for #7/#8 now pass. GitHub closure follows the approved merge.
 A storage-only test host cannot approve workout UI/device gate #14.
 
 The generated template's npm audit reports unpatched denial-of-service advisories in tooling dependencies:

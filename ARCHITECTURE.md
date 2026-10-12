@@ -239,9 +239,10 @@ The client narrows the date range or reduces the page size.
 The internal history port can load only matching exercise sets for analytics.
 Those partial query rows must never be saved as complete workouts.
 Shared fixtures in `tests/fixtures/history-cases.ts` have no Node imports and are ready for Android execution.
-Only memory and Node SQLite have passed them so far. Issue #7 remains open for the Android acceptance check.
+Memory, Node SQLite, and real Android OP-SQLite have passed the shared query fixtures.
+The physical Android evidence is recorded in [the storage checks](docs/android-storage-tests.md).
 
-## Android binding — issue #8 in progress
+## Android binding — issue #8
 
 Node and Android share `sqlite/workout-store.ts`: row mapping, SQL, migrations, FIFO queue, coherent reads, writes, expired-view guards, and close drain.
 The Node entry keeps its native constructor, path handling, and errcode translation.
@@ -263,7 +264,9 @@ Portable package exports have explicit React Native conditions.
 The standalone ARM64 test host embeds a release bundle and verifies its module graph.
 It reuses 116 service cases, 16 history cases, and eleven storage diagnostics.
 Its seed/verify modes prove process restart only after execution with distinct PIDs.
-The APK build passed. Native fixture execution and issue #8 acceptance remain pending.
+The Nothing Phone (2a), A142, Android 16/API 36, passed all 143 native cases.
+Seed and verify also passed in distinct processes, with exact records and original request snapshots.
+This is storage acceptance, not workout UI gate #14 approval.
 See [test commands](docs/android-storage-tests.md) and [binding evidence](docs/research/op-sqlite.md).
 
 ## Storage port

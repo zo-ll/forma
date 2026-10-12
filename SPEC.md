@@ -35,7 +35,8 @@ The core does not import React, Expo, a SQLite driver, or native handles.
 
 `@forma/adapters` implements the core ports.
 The first adapter uses SQLite in Node.
-A future Android adapter will use OP-SQLite.
+The injected Android adapter uses OP-SQLite. Its shared contracts and restart checks passed on the target phone.
+The production Android client remains planned.
 
 Each host constructs adapters and injects them into `createFormaService`.
 Clients use the same public service API.
@@ -154,7 +155,7 @@ Per-hand reps count reps per implement. Do not enter an alternating total as per
 Facts carry explicit units, saved-date context, and exact source references.
 Best facts apply only to the selected range. The service does not estimate a one-rep maximum.
 [docs/history-contract.md](docs/history-contract.md) defines limits, ties, exclusions, and cursor rules.
-Android query-fixture acceptance remains pending.
+Android query-fixture acceptance passed on the Nothing Phone (2a). See [storage evidence](docs/android-storage-tests.md).
 
 ## 6. Storage
 

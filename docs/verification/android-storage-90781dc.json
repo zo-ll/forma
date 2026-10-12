@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-12",
+  "device": {
+    "model": "A142",
+    "product": "Nothing Phone (2a)",
+    "android": "16",
+    "api": 36,
+    "abi": "arm64-v8a"
+  },
+  "apkSha256": "9c4c1dc2ea3cdbfd2c8192e1522f37d783ce4d412145fc1102e3e727286b14a3",
+  "results": [
+    {
+      "mode": "fixtures",
+      "runId": "a62a7149-b69b-492e-a509-0033d05b670e",
+      "ok": true,
+      "count": 143,
+      "sourceHead": "90781dcd75e8b54fb82f5651dbb3e0525a19ae27",
+      "dirty": false,
+      "sourceDigest": "309539d08fd8fba00dc1b2e3e2a6104825a9fa01e27188d6fe8a2222be1c18c8",
+      "reactNative": "0.87.1",
+      "opSqlite": "18.2.5",
+      "fixtureCount": 143,
+      "pid": "21550"
+    },
+    {
+      "mode": "seed",
+      "runId": "713eb3e4-3f49-498c-83d4-17c1bd618016",
+      "ok": true,
+      "count": 1,
+      "sourceHead": "90781dcd75e8b54fb82f5651dbb3e0525a19ae27",
+      "dirty": false,
+      "sourceDigest": "309539d08fd8fba00dc1b2e3e2a6104825a9fa01e27188d6fe8a2222be1c18c8",
+      "reactNative": "0.87.1",
+      "opSqlite": "18.2.5",
+      "fixtureCount": 143,
+      "pid": "21830"
+    },
+    {
+      "mode": "verify",
+      "runId": "c8c9cd3e-a171-4f1a-932e-02c03f98e4c8",
+      "ok": true,
+      "count": 1,
+      "sourceHead": "90781dcd75e8b54fb82f5651dbb3e0525a19ae27",
+      "dirty": false,
+      "sourceDigest": "309539d08fd8fba00dc1b2e3e2a6104825a9fa01e27188d6fe8a2222be1c18c8",
+      "reactNative": "0.87.1",
+      "opSqlite": "18.2.5",
+      "fixtureCount": 143,
+      "pid": "21887"
+    }
+  ]
+}

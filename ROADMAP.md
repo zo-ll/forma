@@ -58,8 +58,8 @@ The existing catalog and order in [SPEC.md](SPEC.md#4-exercise-catalog) remain u
 - Current: calendar context, explicit load conventions, and compatible set-load facts.
 - Current: workout metadata edits and whole-workout deletion.
 - Current: explicit persisted start, resume, finish, and discard behavior.
-- Current on memory and Node SQLite: paged history with date and exercise filters, previous sets, selected-range best facts, and supported volume totals.
-- Pending: execute the shared history-query fixtures against Android storage before closing #7.
+- Current on memory, Node SQLite, and native Android OP-SQLite: paged history with date and exercise filters, previous sets, selected-range best facts, and supported volume totals.
+- Verified: shared Android query cases, storage diagnostics, and exact process-restart persistence. See [evidence](docs/android-storage-tests.md).
 - Planned: versioned archive export, validation, and atomic restore through platform adapters.
 
 A history page carries an opaque cursor and stable record order.
@@ -290,7 +290,8 @@ Per-hand reps count reps per implement, not an alternating total.
 Groups stay separate by exercise and entered/combined convention. Unknown and body-weight records are explicitly excluded.
 History defaults to finished workouts. Previous sets come from the latest finished workout strictly before the supplied date.
 Record changes invalidate pagination cursors. The client restarts instead of accepting gaps or duplicates.
-The contract document fixes public DTOs, ties, sources, units, query limits, and the pending Android acceptance check.
+The contract document fixes public DTOs, ties, sources, units, and query limits.
+Its Android acceptance check passed through the disposable native storage host.
 
 ## Decision register
 
@@ -298,7 +299,7 @@ The contract document fixes public DTOs, ties, sources, units, query limits, and
 | --- | --- |
 | Calendar context and load conventions | Approved above for #5; preserve in statistics and screens |
 | Persisted session states and record operations | Approved above for #6; preserve in workout screens |
-| History, best facts, supported volume, and pagination semantics | Approved above for #7; Android query tests remain pending |
+| History, best facts, supported volume, and pagination semantics | Approved above for #7; Android query tests passed |
 | Nutrient quantity basis, precision, the rule to round values, and food-edit effects on saved meals | #15 and nutrition totals |
 | Body-part vocabulary, typed field definitions, and user confirmation rules | #19 and exact pain questions |
 | Approved weight quantization, runtime precision, and output precision | #23 and production inference |

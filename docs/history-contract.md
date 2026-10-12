@@ -56,4 +56,5 @@ Released migrations, catalog values, primary records, and receipts stay unchange
 
 Use shared query fixtures for memory, Node SQLite, and Android storage.
 Node and memory evidence does not satisfy the Android acceptance check.
-Issue #7 stays open until its query fixtures pass against real Android storage through issue #8.
+The shared query fixtures passed against real OP-SQLite on the Nothing Phone (2a) through issue #8.
+See [native evidence](android-storage-tests.md). This does not approve the production workout UI.
