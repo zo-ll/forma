@@ -100,6 +100,14 @@ test('asynchronous rejects use predicates and detect fulfilled promises', async 
   await nodeAssert.rejects(portable.rejects(Promise.reject(boom), (error) => error instanceof RangeError));
 });
 
+test('throw and reject string arguments supply messages rather than error predicates', async () => {
+  const portable: ContractAssert = createPortableAssert();
+  portable.throws(() => { throw new Error('expected'); }, 'custom throw message');
+  await portable.rejects(Promise.reject(new Error('expected')), 'custom rejection message');
+  nodeAssert.throws(() => portable.throws(() => {}, 'custom throw message'), /custom throw message/);
+  await nodeAssert.rejects(portable.rejects(Promise.resolve(), 'custom rejection message'), /custom rejection message/);
+});
+
 test('the portable assertion executes every extracted contract case', async (t) => {
   const portable: ContractAssert = createPortableAssert();
   const collectors = [collectWorkoutCases, collectRequestCases, collectLoadCases, collectSessionCases];

@@ -8,9 +8,17 @@
       "types": "./dist/node/index.d.ts",
       "import": "./dist/node/index.js"
     },
+    "./android": {
+      "types": "./dist/android/index.d.ts",
+      "react-native": "./dist/android/index.js",
+      "import": "./dist/android/index.js",
+      "default": "./dist/android/index.js"
+    },
     "./sqlite": {
       "types": "./dist/sqlite/index.d.ts",
-      "import": "./dist/sqlite/index.js"
+      "react-native": "./dist/sqlite/index.js",
+      "import": "./dist/sqlite/index.js",
+      "default": "./dist/sqlite/index.js"
     }
   },
   "files": [

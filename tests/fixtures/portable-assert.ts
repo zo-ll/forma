@@ -48,7 +48,7 @@ function deepEqualValue(actual: unknown, expected: unknown): boolean {
 }
 
 function validateError(validate: unknown, error: unknown): void {
-  if (validate === undefined) return;
+  if (validate === undefined || typeof validate === 'string') return;
   if (typeof validate !== 'function') fail('The contract validate argument must be a function.');
   if (!(validate as (thrown: unknown) => boolean)(error)) {
     fail('The operation failed with an unexpected error: ' + describe(error));
@@ -93,7 +93,7 @@ export function createPortableAssert(): ContractAssert {
       thrown = true;
       error = cause;
     }
-    if (!thrown) fail('Expected the operation to throw but it returned normally.');
+    if (!thrown) fail(typeof validate === 'string' ? validate : 'Expected the operation to throw but it returned normally.');
     validateError(validate, error);
   };
 
@@ -109,7 +109,7 @@ export function createPortableAssert(): ContractAssert {
       rejected = true;
       error = cause;
     }
-    if (!rejected) fail('Expected the operation to reject but its promise fulfilled.');
+    if (!rejected) fail(typeof validate === 'string' ? validate : 'Expected the operation to reject but its promise fulfilled.');
     validateError(validate, error);
   };
 
