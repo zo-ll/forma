@@ -83,7 +83,7 @@ The catalog remains read-only in this milestone.
 
 ## Repeated writes
 
-Every write requires a nonempty `requestId` with valid Unicode and no outer whitespace.
+Every write requires a nonempty `requestId` with valid Unicode, no NUL characters, and no outer whitespace.
 Each client creates one `requestId` per intended command.
 Before a write, save its `requestId` with the pending command.
 Use the same `requestId` and input for every retry.

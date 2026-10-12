@@ -13,6 +13,7 @@ import type { FormaService, WorkoutWriter } from '@forma/core';
 import { nextRequestId, errorCode, TEST_TIME } from './helpers.js';
 import type { Fixture } from './helpers.js';
 import { workoutContract } from './workout-contract.js';
+import { requestContract } from './request-contract.js';
 
 interface SqliteFixture extends Fixture {
   readonly databasePath: string;
@@ -45,6 +46,7 @@ async function sqliteFixture(t: TestContext): Promise<SqliteFixture> {
 }
 
 workoutContract('Node SQLite adapter', sqliteFixture);
+requestContract('SQLite request receipts', sqliteFixture);
 
 test('a real SQLite file retains exact records after close and reopen', async (t) => {
   const fixture = await sqliteFixture(t);
