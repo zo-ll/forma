@@ -142,6 +142,11 @@ The public API uses `SplitDay`, `splitDays`, and `splitDayId`.
 The initial migration inserts the catalog once.
 It does not reinsert the catalog on reopen.
 
+The shared registry defines ordered schema versions for both storage hosts.
+Each host supplies synchronous database operations to the migration runner.
+The runner applies all pending versions in one transaction.
+An upgrade failure preserves the previous schema, records, and version marker.
+
 Each write is atomic.
 A failed operation must preserve the previous record.
 The adapter must serialize commands on its connection.

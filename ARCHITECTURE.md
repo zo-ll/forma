@@ -107,6 +107,14 @@ Future calculations must define their load convention before use.
 The adapter keeps the version 1 names `workout_groups`, `workout_group_exercises`, and `group_id` for compatibility.
 The adapter maps these names to `SplitDay` and `splitDayId`.
 
+`@forma/adapters/sqlite` exports platform-independent migrations and a synchronous driver contract.
+The Node adapter supplies the driver. A future Android adapter can use `executeSync` for the same contract.
+The registry contains consecutive versions, starting at 1. Each item contains one complete SQL statement.
+The runner applies every pending version in one transaction and rechecks the version after it acquires the write lock.
+A failure rolls back both schema changes and the version marker.
+
+The initial catalog belongs to version 1 only. Later versions must not seed or reset the catalog again.
+
 `WorkoutStore.read()` supplies a coherent read view.
 `WorkoutStore.write()` supplies an atomic write transaction.
 Each callback uses its supplied reader or writer.

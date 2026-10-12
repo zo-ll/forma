@@ -1,5 +1,4 @@
-export const SCHEMA_VERSION = 1;
-
+// Released version 1 SQL remains unchanged. Add later versions to the migration registry.
 // SQL and schema changes belong to the storage adapter, not the core.
 export const SCHEMA_V1 = `
 CREATE TABLE exercises (

@@ -1,13 +1,13 @@
 import { DatabaseSync } from 'node:sqlite';
 import type { SQLInputValue, SQLOutputValue } from 'node:sqlite';
-import {
-  DEFAULT_EXERCISES, DEFAULT_SPLIT_DAYS, FormaError, normalizeExerciseAlias,
-} from '@forma/core';
+import { FormaError, normalizeExerciseAlias } from '@forma/core';
 import type {
   Exercise, ListWorkoutsInput, Workout, SplitDay, WorkoutReader, WorkoutSet,
   WorkoutStore, WorkoutWriter,
 } from '@forma/core';
-import { SCHEMA_V1, SCHEMA_VERSION } from '../sqlite/schema.js';
+import { pendingMigrations, runSqliteMigrations } from '../sqlite/migrations.js';
+import { SQLITE_MIGRATIONS } from '../sqlite/registry.js';
+import type { MigrationDriver } from '../sqlite/migrations.js';
 
 type Row = Record<string, SQLOutputValue>;
 
@@ -71,48 +71,26 @@ export class SqliteWorkoutStore implements WorkoutStore {
   }
 
   private initialize(): void {
-    const row = this.db.prepare('PRAGMA user_version').get();
-    if (!row) throw new FormaError('STORAGE_FAILURE', 'The schema version is unavailable.');
-    const version = numberValue(row, 'user_version');
-    if (version > SCHEMA_VERSION || version < 0) {
-      throw new FormaError('STORAGE_FAILURE', 'This database schema version is not supported.');
-    }
+    const driver: MigrationDriver = {
+      getVersion: () => {
+        const row = this.db.prepare('PRAGMA user_version').get();
+        if (!row) throw new FormaError('STORAGE_FAILURE', 'The schema version is unavailable.');
+        return numberValue(row, 'user_version');
+      },
+      beginImmediate: () => { this.db.exec('BEGIN IMMEDIATE'); return undefined; },
+      execute: (statement) => {
+        if (statement.parameters === undefined) this.db.exec(statement.sql);
+        else this.db.prepare(statement.sql).run(...statement.parameters);
+        return undefined;
+      },
+      setVersion: (version) => { this.db.exec('PRAGMA user_version = ' + version); return undefined; },
+      commit: () => { this.db.exec('COMMIT'); return undefined; },
+      rollback: () => { this.db.exec('ROLLBACK'); return undefined; },
+    };
+    // Reject unsupported schemas before a pragma can change the database.
+    pendingMigrations(driver.getVersion(), SQLITE_MIGRATIONS);
     this.db.exec('PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL;');
-    if (version === SCHEMA_VERSION) return;
-    this.db.exec('BEGIN IMMEDIATE');
-    try {
-      this.db.exec(SCHEMA_V1);
-      this.seedCatalog();
-      this.db.exec('PRAGMA user_version = ' + SCHEMA_VERSION);
-      this.db.exec('COMMIT');
-    } catch (cause) {
-      try { this.db.exec('ROLLBACK'); } catch { /* Preserve the original failure. */ }
-      throw cause;
-    }
-  }
-
-  private seedCatalog(): void {
-    const insertExercise = this.db.prepare(
-      'INSERT INTO exercises (id, name, muscle_group, equipment, catalog_position) VALUES (?, ?, ?, ?, ?)',
-    );
-    const insertAlias = this.db.prepare(
-      'INSERT INTO exercise_aliases (normalized_alias, alias, exercise_id) VALUES (?, ?, ?)',
-    );
-    DEFAULT_EXERCISES.forEach((exercise, position) => {
-      insertExercise.run(exercise.id, exercise.name, exercise.muscleGroup, exercise.equipment, position);
-      const names = new Map([exercise.name, ...exercise.aliases].map((name) => [normalizeExerciseAlias(name), name]));
-      for (const [normalized, name] of names) insertAlias.run(normalized, name, exercise.id);
-    });
-    const insertSplitDay = this.db.prepare(
-      'INSERT INTO workout_groups (id, name, catalog_position) VALUES (?, ?, ?)',
-    );
-    const insertMember = this.db.prepare(
-      'INSERT INTO workout_group_exercises (group_id, exercise_id, position) VALUES (?, ?, ?)',
-    );
-    DEFAULT_SPLIT_DAYS.forEach((splitDay, splitDayPosition) => {
-      insertSplitDay.run(splitDay.id, splitDay.name, splitDayPosition);
-      splitDay.exerciseIds.forEach((id, position) => insertMember.run(splitDay.id, id, position));
-    });
+    runSqliteMigrations(driver, SQLITE_MIGRATIONS);
   }
 
   private enqueue<T>(run: () => Promise<T>): Promise<T> {
