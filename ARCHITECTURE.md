@@ -269,6 +269,24 @@ Seed and verify also passed in distinct processes, with exact records and origin
 This is storage acceptance, not workout UI gate #14 approval.
 See [test commands](docs/android-storage-tests.md) and [binding evidence](docs/research/op-sqlite.md).
 
+## Mobile host — issue #9 in progress
+
+`@forma/mobile-host` owns the client service lifetime, preference state, and date context.
+It imports only the core. The Android composition root injects the SQLite adapter, native UUIDs, timezone, and private preference storage.
+A runtime-global symbol retains one host across component disposal and Fast Refresh.
+Background keeps that host open. Resume calls the core calendar resolver without changing saved records.
+Explicit close drains accepted work. Failed startup closes its opened service; unknown native close state retains ownership.
+
+The UI owns navigation and presentation, not record rules or calculations.
+Its read-only history form displays typed core errors with field names and accessible controls.
+Appearance changes persist before publication. A native save failure is unconfirmed, not proof of unchanged disk state.
+Corrupt or newer preferences remain intact and fail startup rather than silently reset.
+
+The standalone hostgate flavor uses a separate sandbox with synthetic records.
+Its expected snapshots live under a native test-only guard. Restart verification reads records before receipt replay.
+Build checks exclude Node runtime modules. Physical host acceptance remains pending.
+See [mobile ownership and limits](docs/mobile-host.md).
+
 ## Storage port
 
 The adapter keeps the version 1 names `workout_groups`, `workout_group_exercises`, and `group_id` for compatibility.

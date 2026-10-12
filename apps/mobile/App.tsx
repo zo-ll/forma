@@ -6,14 +6,24 @@ import type {WorkoutHistoryPage} from '@forma/core';
 import {MOBILE_THEMES} from '@forma/mobile-host';
 import type {MobileHost, MobileHostSnapshot} from '@forma/mobile-host';
 import {mobileRoot} from './src/root';
+import {deviceAdapters} from './src/adapters/device';
+import {runHostGate} from './src/gate';
 
 type Route = 'Home' | 'History' | 'Settings';
 function errorText(error: unknown): string {
   return error instanceof FormaError ? `${error.field ? error.field + ': ' : ''}${error.message} (${error.code})`
     : 'The operation failed. Restart the app if the problem continues.';
 }
-export default function App() {
-  return <SafeAreaProvider><Shell host={mobileRoot()}/></SafeAreaProvider>;
+const gateRuns = new Set<string>();
+export default function App({formaMode, formaRunId}: {formaMode?: string; formaRunId?: string}) {
+  const host = mobileRoot();
+  useEffect(() => {
+    if (deviceAdapters.isHostGate() && formaMode && formaRunId && !gateRuns.has(formaRunId + formaMode)) {
+      gateRuns.add(formaRunId + formaMode);
+      void runHostGate(host, formaMode, formaRunId);
+    }
+  }, [host, formaMode, formaRunId]);
+  return <SafeAreaProvider><Shell host={host}/></SafeAreaProvider>;
 }
 function Shell({host}: {host: MobileHost}) {
   const [snapshot, setSnapshot] = useState<MobileHostSnapshot>(() => host.snapshot());

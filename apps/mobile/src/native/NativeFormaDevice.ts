@@ -7,5 +7,7 @@ export interface Spec extends TurboModule {
   readPreferences(): string | null;
   writePreferences(value: string): boolean;
   isHostGate(): boolean;
+  readGateSnapshot(): string | null;
+  writeGateSnapshot(value: string): boolean;
 }
 export default TurboModuleRegistry.getEnforcing<Spec>('FormaDevice');

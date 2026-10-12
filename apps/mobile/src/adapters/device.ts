@@ -12,4 +12,5 @@ export const deviceAdapters = {
     },
   },
   isHostGate: () => NativeDevice.isHostGate(),
+  gateSnapshots: {read: () => NativeDevice.readGateSnapshot(), write: (value: string) => NativeDevice.writeGateSnapshot(value)},
 };

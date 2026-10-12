@@ -4,15 +4,21 @@
 
 Issue #5 passed the critic at `93abccc` and merged in [PR #41](https://github.com/zo-ll/forma/pull/41).
 Issue #6 passed the critic at `f2a0e99` and merged in [PR #42](https://github.com/zo-ll/forma/pull/42).
-The merged implementation baseline is `9e4c037` on `master`.
+The merged implementation baseline is `3fa8558` on `master`.
 PR #44 merged the core/Node slice of [#7](https://github.com/zo-ll/forma/issues/7) at approved HEAD `a0e5d5337a2a0ca19c8de006f963623d3f720df6`.
 Both independent critics passed all 28 files and 418 tests. Master merge: `9e4c0373d8e091963c061e14672fcae9773d9822`.
-The Android query acceptance check for #7 has now passed. GitHub closure follows the approved issue #8 merge.
-Branch `issue/8-android-store` now adds an injected OP-SQLite binding and a shared synchronous SQL store.
-It also extracts all 116 earlier service cases into Node-free fixtures and adds a disposable native test host.
-The physical Nothing Phone (2a) passed all 143 native cases and exact process-restart persistence at source HEAD `90781dcd75e8b54fb82f5651dbb3e0525a19ae27`.
-The critic passed that exact source HEAD with 582 Node tests. Final evidence documentation needs exact-head approval before merge.
-See [docs/android-storage-tests.md](docs/android-storage-tests.md) for commands, evidence, and limits.
+PR #45 merged issue #8 at approved HEAD `73a9c5a207d2785d13f1f93e943ecbad9e3020e7`; master merge is `3fa8558ffcbaccda9638824614eb15321e7a9ee7`.
+The critic covered 34/34 files with zero findings. The exact approved HEAD passed all 143 native cases and restart verification on the Nothing Phone (2a).
+Issues #7 and #8 are closed. Node baseline: 582 passing tests.
+Branch `issue/9-mobile-host` now adds the thin Android host, the portable host package, a native device bridge, local preferences, and an isolated hostgate flavor.
+Its root suite passes 614 tests. App typecheck and ARM64 standalone build pass. Physical host acceptance and final source review remain pending.
+See [the mobile host](docs/mobile-host.md) for ownership, commands, and limits.
+
+The session interruption removed `/tmp` worktrees and artifacts. Committed work and the main checkout survived.
+The unfinished gate harness was recovered from the worker session, then corrected to compare saved records before replay and require exact counts for every mode.
+The critic window is restored using plain `pi` defaults and read-only tools. It waits for a frozen review request.
+The phone reconnected briefly but is now unreachable over Wi-Fi. Ask for the current connection address from the main Wireless debugging screen when needed.
+Only `dev.forma.mobile.hostgate` is authorized for synthetic host tests. Do not update existing apps or records.
 
 Current checkout: `/home/az/projects/forma`.
 The old `/home/andrea/personal/forma` and `/home/andrea/personal/fitrag` paths belong to an earlier host.
@@ -39,7 +45,7 @@ Complete:
 Schema version 3 preserves old sets as unknown. Version 4 preserves old workouts as finished historical records with no invented finish timestamp.
 Both upgrades preserve request receipts. Committed in-progress sets survive an abrupt Node process stop.
 Schema version 5 adds persistent history revisions. Record changes invalidate earlier cursors.
-The current Node suite passes 582 tests (including binding simulations, not Android verification).
+The current Node suite passes 614 tests (including host and binding simulations, not proof of the new host's native acceptance).
 The last full merged-baseline verification passed all 418 tests, type checks, and the persistence example.
 This is not a critic verdict or an Android device result.
 The earlier completed issues passed an independent GLM 5.3 critic review before merge:
@@ -73,7 +79,10 @@ Android storage and statistics acceptance now pass. This branch still requires i
 - `packages/adapters/src/sqlite/workout-store.ts`: shared SQL, queue, transactions, and resource lifecycle.
 - `packages/adapters/src/android/`: native binding, error mapping, and one-owner guard.
 - `scripts/android-test-host.mjs`: standalone test-host setup, build, source checks, and device runner.
-- `docs/android-storage-tests.md`: commands and remaining native gate.
+- `docs/android-storage-tests.md`: completed native storage checks.
+- `packages/mobile-host/src/`: portable host lifetime and preference state.
+- `apps/mobile/`: Android identity, native bridge, composition root, and screens.
+- `scripts/mobile-host-device.mjs`: isolated hostgate build, source checks, and device runner.
 - `packages/core/src/requests/service.ts`: shared request identity and replay.
 - `packages/core/src/workouts/results.ts`: saved result validation.
 - `packages/adapters/src/sqlite/`: shared migration registry and synchronous driver contract.

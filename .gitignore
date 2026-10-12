@@ -53,6 +53,7 @@ build/
 
 # Metro
 .metro-health-check*
+/apps/mobile/mobile-build.json
 
 # debug
 npm-debug.*
