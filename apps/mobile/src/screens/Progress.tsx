@@ -4,6 +4,7 @@ import type {CalendarPeriod, Exercise, LoadStatisticsGroup, WorkoutSource, Worko
 import {resolveCalendarRange} from '@forma/core';
 import {deviceAdapters} from '../adapters/device';
 import {withTypedDates} from '../forms/index';
+import type {DateDraft} from '../forms/index';
 import {Button, Card, ErrorNotice, Muted, ScreenHeader} from '../ui/controls';
 import {ExercisePicker} from '../ui/ExercisePicker';
 import {shared} from '../ui/theme';
@@ -21,6 +22,8 @@ interface ProgressFilters {
 }
 
 const FILTER_KEY = 'progress:filters';
+// Typed custom dates that are not applied yet. The applied filters stay under FILTER_KEY.
+const TYPED_KEY = 'progress:typedDates';
 const RANGE_LABELS: Record<RangeChoice, string> = {today: 'Today', 'this-week': 'This week', 'last-week': 'Last week', custom: 'Custom dates'};
 const GROUP_LABELS: Record<LoadStatisticsGroup['convention'], string> = {entered: 'Entered load', combined: 'Combined load'};
 const EXCLUSION_LABELS = {unknown: 'Unknown load', 'body-weight': 'Body weight'} as const;
@@ -60,13 +63,19 @@ export function Progress({ctx}: {ctx: ScreenContext}) {
   const {palette, forms} = ctx;
   const [filters, setFilters] = useState<ProgressFilters>(() => forms.drafts.get<ProgressFilters>(FILTER_KEY)
     ?? {exerciseId: null, range: 'this-week', dateFrom: '', dateTo: ''});
-  const [typed, setTyped] = useState({dateFrom: filters.dateFrom, dateTo: filters.dateTo});
+  const [typed, setTyped] = useState<DateDraft>(() => forms.drafts.get<DateDraft>(TYPED_KEY) ?? {dateFrom: filters.dateFrom, dateTo: filters.dateTo});
   const [picking, setPicking] = useState(false);
   const apply = (next: ProgressFilters) => {
     const applied = withTypedDates(next, typed);
     setFilters(applied);
     setTyped({dateFrom: applied.dateFrom, dateTo: applied.dateTo});
     forms.drafts.set(FILTER_KEY, applied);
+    forms.drafts.clear(TYPED_KEY);
+  };
+  const type = (key: keyof DateDraft, text: string) => {
+    const next = {...typed, [key]: text};
+    setTyped(next);
+    forms.drafts.set(TYPED_KEY, next);
   };
   const catalog = useServiceRead<readonly Exercise[]>(ctx.host, 'exercises', service => service.exercises.list());
   const exercises = catalog.loaded.state === 'ready' ? catalog.loaded.value : [];
@@ -91,7 +100,7 @@ export function Progress({ctx}: {ctx: ScreenContext}) {
       <View style={[shared.row, {flexWrap: 'wrap'}]}>
         {(['dateFrom', 'dateTo'] as const).map(key => <TextInput key={key} accessibilityLabel={key === 'dateFrom' ? 'Progress start date' : 'Progress end date'}
           value={typed[key]} placeholder="YYYY-MM-DD" placeholderTextColor={palette.muted} autoCapitalize="none" autoCorrect={false} maxLength={32}
-          onChangeText={text => setTyped(current => ({...current, [key]: text}))}
+          onChangeText={text => type(key, text)}
           style={[shared.input, {flexGrow: 1, flexBasis: 140, color: palette.text, borderColor: palette.muted}]}/>)}
       </View>
       <Button palette={palette} label="Apply dates" onPress={() => apply(filters)}/>

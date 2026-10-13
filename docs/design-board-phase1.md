@@ -73,3 +73,7 @@ A repeated tap during an attempt returns that attempt.
 A definitive `INVALID_INPUT`, `NOT_FOUND`, or `CONFLICT` frees the slot.
 Any other failure keeps the key and input. A retry with the same input reuses the key.
 The ledger and drafts live for the host lifetime. They do not survive a process restart.
+Clear in the restored notice resets the form to its defaults and deletes the stored draft. It keeps the command slot.
+History and Progress store typed date text apart from the applied filters.
+Typed dates return after navigation, but only Apply, Load, or a filter change applies them.
+Clear filters removes the applied dates and the typed dates.

@@ -3,6 +3,7 @@ import {Pressable, Text, TextInput, View} from 'react-native';
 import type {Exercise, SplitDay, WorkoutHistoryInput, WorkoutHistoryPage, WorkoutStatus} from '@forma/core';
 import {FormaError} from '@forma/core';
 import {withTypedDates} from '../forms/index';
+import type {DateDraft} from '../forms/index';
 import {Button, Card, ErrorNotice, Muted, ScreenHeader} from '../ui/controls';
 import {ExercisePicker} from '../ui/ExercisePicker';
 import {shared} from '../ui/theme';
@@ -22,6 +23,8 @@ interface HistoryFilters {
 const EMPTY_FILTERS: HistoryFilters = {status: 'finished', dateFrom: '', dateTo: '', exerciseId: null};
 const STATUS_LABELS: Record<StatusFilter, string> = {finished: 'Finished', 'in-progress': 'In progress', all: 'All'};
 const FILTER_KEY = 'history:filters';
+// Typed date text that is not applied yet. The applied filters stay under FILTER_KEY.
+const TYPED_KEY = 'history:typedDates';
 const PAGE_SIZE = 20;
 
 export function isStaleCursor(error: unknown): boolean {
@@ -32,7 +35,7 @@ export function isStaleCursor(error: unknown): boolean {
 export function History({ctx}: {ctx: ScreenContext}) {
   const {palette, forms} = ctx;
   const [filters, setFilters] = useState<HistoryFilters>(() => forms.drafts.get<HistoryFilters>(FILTER_KEY) ?? EMPTY_FILTERS);
-  const [typed, setTyped] = useState({dateFrom: filters.dateFrom, dateTo: filters.dateTo});
+  const [typed, setTyped] = useState<DateDraft>(() => forms.drafts.get<DateDraft>(TYPED_KEY) ?? {dateFrom: filters.dateFrom, dateTo: filters.dateTo});
   // Cursors of the pages already seen. Index 0 is the newest page.
   const [cursors, setCursors] = useState<readonly (string | undefined)[]>([undefined]);
   const [picking, setPicking] = useState(false);
@@ -52,7 +55,13 @@ export function History({ctx}: {ctx: ScreenContext}) {
     setFilters(applied);
     setTyped({dateFrom: applied.dateFrom, dateTo: applied.dateTo});
     forms.drafts.set(FILTER_KEY, applied);
+    forms.drafts.clear(TYPED_KEY);
     setCursors([undefined]);
+  };
+  const type = (key: keyof DateDraft, text: string) => {
+    const next = {...typed, [key]: text};
+    setTyped(next);
+    forms.drafts.set(TYPED_KEY, next);
   };
   const restart = () => setCursors([undefined]);
   const splitDays = catalog.loaded.state === 'ready' ? catalog.loaded.value.splitDays : [];
@@ -65,7 +74,7 @@ export function History({ctx}: {ctx: ScreenContext}) {
     <Text style={[shared.label, {color: palette.muted}]}>{label}</Text>
     <TextInput accessibilityLabel={key === 'dateFrom' ? 'History start date' : 'History end date'} value={typed[key]} placeholder="YYYY-MM-DD"
       placeholderTextColor={palette.muted} autoCapitalize="none" autoCorrect={false} maxLength={32}
-      onChangeText={text => setTyped(current => ({...current, [key]: text}))}
+      onChangeText={text => type(key, text)}
       style={[shared.input, {color: palette.text, borderColor: palette.muted}]}/>
   </View>;
 

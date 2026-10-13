@@ -128,6 +128,19 @@ function forms(): { drafts: DraftStore; commands: CommandLedger } {
   return {drafts: formsModule.createDraftStore(), commands: formsModule.createCommandLedger(sequence('req'))};
 }
 
+/** Reads give a ready empty result. Each read key is recorded, so a query change is visible. */
+function readRecorder() {
+  const keys: string[] = [];
+  const useServiceRead = (_host: unknown, key: string) => {
+    keys.push(key);
+    if (key === 'catalog') return {loaded: {state: 'ready', value: {splitDays: [], exercises: []}}, reload: () => {}};
+    if (key === 'exercises') return {loaded: {state: 'ready', value: []}, reload: () => {}};
+    if (key.startsWith('{"exerciseId":null')) return {loaded: {state: 'ready', value: null}, reload: () => {}};
+    return {loaded: {state: 'ready', value: {items: [], nextCursor: null}}, reload: () => {}};
+  };
+  return {keys, useServiceRead, last: (skip: string) => keys.filter(key => key !== skip).at(-1)};
+}
+
 // Entry: the restored-notice Clear action.
 
 function setForm(store: ReturnType<typeof forms>, previous: WorkoutSet | null) {
@@ -216,4 +229,156 @@ test('Clear keeps an unconfirmed set command and its request identity', async ()
   screen = resumed.render();
   assert.deepEqual(store.commands.pending(slot), before);
   assert.match(screen.text, /The last save is unconfirmed/);
+});
+
+// History: typed but unapplied dates.
+
+function historyScreen(store: ReturnType<typeof forms>) {
+  const runtime = hookRuntime();
+  const reads = readRecorder();
+  const exports = loadScreen('History.tsx', runtime.react, {
+    '../ui/controls': CONTROLS,
+    '../ui/ExercisePicker': tags(['ExercisePicker']),
+    './context': {useServiceRead: reads.useServiceRead},
+    './Home': {setCountText: () => '', splitName: () => ''},
+  });
+  const ctx = {forms: store, palette: {}, host: {}, push: () => {}};
+  return {reads, open: () => runtime.mount(exports.History as (props: object) => Element, {ctx})};
+}
+
+const historyQuery = (dates: {dateFrom?: string; dateTo?: string} = {}, status = 'finished') =>
+  JSON.stringify({status, limit: 20, ...dates});
+const typeInto = (screen: ReturnType<typeof view>, label: string, text: string) =>
+  (screen.byAccessibility(label).props.onChangeText as (value: string) => void)(text);
+
+test('unapplied history dates survive a return without a query change', () => {
+  const store = forms();
+  const {reads, open} = historyScreen(store);
+  let screen = open().render();
+  typeInto(screen, 'History start date', '2099-01-01');
+  screen = open().render();
+  assert.equal(screen.byAccessibility('History start date').props.value, '2099-01-01');
+  assert.equal(reads.last('catalog'), historyQuery());
+  assert.equal(store.drafts.get('history:filters'), null);
+});
+
+test('history Load and a filter change apply the visible dates', () => {
+  const store = forms();
+  const {reads, open} = historyScreen(store);
+  const mounted = open();
+  let screen = mounted.render();
+  typeInto(screen, 'History start date', '2099-01-01');
+  const resumed = open();
+  screen = resumed.render();
+  assert.equal(reads.last('catalog'), historyQuery());
+  typeInto(screen, 'History end date', '2099-12-31');
+  screen = resumed.render();
+  (screen.byAccessibility('Status: All').props.onPress as () => void)();
+  screen = resumed.render();
+  assert.equal(reads.last('catalog'), historyQuery({dateFrom: '2099-01-01', dateTo: '2099-12-31'}, 'all'));
+  assert.equal(store.drafts.get('history:typedDates'), null);
+
+  typeInto(screen, 'History start date', ' 2098-01-01 ');
+  screen = resumed.render();
+  (screen.byLabel('Load history').props.onPress as () => void)();
+  screen = open().render();
+  assert.equal(reads.last('catalog'), historyQuery({dateFrom: '2098-01-01', dateTo: '2099-12-31'}, 'all'));
+  assert.equal(screen.byAccessibility('History start date').props.value, '2098-01-01');
+});
+
+test('history Clear filters removes applied and typed dates', () => {
+  const store = forms();
+  const {reads, open} = historyScreen(store);
+  const mounted = open();
+  let screen = mounted.render();
+  typeInto(screen, 'History start date', '2099-01-01');
+  screen = mounted.render();
+  (screen.byLabel('Load history').props.onPress as () => void)();
+  screen = mounted.render();
+  typeInto(screen, 'History end date', '2099-12-31');
+  screen = mounted.render();
+  (screen.byLabel('Clear filters').props.onPress as () => void)();
+  mounted.render();
+  assert.equal(reads.last('catalog'), historyQuery());
+
+  screen = open().render();
+  assert.equal(screen.byAccessibility('History start date').props.value, '');
+  assert.equal(screen.byAccessibility('History end date').props.value, '');
+  assert.equal(store.drafts.get('history:typedDates'), null);
+});
+
+// Progress: typed but unapplied custom dates.
+
+function progressScreen(store: ReturnType<typeof forms>) {
+  const runtime = hookRuntime();
+  const reads = readRecorder();
+  const exports = loadScreen('Progress.tsx', runtime.react, {
+    '../adapters/device': {deviceAdapters: {platform: {nowUtc: () => '2026-10-13T10:00:00.000Z', timeZone: () => 'UTC'}}},
+    '../ui/controls': CONTROLS,
+    '../ui/ExercisePicker': tags(['ExercisePicker']),
+    './context': {useServiceRead: reads.useServiceRead},
+  });
+  const ctx = {forms: store, palette: {}, host: {}, push: () => {}};
+  return {reads, open: () => runtime.mount(exports.Progress as (props: object) => Element, {ctx})};
+}
+
+const progressQuery = (range: object) => JSON.stringify({exerciseId: 'incline', range});
+const THIS_WEEK = core.resolveCalendarRange({nowUtc: '2026-10-13T10:00:00.000Z', timeZone: 'UTC', period: 'this-week'});
+
+function chooseIncline(screen: ReturnType<typeof view>) {
+  (screen.byType('ExercisePicker').props.onPick as (id: string) => void)('incline');
+}
+
+test('unapplied progress dates survive a return without a query change', () => {
+  const store = forms();
+  const {reads, open} = progressScreen(store);
+  const mounted = open();
+  let screen = mounted.render();
+  chooseIncline(screen);
+  screen = mounted.render();
+  (screen.byLabel('Custom dates').props.onPress as () => void)();
+  screen = mounted.render();
+  assert.equal(reads.last('exercises'), progressQuery({dateFrom: '', dateTo: ''}));
+  typeInto(screen, 'Progress start date', '2026-01-01');
+
+  screen = open().render();
+  assert.equal(screen.byAccessibility('Progress start date').props.value, '2026-01-01');
+  assert.equal(screen.byLabel('Custom dates').props.selected, true);
+  assert.equal(reads.last('exercises'), progressQuery({dateFrom: '', dateTo: ''}));
+  assert.equal(store.drafts.get<{dateFrom: string}>('progress:filters')?.dateFrom, '');
+});
+
+test('progress Apply and a range change use the visible dates and keep relative ranges', () => {
+  const store = forms();
+  const {reads, open} = progressScreen(store);
+  const mounted = open();
+  let screen = mounted.render();
+  chooseIncline(screen);
+  screen = mounted.render();
+  (screen.byLabel('Custom dates').props.onPress as () => void)();
+  screen = mounted.render();
+  typeInto(screen, 'Progress start date', '2026-01-01');
+  screen = mounted.render();
+  typeInto(screen, 'Progress end date', '2026-01-31');
+
+  const resumed = open();
+  screen = resumed.render();
+  (screen.byLabel('Apply dates').props.onPress as () => void)();
+  screen = resumed.render();
+  assert.equal(reads.last('exercises'), progressQuery({dateFrom: '2026-01-01', dateTo: '2026-01-31'}));
+  assert.equal(store.drafts.get('progress:typedDates'), null);
+
+  // A relative range resolves in the core and ignores the typed dates.
+  typeInto(screen, 'Progress end date', '2026-02-28');
+  screen = resumed.render();
+  (screen.byLabel('This week').props.onPress as () => void)();
+  screen = resumed.render();
+  assert.equal(reads.last('exercises'), progressQuery({dateFrom: THIS_WEEK.dateFrom, dateTo: THIS_WEEK.dateTo}));
+  assert.equal(screen.has(props => props.accessibilityLabel === 'Progress start date'), false);
+
+  const returned = open();
+  screen = returned.render();
+  (screen.byLabel('Custom dates').props.onPress as () => void)();
+  returned.render();
+  assert.equal(reads.last('exercises'), progressQuery({dateFrom: '2026-01-01', dateTo: '2026-02-28'}));
 });
