@@ -191,7 +191,7 @@ export function draftFromSet(set: WorkoutSet): SetDraft {
     loadConvention: set.loadConvention, implementCount: set.implementCount};
 }
 
-function SetForm({ctx, workout, exerciseId, exerciseName, previous, nextIndex, onSettled}: {
+export function SetForm({ctx, workout, exerciseId, exerciseName, previous, nextIndex, onSettled}: {
   ctx: ScreenContext; workout: Workout; exerciseId: string; exerciseName: string; previous: WorkoutSet | null;
   nextIndex: number; onSettled: (setId: string | null) => void;
 }) {
@@ -214,13 +214,23 @@ function SetForm({ctx, workout, exerciseId, exerciseName, previous, nextIndex, o
   const live = ctx.snapshot.phase === 'ready' || ctx.snapshot.phase === 'background';
   const unconfirmed = forms.commands.pending(slot)?.unconfirmed === true;
 
-  const change = (patch: Partial<SetDraft>) => {
-    const next = {...draft, ...patch};
+  const show = (next: SetDraft) => {
     setDraft(next);
-    forms.drafts.set(draftKey, next);
     setProblems([]);
     setFailure(null);
     setNotice(null);
+  };
+  const change = (patch: Partial<SetDraft>) => {
+    const next = {...draft, ...patch};
+    show(next);
+    forms.drafts.set(draftKey, next);
+  };
+  // Clear returns to the defaults of a new form. A stored copy of them would restore the notice later.
+  // The pending command for this slot stays in the ledger.
+  const clear = () => {
+    setRestored(false);
+    show(previous ? draftFromSet(previous) : EMPTY_SET_DRAFT);
+    forms.drafts.clear(draftKey);
   };
   const problemFor = (field: string): string | undefined => {
     const local = problems.find(problem => problem.field === field)?.message;
@@ -274,7 +284,7 @@ function SetForm({ctx, workout, exerciseId, exerciseName, previous, nextIndex, o
     {restored && <View style={[shared.notice, {borderColor: palette.accent, borderStyle: 'dashed'}]}>
       <Text style={{color: palette.text, fontWeight: '600'}}>↺ Unsaved values restored</Text>
       <Muted palette={palette}>Not saved yet. Review, then save.</Muted>
-      <Button palette={palette} label="Clear" onPress={() => {setRestored(false); change(previous ? draftFromSet(previous) : EMPTY_SET_DRAFT);}}/>
+      <Button palette={palette} label="Clear" onPress={clear}/>
     </View>}
     {pending && <View style={[shared.row, {borderWidth: 1, borderStyle: 'dashed', borderColor: palette.muted, borderRadius: 10, padding: 8}]}>
       <Text style={[shared.code, {color: palette.muted, width: 20}]}>{nextIndex}</Text>
