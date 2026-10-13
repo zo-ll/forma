@@ -11,7 +11,8 @@
   "include": [
     "tests/**/*.ts",
     "examples/**/*.ts",
-    "apps/mobile/src/forms/index.ts"
+    "apps/mobile/src/forms/index.ts",
+    "apps/mobile/src/archive/flow.ts"
   ],
   "references": [
     {
