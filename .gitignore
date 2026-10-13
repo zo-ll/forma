@@ -39,6 +39,9 @@ credentials.json
 .env.*
 !.env.example
 
+# Local agent config
+.mcp.json
+
 # Build output
 *.apk
 *.aab
