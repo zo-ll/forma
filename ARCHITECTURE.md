@@ -289,6 +289,16 @@ The device checks also cover accessible navigation, typed history errors, themes
 These thin-host checks do not approve the full workout UI gate #14.
 See [mobile ownership and limits](docs/mobile-host.md).
 
+## Local archive — issue #12
+
+`service.archive` exports, inspects, and restores a versioned plaintext archive. See the [archive contract](docs/archive-contract.md).
+Export reads one coherent view through the store. It does not copy the SQLite file.
+Restore is full replacement in one write transaction. The user confirms the archive digest and the current history revision.
+The core validates the whole archive before mutation, including receipt signatures and results with the released codecs.
+A core exclusion rejects new operations through any API reference during a restore. Accepted operations drain first.
+The SHA-256 digest detects damage. It is not authentication or encryption.
+Settings shows the privacy and replacement warnings. Kotlin keeps document URIs native and counts bytes while it reads.
+
 ## Storage port
 
 The adapter keeps the version 1 names `workout_groups`, `workout_group_exercises`, and `group_id` for compatibility.
