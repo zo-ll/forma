@@ -289,10 +289,12 @@ The core service owns the exclusion. A cached `service.workouts` or other API re
 - After a success, or after a failure that is not definitive, the host adds 1 to `recordsEpoch`.
 - After `INVALID_INPUT`, `NOT_FOUND`, or `CONFLICT`, the epoch does not change. The database did not change.
 - Restore adds 1 to the history revision, also for an empty archive. All earlier cursors return `CONFLICT` on `cursor`.
-- When `recordsEpoch` changes, the app clears the command ledger and the draft store, clears the stack, and opens Home.
+- When `recordsEpoch` changes, the app clears the command ledger and the draft store and clears the stack.
+  Settings stays open to show the restore result. Any other route changes to Home.
 - History and Progress remount with the epoch in their key. They drop old cursors and query state.
 - The forms module adds `CommandLedger.clear()` and `DraftStore.clearAll()`.
-- The restore command keeps its own saved `requestId` and input outside the general ledger. A retry after an unconfirmed failure reuses them.
+- The restore command keeps its own saved `requestId` and input in a separate ledger (`MobileForms.restore`). A records change does not clear it.
+  A retry after an unconfirmed failure reuses them, also after screen disposal.
 - Screens call `host.service()` for each operation.
 
 ## 14. File flow
@@ -301,7 +303,9 @@ Kotlin adds two promise methods. Only one picker request can run at a time.
 
 ```ts
 saveArchive(text: string, suggestedName: string): Promise<{status: string; byteLength: number; partialFileRemoved: boolean}>;
+// status: 'saved' | 'cancelled' | 'failed'
 openArchive(maxBytes: number): Promise<{status: string; text: string | null; byteLength: number}>;
+// status: 'opened' | 'cancelled'
 ```
 
 Export:
@@ -323,10 +327,12 @@ Restore:
 6. `CONFLICT` on `expectedHistoryRevision` returns the user to inspection and a new confirmation.
 7. A retry after an unconfirmed failure reuses the saved `requestId`, text, and confirmed revision.
 
-The device adapter maps native failures:
-busy to `CONFLICT` on `archive.picker`, too large to `INVALID_INPUT` on `archive.size`,
-unreadable to `INVALID_INPUT` on `archive`, and write failure to `STORAGE_FAILURE`.
-If the process stops while a picker is open, the promise is lost. No record changes.
+Kotlin encodes the text to the document as a stream and counts the bytes. It does not make a second full-size byte array for the write.
+The device adapter maps native rejection codes:
+`FORMA_ARCHIVE_BUSY` to `CONFLICT` on `archive.picker`, `FORMA_ARCHIVE_TOO_LARGE` to `INVALID_INPUT` on `archive.size`,
+`FORMA_ARCHIVE_UNREADABLE` to `INVALID_INPUT` on `archive`, `FORMA_ARCHIVE_LIMIT` to `INVALID_INPUT` on `maxBytes`,
+and every other code to `STORAGE_FAILURE`. A write failure resolves with status `failed` and `partialFileRemoved`.
+If the process stops while a picker is open, the promise is lost. No record changes. Module invalidation rejects an open request.
 
 ## 15. Warnings and privacy
 
