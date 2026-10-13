@@ -59,9 +59,11 @@ export function History({ctx}: {ctx: ScreenContext}) {
     setCursors([undefined]);
   };
   const type = (key: keyof DateDraft, text: string) => {
-    const next = {...typed, [key]: text};
-    setTyped(next);
-    forms.drafts.set(TYPED_KEY, next);
+    setTyped(current => {
+      const next = {...current, [key]: text};
+      forms.drafts.set(TYPED_KEY, next);
+      return next;
+    });
   };
   const restart = () => setCursors([undefined]);
   const splitDays = catalog.loaded.state === 'ready' ? catalog.loaded.value.splitDays : [];
