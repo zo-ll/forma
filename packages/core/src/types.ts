@@ -129,9 +129,59 @@ export interface WorkoutApi extends WorkoutHistoryApi {
   list(input?: ListWorkoutsInput): Promise<readonly Workout[]>;
 }
 
+export interface ArchiveCounts {
+  readonly workouts: number;
+  readonly sets: number;
+  readonly receipts: number;
+  readonly inProgress: number;
+}
+
+export interface ArchiveExport {
+  readonly text: string;
+  readonly byteLength: number;
+  readonly digest: string;
+  readonly createdAt: string;
+  readonly counts: ArchiveCounts;
+}
+
+export interface InspectArchiveInput {
+  readonly text: string;
+}
+
+export interface ArchiveInspection {
+  readonly digest: string;
+  readonly formatVersion: 1;
+  readonly createdAt: string;
+  readonly byteLength: number;
+  readonly modules: readonly string[];
+  readonly archive: ArchiveCounts;
+  readonly current: ArchiveCounts;
+  readonly currentHistoryRevision: number;
+}
+
+export interface RestoreArchiveInput {
+  readonly requestId: string;
+  readonly text: string;
+  readonly expectedDigest: string;
+  readonly expectedHistoryRevision: number;
+}
+
+export interface ArchiveRestoreResult {
+  readonly digest: string;
+  readonly counts: ArchiveCounts;
+}
+
+/** Plaintext local archives. Restore is full replacement after explicit confirmation. */
+export interface ArchiveApi {
+  export(): Promise<ArchiveExport>;
+  inspect(input: InspectArchiveInput): Promise<ArchiveInspection>;
+  restore(input: RestoreArchiveInput): Promise<ArchiveRestoreResult>;
+}
+
 export interface FormaService {
   readonly exercises: ExerciseApi;
   readonly splitDays: SplitDayApi;
   readonly workouts: WorkoutApi;
+  readonly archive: ArchiveApi;
   close(): Promise<void>;
 }

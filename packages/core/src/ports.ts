@@ -1,4 +1,4 @@
-import type { Exercise, ListWorkoutsInput, Workout, SplitDay } from './types.js';
+import type { ArchiveCounts, Exercise, ListWorkoutsInput, Workout, SplitDay } from './types.js';
 import type { HistoryStorePage, HistoryStoreQuery } from './workouts/history-types.js';
 
 export interface Clock {
@@ -37,11 +37,22 @@ export interface WorkoutReader extends RequestReader {
   listWorkouts(input: ListWorkoutsInput): Promise<readonly Workout[]>;
   getHistoryRevision(): Promise<number>;
   listHistoryWorkouts(input: HistoryStoreQuery): Promise<HistoryStorePage>;
+  /** Every receipt in requestId order, with its stored strings unchanged. */
+  listRequestReceipts(): Promise<readonly RequestReceipt[]>;
+  countArchiveRecords(): Promise<ArchiveCounts>;
+}
+
+/** The primary records and receipts that an archive restore writes. */
+export interface ArchiveRecords {
+  readonly workouts: readonly Workout[];
+  readonly receipts: readonly RequestReceipt[];
 }
 
 export interface WorkoutWriter extends WorkoutReader, RequestWriter {
   saveWorkout(workout: Workout): Promise<void>;
   deleteWorkout(workoutId: string): Promise<void>;
+  /** Delete all workouts, sets, and receipts, insert these rows exactly, and advance the history revision. */
+  replaceArchiveRecords(records: ArchiveRecords): Promise<void>;
 }
 
 /** Each callback uses one coherent read view or one atomic write transaction. */
