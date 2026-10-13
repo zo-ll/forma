@@ -16,12 +16,15 @@ export type {
   WorkoutHistoryPage, WorkoutSource, WorkoutStatistics, WorkoutStatisticsInput,
 } from './workouts/history-types.js';
 export { withRequest } from './requests/service.js';
+export { ARCHIVE_FORMAT_VERSION, ARCHIVE_LIMITS } from './archive/format.js';
+export { sha256Utf8 } from './archive/sha256.js';
 export type { ResultCodec } from './requests/service.js';
 export type {
-  Clock, FormaDependencies, IdGenerator, RequestReader, RequestReceipt, RequestWriter,
+  ArchiveRecords, Clock, FormaDependencies, IdGenerator, RequestReader, RequestReceipt, RequestWriter,
   WorkoutReader, WorkoutStore, WorkoutWriter,
 } from './ports.js';
 export type {
+  ArchiveApi, ArchiveCounts, ArchiveExport, ArchiveInspection, ArchiveRestoreResult, InspectArchiveInput, RestoreArchiveInput,
   AddSetInput, CreateWorkoutInput, DeleteSetInput, Exercise, ExerciseApi, FormaService,
   ListWorkoutsInput, LoadConvention, SetLoadDetails, UpdateSetInput, UpdateWorkoutInput, Workout,
   WorkoutApi, WorkoutCommandInput, WorkoutSessionDetails, WorkoutStatus, SplitDay, SplitDayApi, WorkoutSet,

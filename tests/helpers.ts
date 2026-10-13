@@ -11,6 +11,7 @@ export class MemoryWorkoutStore implements WorkoutStore {
   writes = 0;
   saves = 0;
   closeCalls = 0;
+  replacements = 0;
   historyRevision = 0;
   private tail: Promise<void> = Promise.resolve();
   private accepting = true;
@@ -54,6 +55,23 @@ export class MemoryWorkoutStore implements WorkoutStore {
         .filter((workout) => (input.dateFrom === undefined || workout.date >= input.dateFrom)
           && (input.dateTo === undefined || workout.date <= input.dateTo))
         .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id))),
+      listRequestReceipts: async () => structuredClone([...this.receipts.values()]
+        .sort((a, b) => a.requestId < b.requestId ? -1 : a.requestId > b.requestId ? 1 : 0)),
+      countArchiveRecords: async () => {
+        const workouts = [...this.workouts.values()];
+        return {
+          workouts: workouts.length, sets: workouts.reduce((sum, workout) => sum + workout.sets.length, 0),
+          receipts: this.receipts.size, inProgress: workouts.filter((workout) => workout.status === 'in-progress').length,
+        };
+      },
+      replaceArchiveRecords: async ({ workouts, receipts }) => {
+        this.replacements++;
+        this.workouts.clear();
+        this.receipts.clear();
+        for (const workout of workouts) this.workouts.set(workout.id, structuredClone(workout));
+        for (const receipt of receipts) this.receipts.set(receipt.requestId, structuredClone(receipt));
+        this.historyRevision++;
+      },
       saveWorkout: async (workout) => {
         this.saves++;
         this.historyRevision++;

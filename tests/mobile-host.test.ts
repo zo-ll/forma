@@ -344,7 +344,7 @@ test('snapshot JSON exposes plain data and no native handles', async () => {
   await host.start();
   const json = JSON.stringify(host.snapshot());
   const parsed = JSON.parse(json) as Record<string, unknown>;
-  assert.deepEqual(Object.keys(parsed).sort(), ['calendar', 'error', 'phase', 'preferences']);
+  assert.deepEqual(Object.keys(parsed).sort(), ['calendar', 'error', 'phase', 'preferences', 'recordsEpoch']);
   assert.deepEqual(Object.keys(parsed.preferences as object).sort(),
     ['dateContext', 'theme', 'version', 'weekStart', 'weightUnit']);
   assert.equal('service' in parsed, false);
