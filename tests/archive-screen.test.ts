@@ -46,7 +46,9 @@ function mount<P extends object>(component: (props: P) => Element, props: P) {
   } };
 }
 
+let lastTree: Element | undefined;
 function view(tree: Element) {
+  lastTree = tree;
   const elements: Element[] = [];
   const text: string[] = [];
   const visit = (node: unknown): void => {
@@ -82,7 +84,7 @@ function screen(flow: ArchiveFlow) {
       module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true,
     } }).outputText;
     const modules: Record<string, unknown> = {
-      react: holder.react, 'react-native': { Text: 'Text', View: 'View' },
+      react: holder.react, 'react-native': { StyleSheet: { create: <T>(value: T) => value }, Text: 'Text', View: 'View' },
       '../ui/controls': { Button: 'Button', ConfirmSheet: 'ConfirmSheet', Muted: 'Muted' },
       '../archive/flow': flowModule,
     };
@@ -96,7 +98,7 @@ function screen(flow: ArchiveFlow) {
   }) as Screen;
   const mounted = mount(component, { palette: {}, flow, ready: true });
   holder.react = mounted.react;
-  return mounted;
+  return { ...mounted, tree: () => { mounted.render(); return lastTree!; } };
 }
 
 async function settled(flow: ArchiveFlow): Promise<void> {
@@ -342,4 +344,93 @@ test('native archive failures map to typed meanings', () => {
   // The Kotlin limit equals the core limit.
   const kotlin = readFileSync(resolve('apps/mobile/android/app/src/main/java/dev/forma/mobile/FormaDeviceModule.kt'), 'utf8');
   assert.match(kotlin, new RegExp('MAX_ARCHIVE_BYTES = ' + ARCHIVE_LIMITS.maxArchiveBytes.toLocaleString('en-US').replaceAll(',', '_')));
+});
+
+interface Placed { readonly element: Element; readonly ancestors: readonly Element[]; }
+function placed(tree: Element): Placed[] {
+  const result: Placed[] = [];
+  const visit = (node: unknown, ancestors: readonly Element[]): void => {
+    if (Array.isArray(node)) { node.forEach((child) => visit(child, ancestors)); return; }
+    if (node !== null && typeof node === 'object' && 'children' in node) {
+      const element = node as Element;
+      result.push({ element, ancestors });
+      element.children.forEach((child) => visit(child, [...ancestors, element]));
+    }
+  };
+  visit(tree, []);
+  return result;
+}
+
+/**
+ * Structure only. The Node hook runtime cannot prove native bounds; the next
+ * authorized phone pass must measure them.
+ */
+function checkActionLayout(tree: Element, labels: readonly string[]): { actionsKey: unknown } {
+  const all = placed(tree);
+  // Styles come from the screen's vm context. Compare plain JSON values.
+  const style = (element: Element) => JSON.parse(JSON.stringify(element.props.style ?? {})) as Record<string, unknown>;
+  const buttons = all.filter((item) => item.element.type === 'Button');
+  assert.deepEqual(buttons.map((item) => item.element.props.label), labels);
+  const columns = new Set<Element>();
+  for (const { element, ancestors } of buttons) {
+    const wrapper = ancestors.at(-1)!;
+    const column = ancestors.at(-2)!;
+    assert.equal(wrapper.type, 'View');
+    assert.equal(wrapper.children.filter((child) => child !== null).length, 1, 'One action per wrapper: ' + String(element.props.label));
+    assert.deepEqual(style(wrapper), { alignSelf: 'stretch', flexShrink: 0, marginBottom: 10 });
+    assert.equal(wrapper.props.collapsable, false);
+    for (const ancestor of ancestors) assert.equal(style(ancestor).gap, undefined, 'No gap layout above an archive action.');
+    columns.add(column);
+  }
+  assert.equal(columns.size, 1, 'All archive actions share one explicit column.');
+  const [column] = [...columns];
+  assert.deepEqual(style(column!), { alignSelf: 'stretch', flexShrink: 0, flexDirection: 'column', marginTop: 10 });
+  for (const sheet of all.filter((item) => item.element.type === 'ConfirmSheet')) {
+    assert.equal(sheet.ancestors.includes(column!), false, 'A modal sheet is not in the action column.');
+  }
+  // The notice wrapper stays mounted before the action column, with or without text.
+  const section = all.find((item) => item.element === column)!.ancestors.at(-1)!;
+  const blocks = section.children.filter((child): child is Element => child !== null && typeof child === 'object' && !Array.isArray(child));
+  assert.equal(blocks.indexOf(column!), 3, 'Header, description, notice wrapper, then actions.');
+  assert.deepEqual(style(blocks[2]!), { alignSelf: 'stretch', flexShrink: 0, marginTop: 10 });
+  return { actionsKey: column!.props.key };
+}
+
+test('every archive action keeps its own layout space across notices, busy, and retry states', async (t) => {
+  const text = await archiveText(t);
+  const s = await setup(t);
+  const flow = s.flow();
+  const ui = screen(flow);
+  const idle = checkActionLayout(ui.tree(), ['Export archive', 'Restore from archive']);
+
+  // The native defect: export warning, picker cancel, then a notice above the actions.
+  s.files.save = async () => ({ status: 'cancelled', byteLength: 0, partialFileRemoved: false });
+  ui.render().button('Export archive').onPress();
+  checkActionLayout(ui.tree(), ['Export archive', 'Restore from archive']);
+  ui.render().sheet('Export personal records?').onConfirm();
+  const busy = checkActionLayout(ui.tree(), ['Export archive', 'Restore from archive']);
+  assert.equal(ui.render().button('Export archive').busyLabel, 'Exporting…');
+  await settled(flow);
+  const cancelled = checkActionLayout(ui.tree(), ['Export archive', 'Restore from archive']);
+  assert.match(ui.render().text, /Export cancelled/);
+  assert.notEqual(cancelled.actionsKey, idle.actionsKey);
+  assert.notEqual(cancelled.actionsKey, busy.actionsKey);
+
+  // A long notice wraps to several lines in its own wrapper.
+  s.files.open = async () => ({ status: 'opened', text: text.replace('"reps":10', '"reps":11') });
+  ui.render().button('Restore from archive').onPress();
+  await settled(flow);
+  assert(flow.state().notice!.length > 80, flow.state().notice!);
+  checkActionLayout(ui.tree(), ['Export archive', 'Restore from archive']);
+
+  // Retry and cancel use the same layout path.
+  s.files.open = async () => ({ status: 'opened', text });
+  ui.render().button('Restore from archive').onPress();
+  await settled(flow);
+  s.replaceFailure = new FormaError('STORAGE_FAILURE', 'The commit result was lost.');
+  ui.render().sheet('Replace all records on this phone?').onConfirm();
+  await settled(flow);
+  checkActionLayout(ui.tree(), ['Retry restore', 'Cancel restore', 'Export archive', 'Restore from archive']);
+  ui.render().button('Cancel restore').onPress();
+  checkActionLayout(ui.tree(), ['Export archive', 'Restore from archive']);
 });
