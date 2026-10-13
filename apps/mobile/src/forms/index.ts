@@ -35,6 +35,11 @@ export interface CommandLedger {
   /** The running attempt for a slot, so a remounted screen can wait for it. */
   current<R>(slot: string): Promise<R> | null;
   forget(slot: string): void;
+  /**
+   * Drop every saved command after a records replacement. A running attempt
+   * still settles for its caller, but it no longer owns a slot.
+   */
+  clear(): void;
 }
 
 /** Codes where the core proves that no record change and no receipt exist. */
@@ -108,6 +113,9 @@ export function createCommandLedger(ids: RequestIdSource): CommandLedger {
       const entry = entries.get(slot);
       if (entry && entry.attempt === null) entries.delete(slot);
     },
+    clear() {
+      entries.clear();
+    },
   };
 }
 
@@ -116,6 +124,8 @@ export interface DraftStore {
   get<T extends object>(key: string): T | null;
   set<T extends object>(key: string, value: T): void;
   clear(key: string): void;
+  /** Drop every unsaved value after a records replacement. */
+  clearAll(): void;
 }
 
 export function createDraftStore(): DraftStore {
@@ -129,6 +139,9 @@ export function createDraftStore(): DraftStore {
     },
     clear(key) {
       drafts.delete(key);
+    },
+    clearAll() {
+      drafts.clear();
     },
   };
 }

@@ -8,6 +8,7 @@ export type MobileHostPhase =
   | 'starting'
   | 'ready'
   | 'background'
+  | 'restoring'
   | 'closing'
   | 'closed'
   | 'failed';
@@ -35,6 +36,8 @@ export interface MobileHostSnapshot {
   readonly preferences: MobilePreferences;
   readonly calendar: CalendarRange | null;
   readonly error: FormaError | null;
+  /** Advances after a records replacement that changed, or can have changed, the database. */
+  readonly recordsEpoch: number;
 }
 
 export interface MobileHost {
@@ -46,7 +49,15 @@ export interface MobileHost {
   setTheme(theme: MobileTheme): Promise<void>;
   subscribe(listener: () => void): () => void;
   service(): FormaService;
+  /**
+   * Run one records replacement, such as an archive restore. The phase is
+   * `restoring` for presentation; the core service enforces the exclusion.
+   */
+  replaceRecords<T>(run: (service: FormaService) => Promise<T>): Promise<T>;
 }
+
+/** These codes prove that the core rejected the operation without a change. */
+const UNCHANGED_CODES: ReadonlySet<string> = new Set(['INVALID_INPUT', 'NOT_FOUND', 'CONFLICT', 'SERVICE_CLOSED']);
 
 function invalidInput(message: string, field: string): FormaError {
   return new FormaError('INVALID_INPUT', message, { field });
@@ -95,6 +106,8 @@ export function createMobileHost(dependencies: MobileHostDependencies): MobileHo
   let currentPreferences: MobilePreferences = DEFAULT_PREFERENCES;
   let currentCalendar: CalendarRange | null = null;
   let currentError: FormaError | null = null;
+  let recordsEpoch = 0;
+  let backgroundDuringRestore = false;
   let startPromise: Promise<void> | null = null;
   let closePromise: Promise<void> | null = null;
   const listeners = new Set<() => void>();
@@ -213,6 +226,10 @@ export function createMobileHost(dependencies: MobileHostDependencies): MobileHo
   }
 
   function background(): void {
+    if (phase === 'restoring') {
+      backgroundDuringRestore = true;
+      return;
+    }
     if (phase !== 'ready') return;
     phase = 'background';
     notify();
@@ -232,6 +249,36 @@ export function createMobileHost(dependencies: MobileHostDependencies): MobileHo
 
   function setTheme(theme: MobileTheme): Promise<void> {
     return enqueue(() => runSetTheme(theme));
+  }
+
+  async function runReplaceRecords<T>(run: (service: FormaService) => Promise<T>): Promise<T> {
+    if (typeof run !== 'function') throw invalidInput('The replacement must be a function.', 'run');
+    if ((phase !== 'ready' && phase !== 'background') || activeService === null) {
+      if (phase === 'failed') throw currentError ?? new FormaError('STORAGE_FAILURE', 'The mobile host failed.');
+      throw new FormaError('SERVICE_CLOSED', 'The mobile host is not ready.');
+    }
+    const service = activeService;
+    backgroundDuringRestore = phase === 'background';
+    phase = 'restoring';
+    notify();
+    try {
+      const result = await run(service);
+      recordsEpoch += 1;
+      return result;
+    } catch (cause) {
+      // An unconfirmed failure can hide a committed replacement. Treat the records as changed.
+      const code = cause instanceof FormaError ? cause.code : null;
+      if (code === null || !UNCHANGED_CODES.has(code)) recordsEpoch += 1;
+      throw cause;
+    } finally {
+      phase = backgroundDuringRestore ? 'background' : 'ready';
+      backgroundDuringRestore = false;
+      notify();
+    }
+  }
+
+  function replaceRecords<T>(run: (service: FormaService) => Promise<T>): Promise<T> {
+    return enqueue(() => runReplaceRecords(run));
   }
 
   async function runClose(): Promise<void> {
@@ -265,6 +312,9 @@ export function createMobileHost(dependencies: MobileHostDependencies): MobileHo
   }
 
   function service(): FormaService {
+    if (phase === 'restoring') {
+      throw new FormaError('CONFLICT', 'A restore is running. Try again after it ends.', { field: 'restore' });
+    }
     if ((phase === 'ready' || phase === 'background') && activeService !== null) return activeService;
     if (currentError !== null && phase === 'failed') throw currentError;
     throw new FormaError('SERVICE_CLOSED', 'The mobile host has no open service.');
@@ -276,6 +326,7 @@ export function createMobileHost(dependencies: MobileHostDependencies): MobileHo
       preferences: Object.freeze({ ...currentPreferences }),
       calendar: currentCalendar === null ? null : Object.freeze({ ...currentCalendar }),
       error: currentError,
+      recordsEpoch,
     });
   }
 
@@ -290,5 +341,5 @@ export function createMobileHost(dependencies: MobileHostDependencies): MobileHo
     };
   }
 
-  return { start, resume, background, close, snapshot, setTheme, subscribe, service };
+  return { start, resume, background, close, snapshot, setTheme, subscribe, service, replaceRecords };
 }
