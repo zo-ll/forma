@@ -4,7 +4,8 @@ import { test } from 'node:test';
 import type { TestContext } from 'node:test';
 import { ARCHIVE_LIMITS, createFormaService, sha256Utf8 } from '@forma/core';
 import type { FormaService, RequestReceipt, WorkoutReader, WorkoutStore } from '@forma/core';
-import { errorCode, MemoryWorkoutStore, TEST_TIME } from './helpers.js';
+import { errorCode, MemoryWorkoutStore, memoryFixture, TEST_TIME } from './helpers.js';
+import { archiveContract } from './archive-contract.js';
 
 const oracle = (text: string): string => createHash('sha256').update(Buffer.from(text, 'utf8')).digest('hex');
 
@@ -52,6 +53,8 @@ async function restoreText(service: FormaService, text: string, requestId = 'res
   const inspection = await service.archive.inspect({ text });
   return service.archive.restore({ requestId, text, expectedDigest: inspection.digest, expectedHistoryRevision: inspection.currentHistoryRevision });
 }
+
+archiveContract('memory archive contract', async (t, ids) => memoryFixture(t, ids).service);
 
 test('SHA-256 matches the Node oracle at block boundaries and for non-ASCII text', () => {
   const samples = ['', 'abc', 'a'.repeat(55), 'a'.repeat(56), 'a'.repeat(63), 'a'.repeat(64), 'a'.repeat(65),
