@@ -164,3 +164,40 @@ export function parseOptionalDecimal(text: string, field: string, label: string)
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
+
+/** Typed text of one set form. The load choice comes from the picker, not the keyboard. */
+export interface SetDraft {
+  readonly reps: string;
+  readonly weight: string;
+  readonly rpe: string;
+  readonly loadConvention: string;
+  readonly implementCount: 1 | 2 | null;
+}
+
+export const EMPTY_SET_DRAFT: SetDraft = Object.freeze({reps: '', weight: '', rpe: '', loadConvention: 'unknown', implementCount: null});
+
+export interface SetValues {
+  readonly reps: number;
+  readonly weightKg: number;
+  readonly rpe: number | null;
+  readonly loadConvention: string;
+  readonly implementCount: 1 | 2 | null;
+}
+
+/** Collect every typing problem at once. Field names match the core input fields. */
+export function parseSetDraft(draft: SetDraft): Parsed<SetValues> {
+  const reps = parseWholeNumber(draft.reps, 'reps', 'reps');
+  const weight = parseDecimal(draft.weight, 'weightKg', 'weight');
+  const rpe = parseOptionalDecimal(draft.rpe, 'rpe', 'RPE');
+  const problems = [reps, weight, rpe].flatMap(result => result.ok ? [] : result.problems);
+  if (!reps.ok || !weight.ok || !rpe.ok) return {ok: false, problems};
+  return {ok: true, value: {
+    reps: reps.value, weightKg: weight.value, rpe: rpe.value,
+    loadConvention: draft.loadConvention, implementCount: draft.implementCount,
+  }};
+}
+
+/** A draft that differs from the empty form holds unsaved text. */
+export function draftHasText(draft: SetDraft): boolean {
+  return draft.reps.trim() !== '' || draft.weight.trim() !== '' || draft.rpe.trim() !== '';
+}

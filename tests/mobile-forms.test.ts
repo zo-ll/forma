@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { FormaError } from '@forma/core';
 import {
-  commandSignature, createCommandLedger, createDraftStore, parseDecimal, parseOptionalDecimal, parseWholeNumber,
+  EMPTY_SET_DRAFT, commandSignature, createCommandLedger, createDraftStore, draftHasText, parseDecimal,
+  parseOptionalDecimal, parseSetDraft, parseWholeNumber,
 } from '../apps/mobile/src/forms/index.js';
 import { memoryFixture } from './helpers.js';
 
@@ -147,4 +148,33 @@ test('keyboard parsing reports the field and leaves ranges to the core', () => {
   assert.equal(parseDecimal('5kg', 'weightKg', 'weight').ok, false);
   assert.deepEqual(parseOptionalDecimal(' ', 'rpe', 'RPE'), { ok: true, value: null });
   assert.deepEqual(parseOptionalDecimal('8.5', 'rpe', 'RPE'), { ok: true, value: 8.5 });
+});
+
+test('a set draft reports every typing problem with the core field names', () => {
+  const parsed = parseSetDraft({ reps: '', weight: 'x', rpe: 'high', loadConvention: 'unknown', implementCount: null });
+  assert.deepEqual(parsed, { ok: false, problems: [
+    { field: 'reps', message: 'Enter reps.' },
+    { field: 'weightKg', message: 'Weight must be a number.' },
+    { field: 'rpe', message: 'RPE must be a number.' },
+  ] });
+});
+
+test('a valid set draft keeps the load choice and an empty RPE as null', () => {
+  assert.deepEqual(parseSetDraft({ reps: '10', weight: '22,5', rpe: '', loadConvention: 'per-hand', implementCount: 2 }),
+    { ok: true, value: { reps: 10, weightKg: 22.5, rpe: null, loadConvention: 'per-hand', implementCount: 2 } });
+  assert.equal(draftHasText(EMPTY_SET_DRAFT), false);
+  assert.equal(draftHasText({ ...EMPTY_SET_DRAFT, rpe: '8' }), true);
+});
+
+test('the core still rejects a parsed value outside the record rules', async (t) => {
+  const { service } = memoryFixture(t);
+  const workout = await service.workouts.start({ requestId: 'start-1', date: '2026-10-12', splitDayId: 'upper' });
+  const parsed = parseSetDraft({ reps: '0', weight: '55', rpe: '11', loadConvention: 'entered', implementCount: null });
+  assert.equal(parsed.ok, true);
+  if (!parsed.ok) return;
+  const { rpe, loadConvention, ...numbers } = parsed.value;
+  await assert.rejects(service.workouts.addSet({
+    requestId: 'set-1', workoutId: workout.id, exerciseId: 'lat-pulldown', ...numbers,
+    loadConvention: loadConvention as 'entered', ...(rpe === null ? {} : { rpe }),
+  }), (error: unknown) => error instanceof FormaError && error.code === 'INVALID_INPUT' && error.field === 'reps');
 });
