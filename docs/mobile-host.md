@@ -1,6 +1,6 @@
 # Mobile host — issue #9
 
-The branch adds an Android client foundation, not the full workout flow.
+Issue #9 added the Android client foundation. Issues #10 and #11 add the workout screens on top of it.
 Its package identities are `dev.forma.mobile` and the isolated `dev.forma.mobile.hostgate` test flavor.
 It does not use the validation app's identity, records, or runtime dependencies.
 

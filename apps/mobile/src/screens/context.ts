@@ -38,9 +38,9 @@ export function useServiceRead<T>(host: MobileHost, key: string, read: (service:
   const generation = useRef(0);
   const readRef = useRef(read);
   readRef.current = read;
-  const reload = useCallback(() => {
+  const reload = useCallback((fresh = false) => {
     const current = ++generation.current;
-    setLoaded(previous => previous.state === 'ready' ? previous : {state: 'loading'});
+    setLoaded(previous => !fresh && previous.state === 'ready' ? previous : {state: 'loading'});
     void (async () => {
       try {
         const value = await readRef.current(host.service());
@@ -51,10 +51,10 @@ export function useServiceRead<T>(host: MobileHost, key: string, read: (service:
     })();
   }, [host]);
   useEffect(() => {
-    reload();
+    reload(true);
     return () => {generation.current++;};
   }, [reload, key]);
-  return {loaded, reload};
+  return {loaded, reload: () => reload()};
 }
 
 /**
