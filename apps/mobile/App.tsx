@@ -17,6 +17,7 @@ import {EditDetails} from './src/screens/EditDetails';
 import {SetEdit} from './src/screens/SetEdit';
 import {History} from './src/screens/History';
 import {Progress} from './src/screens/Progress';
+import {ConfirmSheet} from './src/ui/controls';
 
 type Route = 'Home' | 'History' | 'Progress' | 'Settings';
 function errorText(error: unknown): string {
@@ -40,6 +41,8 @@ function Shell({host}: {host: MobileHost}) {
   const [stack, setStack] = useState<readonly StackScreen[]>([]);
   const [visits, setVisits] = useState(0);
   const [failure, setFailure] = useState<string | null>(null);
+  const [confirmingClose, setConfirmingClose] = useState(false);
+  const [closing, setClosing] = useState(false);
   const scheme = useColorScheme();
   const dark = snapshot.preferences.theme === 'dark' || (snapshot.preferences.theme === 'system' && scheme === 'dark');
   const colors = dark ? DARK : LIGHT;
@@ -101,10 +104,22 @@ function Shell({host}: {host: MobileHost}) {
         {MOBILE_THEMES.map(theme => <React.Fragment key={theme}>{action(`Theme: ${theme}`, () => {
           void host.setTheme(theme).then(() => setFailure(null)).catch(error => setFailure(errorText(error)));
         }, snapshot.preferences.theme === theme, !ready)}</React.Fragment>)}
-        {action('Close local service', () => {void host.close().catch(error => setFailure(errorText(error)));}, false, !ready)}
+        {action('Close local service', () => setConfirmingClose(true), false, !ready)}
         <Text style={{color: colors.muted}}>Close drains accepted work. It does not delete records.</Text>
       </View>}
     </ScrollView>
+    <ConfirmSheet palette={colors} visible={confirmingClose} busy={closing}
+      title="Close the local service?"
+      body="Close drains accepted work and keeps every saved record. The service cannot reopen in this app run. Restart the app to open it again."
+      confirmLabel="Close service" keepLabel="Keep service"
+      onConfirm={() => {
+        setClosing(true);
+        void host.close()
+          .then(() => setConfirmingClose(false))
+          .catch(error => {setConfirmingClose(false); setFailure(errorText(error));})
+          .finally(() => setClosing(false));
+      }}
+      onKeep={() => setConfirmingClose(false)}/>
   </SafeAreaView>;
 }
 const styles = StyleSheet.create({
