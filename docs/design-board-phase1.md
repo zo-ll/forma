@@ -57,6 +57,13 @@ The user approved these decisions on 2026-10-13.
 - Combined load stays a second group on the Progress screen.
 - Set edit does not change the exercise of a set in issue #10.
 
+## Previous sets
+
+The user approved the previous-sets panel after the source review.
+Entry shows the current exercise's sets from the latest finished workout before the saved workout date.
+The service selects that workout. The panel shows the recorded loads and conventions without conversion.
+A source button opens the exact workout. The panel never replaces unsaved form values.
+
 ## Request identity in the UI
 
 `apps/mobile/src/forms/` owns UI request keys and keyboard parsing. It has no imports.

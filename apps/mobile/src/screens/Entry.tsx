@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {Modal, Pressable, ScrollView, Text, TextInput, View} from 'react-native';
-import type {AddSetInput, Exercise, LoadConvention, SplitDay, Workout, WorkoutSet} from '@forma/core';
+import type {AddSetInput, Exercise, LoadConvention, PreviousSetsResult, SplitDay, Workout, WorkoutSet} from '@forma/core';
 import {EMPTY_SET_DRAFT, addSetSlot, draftHasValues, parseSetDraft} from '../forms/index';
 import type {FieldProblem, SetDraft} from '../forms/index';
 import {Button, Card, ConfirmSheet, ErrorNotice, Muted, ScreenHeader, describeError} from '../ui/controls';
@@ -53,6 +53,35 @@ export function SetRow({palette, index, set, note, onPress}: {palette: Palette; 
     <Text style={{color: palette.text, flex: 1, minWidth: 160}}>{setSummary(set)}</Text>
     <Text style={{color: palette.muted}}>{note ?? rpeText(set.rpe)}</Text>
   </Pressable>;
+}
+
+/** Read earlier finished sets without changing the current form or workout. */
+export function PreviousSets({ctx, exerciseId, beforeDate, refreshKey}: {
+  ctx: ScreenContext; exerciseId: string; beforeDate: string; refreshKey: string;
+}) {
+  const {palette} = ctx;
+  const {loaded, reload} = useServiceRead<PreviousSetsResult>(ctx.host,
+    JSON.stringify(['previousSets', exerciseId, beforeDate, refreshKey]),
+    service => service.workouts.previousSets({exerciseId, beforeDate}));
+  return <View style={{gap: 6}}>
+    <Text accessibilityRole="header" style={[shared.label, {color: palette.muted}]}>Previous sets</Text>
+    {loaded.state === 'loading' && <Muted palette={palette}>Loading previous sets…</Muted>}
+    {loaded.state === 'error' && <>
+      <ErrorNotice palette={palette} error={loaded.error}/>
+      <Button palette={palette} label="Reload previous sets" onPress={reload}/>
+    </>}
+    {loaded.state === 'ready' && (loaded.value.workout === null
+      ? <Muted palette={palette}>No earlier finished workout has sets for this exercise.</Muted>
+      : <>
+        <Muted palette={palette}>Latest finished workout before {beforeDate}: {loaded.value.workout.date}</Muted>
+        {loaded.value.sets.map((set, index) => <SetRow key={set.id} palette={palette} index={index + 1} set={set}/>)}
+        <Button palette={palette} label={`Open previous workout: ${loaded.value.workout.date}`}
+          onPress={() => {
+            const source = loaded.value.workout;
+            if (source !== null) ctx.push({name: 'Summary', workoutId: source.id});
+          }}/>
+      </>)}
+  </View>;
 }
 
 /** Design brief §6.3, layout 1a. Resume is a read; it never writes. */
@@ -241,6 +270,7 @@ function SetForm({ctx, workout, exerciseId, exerciseName, previous, nextIndex, o
   const localOnly = failure != null && describeError(failure).field !== null
     && ['reps', 'weightKg', 'rpe'].includes(describeError(failure).field ?? '');
   return <View style={{gap: 10, marginTop: 6}}>
+    <PreviousSets ctx={ctx} exerciseId={exerciseId} beforeDate={workout.date} refreshKey={workout.updatedAt}/>
     {restored && <View style={[shared.notice, {borderColor: palette.accent, borderStyle: 'dashed'}]}>
       <Text style={{color: palette.text, fontWeight: '600'}}>↺ Unsaved values restored</Text>
       <Muted palette={palette}>Not saved yet. Review, then save.</Muted>
