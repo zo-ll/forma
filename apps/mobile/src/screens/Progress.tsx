@@ -3,6 +3,7 @@ import {Text, TextInput, View} from 'react-native';
 import type {CalendarPeriod, Exercise, LoadStatisticsGroup, WorkoutSource, WorkoutStatistics} from '@forma/core';
 import {resolveCalendarRange} from '@forma/core';
 import {deviceAdapters} from '../adapters/device';
+import {withTypedDates} from '../forms/index';
 import {Button, Card, ErrorNotice, Muted, ScreenHeader} from '../ui/controls';
 import {ExercisePicker} from '../ui/ExercisePicker';
 import {shared} from '../ui/theme';
@@ -61,7 +62,12 @@ export function Progress({ctx}: {ctx: ScreenContext}) {
     ?? {exerciseId: null, range: 'this-week', dateFrom: '', dateTo: ''});
   const [typed, setTyped] = useState({dateFrom: filters.dateFrom, dateTo: filters.dateTo});
   const [picking, setPicking] = useState(false);
-  const apply = (next: ProgressFilters) => {setFilters(next); forms.drafts.set(FILTER_KEY, next);};
+  const apply = (next: ProgressFilters) => {
+    const applied = withTypedDates(next, typed);
+    setFilters(applied);
+    setTyped({dateFrom: applied.dateFrom, dateTo: applied.dateTo});
+    forms.drafts.set(FILTER_KEY, applied);
+  };
   const catalog = useServiceRead<readonly Exercise[]>(ctx.host, 'exercises', service => service.exercises.list());
   const exercises = catalog.loaded.state === 'ready' ? catalog.loaded.value : [];
   const exerciseName = filters.exerciseId ? exercises.find(exercise => exercise.id === filters.exerciseId)?.name ?? filters.exerciseId : null;
@@ -88,7 +94,7 @@ export function Progress({ctx}: {ctx: ScreenContext}) {
           onChangeText={text => setTyped(current => ({...current, [key]: text}))}
           style={[shared.input, {flexGrow: 1, flexBasis: 140, color: palette.text, borderColor: palette.muted}]}/>)}
       </View>
-      <Button palette={palette} label="Apply dates" onPress={() => apply({...filters, dateFrom: typed.dateFrom.trim(), dateTo: typed.dateTo.trim()})}/>
+      <Button palette={palette} label="Apply dates" onPress={() => apply(filters)}/>
     </View>}
     {!('error' in range) && <Muted palette={palette}>{range.dateFrom || '—'} to {range.dateTo || '—'} · saved workout dates · finished workouts only</Muted>}
     {filters.exerciseId === null && <Muted palette={palette}>Choose an exercise to see facts from its saved sets.</Muted>}

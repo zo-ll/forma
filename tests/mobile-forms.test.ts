@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { FormaError } from '@forma/core';
 import {
   EMPTY_SET_DRAFT, addSetSlot, commandSignature, createCommandLedger, createDraftStore, draftHasText, parseDecimal,
-  parseOptionalDecimal, parseSetDraft, parseWholeNumber,
+  parseOptionalDecimal, parseSetDraft, parseWholeNumber, withTypedDates,
 } from '../apps/mobile/src/forms/index.js';
 import { memoryFixture } from './helpers.js';
 
@@ -163,6 +163,47 @@ test('add-set slots distinguish workouts and exercises even when IDs contain sep
   assert.notEqual(addSetSlot('workout', 'a'), addSetSlot('workout', 'b'));
   assert.notEqual(addSetSlot('workout-a', 'a'), addSetSlot('workout-b', 'a'));
   assert.notEqual(addSetSlot('a:b', 'c'), addSetSlot('a', 'b:c'));
+});
+
+test('filter changes apply the visible date text without changing other fields', () => {
+  const filters = { status: 'all', exerciseId: 'lat-pulldown', dateFrom: '2026-01-01', dateTo: '' };
+  const typed = { dateFrom: ' 2026-02-01 ', dateTo: ' 2026-02-28 ' };
+  assert.deepEqual(withTypedDates(filters, typed), {
+    status: 'all', exerciseId: 'lat-pulldown', dateFrom: '2026-02-01', dateTo: '2026-02-28',
+  });
+  assert.equal(filters.dateFrom, '2026-01-01');
+  assert.equal(typed.dateFrom, ' 2026-02-01 ');
+});
+
+test('clear filters overrides typed dates and date validity stays with the core', () => {
+  const empty = { status: 'finished', exerciseId: null, dateFrom: '', dateTo: '' };
+  assert.deepEqual(withTypedDates(empty, empty), empty);
+  assert.equal(withTypedDates(empty, { dateFrom: 'not-a-date', dateTo: '' }).dateFrom, 'not-a-date');
+});
+
+test('history and custom progress use typed dates after a filter change', async (t) => {
+  const { service } = memoryFixture(t);
+  const exerciseId = 'lat-pulldown';
+  const older = await service.workouts.create({ requestId: 'older', date: '2026-01-10' });
+  const newer = await service.workouts.create({ requestId: 'newer', date: '2026-02-10' });
+  for (const workout of [older, newer]) {
+    await service.workouts.addSet({
+      requestId: 'set-' + workout.id, workoutId: workout.id, exerciseId,
+      reps: 8, weightKg: 50, loadConvention: 'entered',
+    });
+  }
+  const typed = { dateFrom: ' 2026-02-01 ', dateTo: ' 2026-02-28 ' };
+  const previous = { dateFrom: '2026-01-01', dateTo: '2026-02-28' };
+  // Status and exercise changes use the same date helper as both screens.
+  const history = withTypedDates({ ...previous, status: 'all' as const, exerciseId }, typed);
+  assert.deepEqual((await service.workouts.history(history)).items.map(workout => workout.id), [newer.id]);
+  const progress = withTypedDates({ ...previous, range: 'custom', exerciseId }, typed);
+  const stats = await service.workouts.statistics({
+    exerciseId: progress.exerciseId, dateFrom: progress.dateFrom, dateTo: progress.dateTo,
+  });
+  assert.equal(stats.workoutCount.value, 1);
+  assert.equal(stats.setCount.value, 1);
+  assert.deepEqual(stats.setCount.sources.map(source => source.workoutId), [newer.id]);
 });
 
 test('drafts keep values until cleared', () => {

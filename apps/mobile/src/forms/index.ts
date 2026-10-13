@@ -170,6 +170,16 @@ function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+export interface DateDraft {
+  readonly dateFrom: string;
+  readonly dateTo: string;
+}
+
+/** Apply visible date text together with a status, exercise, or range change. */
+export function withTypedDates<T extends DateDraft>(filters: T, typed: DateDraft): T {
+  return {...filters, dateFrom: typed.dateFrom.trim(), dateTo: typed.dateTo.trim()};
+}
+
 /** Typed text of one set form. The load choice comes from the picker, not the keyboard. */
 export interface SetDraft {
   readonly reps: string;

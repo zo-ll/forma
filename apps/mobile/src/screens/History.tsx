@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {Pressable, Text, TextInput, View} from 'react-native';
 import type {Exercise, SplitDay, WorkoutHistoryInput, WorkoutHistoryPage, WorkoutStatus} from '@forma/core';
 import {FormaError} from '@forma/core';
+import {withTypedDates} from '../forms/index';
 import {Button, Card, ErrorNotice, Muted, ScreenHeader} from '../ui/controls';
 import {ExercisePicker} from '../ui/ExercisePicker';
 import {shared} from '../ui/theme';
@@ -46,9 +47,11 @@ export function History({ctx}: {ctx: ScreenContext}) {
   const catalog = useServiceRead<{splitDays: readonly SplitDay[]; exercises: readonly Exercise[]}>(ctx.host, 'catalog',
     async service => ({splitDays: await service.splitDays.list(), exercises: await service.exercises.list()}));
   const {loaded, reload} = useServiceRead<WorkoutHistoryPage>(ctx.host, JSON.stringify(query), service => service.workouts.history(query));
-  const apply = (next: HistoryFilters) => {
-    setFilters(next);
-    forms.drafts.set(FILTER_KEY, next);
+  const apply = (next: HistoryFilters, dates = typed) => {
+    const applied = withTypedDates(next, dates);
+    setFilters(applied);
+    setTyped({dateFrom: applied.dateFrom, dateTo: applied.dateTo});
+    forms.drafts.set(FILTER_KEY, applied);
     setCursors([undefined]);
   };
   const restart = () => setCursors([undefined]);
@@ -77,7 +80,7 @@ export function History({ctx}: {ctx: ScreenContext}) {
       {dateInput('dateFrom', 'From')}
       {dateInput('dateTo', 'To')}
     </View>
-    <Button palette={palette} label="Load history" onPress={() => apply({...filters, dateFrom: typed.dateFrom.trim(), dateTo: typed.dateTo.trim()})}/>
+    <Button palette={palette} label="Load history" onPress={() => apply(filters)}/>
     <Button palette={palette} label={`Exercise: ${exerciseLabel}`} accessibilityLabel={`Exercise filter: ${exerciseLabel}. Change`}
       onPress={() => setPicking(true)}/>
     {loaded.state === 'loading' && <Muted palette={palette}>Loading workouts…</Muted>}
@@ -93,7 +96,7 @@ export function History({ctx}: {ctx: ScreenContext}) {
     {loaded.state === 'ready' && loaded.value.items.length === 0 && <Card palette={palette}>
       <Text style={{color: palette.text, fontWeight: '600'}}>{filtered ? 'No workouts match' : 'No workouts yet'}</Text>
       <Muted palette={palette}>{filtered ? 'No saved workout matches these filters.' : 'Finished workouts appear here.'}</Muted>
-      {filtered && <Button palette={palette} label="Clear filters" onPress={() => {setTyped({dateFrom: '', dateTo: ''}); apply(EMPTY_FILTERS);}}/>}
+      {filtered && <Button palette={palette} label="Clear filters" onPress={() => apply(EMPTY_FILTERS, EMPTY_FILTERS)}/>}
     </Card>}
     {loaded.state === 'ready' && loaded.value.items.map(workout => {
       const exerciseIds = [...new Set(workout.sets.map(set => set.exerciseId))];
