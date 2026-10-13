@@ -11,7 +11,8 @@ The host uses React Native 0.87.1 and the tested OP-SQLite 18.2.5 adapter.
 - `src/root.ts`: one composition root per React instance, retained across component mounts and Fast Refresh.
 - `src/adapters/device.ts` and the Android TurboModule: native UUIDs, device timezone, and private preferences.
 - `App.tsx`: tab and stack navigation, theme, settings, and typed error display.
-- `src/screens/`: Home, start, entry, set edit, summary, details, history, and progress screens. They call only the service.
+- `src/screens/`: Home, start, entry, set edit, summary, details, history, and progress screens. Screens use the service for records.
+  Progress also reads the device adapter and calls the core calendar resolver for relative date ranges.
 - `src/forms/`: saved request keys, host-lifetime drafts, and keyboard parsing. It has no imports.
 
 Background keeps the service open. Resume recomputes today through the core.

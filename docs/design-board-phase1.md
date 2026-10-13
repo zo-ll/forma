@@ -61,6 +61,7 @@ The user approved these decisions on 2026-10-13.
 
 `apps/mobile/src/forms/` owns UI request keys and keyboard parsing. It has no imports.
 Each command slot saves its `requestId` and input before the first attempt.
+Each exercise has a separate add-set slot within the workout.
 A repeated tap during an attempt returns that attempt.
 A definitive `INVALID_INPUT`, `NOT_FOUND`, or `CONFLICT` frees the slot.
 Any other failure keeps the key and input. A retry with the same input reuses the key.
