@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { FormaError } from '@forma/core';
 import {
-  EMPTY_SET_DRAFT, commandSignature, createCommandLedger, createDraftStore, draftHasText, parseDecimal,
+  EMPTY_SET_DRAFT, addSetSlot, commandSignature, createCommandLedger, createDraftStore, draftHasText, parseDecimal,
   parseOptionalDecimal, parseSetDraft, parseWholeNumber,
 } from '../apps/mobile/src/forms/index.js';
 import { memoryFixture } from './helpers.js';
@@ -126,6 +126,43 @@ test('a retry after an unconfirmed set add replays the receipt without a duplica
   const saved = await service.workouts.get(workout.id);
   assert.equal(saved.sets.length, 1);
   assert.equal(saved.sets[0]?.id, replay.id);
+});
+
+test('an unconfirmed add survives another exercise save and replays without a duplicate', async (t) => {
+  const { service } = memoryFixture(t);
+  const workout = await service.workouts.start({ requestId: 'start-1', date: '2026-10-12', splitDayId: 'upper' });
+  const ledger = createCommandLedger(sequence('set'));
+  const first = { workoutId: workout.id, exerciseId: 'incline-dumbbell-press', reps: 8, weightKg: 22.5 };
+  const second = { ...first, exerciseId: 'lat-pulldown', weightKg: 50 };
+  const firstSlot = addSetSlot(workout.id, first.exerciseId);
+  const secondSlot = addSetSlot(workout.id, second.exerciseId);
+  const keys: string[] = [];
+  const send = async (requestId: string, saved: typeof first) => {
+    keys.push(requestId);
+    return service.workouts.addSet({ requestId, ...saved });
+  };
+  await assert.rejects(ledger.run(firstSlot, first, async (requestId, saved) => {
+    await send(requestId, saved);
+    throw new Error('answer lost after commit');
+  }));
+  const pending = ledger.pending(firstSlot);
+  assert.equal(pending?.unconfirmed, true);
+  await ledger.run(secondSlot, second, send);
+  // Switching exercises must not remove the original key or input.
+  assert.deepEqual(ledger.pending(firstSlot), pending);
+  const replay = await ledger.run(firstSlot, first, send);
+  const saved = await service.workouts.get(workout.id);
+  assert.equal(saved.sets.length, 2);
+  assert.equal(saved.sets.filter(set => set.exerciseId === first.exerciseId).length, 1);
+  assert.equal(saved.sets[0]?.id, replay.id);
+  assert.deepEqual(keys, ['set-1', 'set-2', 'set-1']);
+  assert.equal(ledger.pending(firstSlot), null);
+});
+
+test('add-set slots distinguish workouts and exercises even when IDs contain separators', () => {
+  assert.notEqual(addSetSlot('workout', 'a'), addSetSlot('workout', 'b'));
+  assert.notEqual(addSetSlot('workout-a', 'a'), addSetSlot('workout-b', 'a'));
+  assert.notEqual(addSetSlot('a:b', 'c'), addSetSlot('a', 'b:c'));
 });
 
 test('drafts keep values until cleared', () => {

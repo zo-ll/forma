@@ -7,6 +7,11 @@
  * source of truth for ranges, dates, and load metadata.
  */
 
+/** Keep each exercise's unconfirmed add separate within a workout. */
+export function addSetSlot(workoutId: string, exerciseId: string): string {
+  return `workout.addSet:${JSON.stringify([workoutId, exerciseId])}`;
+}
+
 export interface RequestIdSource {
   next(): string;
 }

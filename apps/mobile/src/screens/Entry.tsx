@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {Modal, Pressable, ScrollView, Text, TextInput, View} from 'react-native';
 import type {AddSetInput, Exercise, LoadConvention, SplitDay, Workout, WorkoutSet} from '@forma/core';
-import {EMPTY_SET_DRAFT, draftHasText, parseSetDraft} from '../forms/index';
+import {EMPTY_SET_DRAFT, addSetSlot, draftHasText, parseSetDraft} from '../forms/index';
 import type {FieldProblem, SetDraft} from '../forms/index';
 import {Button, Card, ConfirmSheet, ErrorNotice, Muted, ScreenHeader, describeError} from '../ui/controls';
 import {LoadPicker, LoadTrigger, loadLabel} from '../ui/LoadPicker';
@@ -32,10 +32,6 @@ export function exerciseSections(workout: Workout, splitDays: readonly SplitDay[
   const order = [...suggested];
   for (const id of [...workout.sets.map(set => set.exerciseId), ...extra]) if (!order.includes(id)) order.push(id);
   return order.map(exerciseId => ({exerciseId, sets: workout.sets.filter(set => set.exerciseId === exerciseId)}));
-}
-
-export function addSetSlot(workoutId: string): string {
-  return `workout.addSet:${workoutId}`;
 }
 
 function rpeText(rpe: number | null): string {
@@ -172,7 +168,7 @@ function SetForm({ctx, workout, exerciseId, exerciseName, previous, nextIndex, o
 }) {
   const {palette, forms} = ctx;
   const draftKey = `set:${workout.id}:${exerciseId}`;
-  const slot = addSetSlot(workout.id);
+  const slot = addSetSlot(workout.id, exerciseId);
   const [restored, setRestored] = useState(() => {
     const saved = forms.drafts.get<SetDraft>(draftKey);
     return saved !== null && draftHasText(saved);
@@ -227,8 +223,8 @@ function SetForm({ctx, workout, exerciseId, exerciseName, previous, nextIndex, o
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const save = () => {
-    // One add per workout at a time. A save for another exercise is still running.
-    if (forms.commands.busy(slot)) {setNotice('Another set is still saving. Try again when it finishes.'); return;}
+    // Attach to this exercise's accepted command instead of another save.
+    if (forms.commands.busy(slot)) {setNotice('This set is still saving. Try again when it finishes.'); return;}
     setFailure(null);
     setNotice(null);
     const parsed = parseSetDraft(draft);
