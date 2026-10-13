@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {Modal, Pressable, ScrollView, Text, TextInput, View} from 'react-native';
 import type {AddSetInput, Exercise, LoadConvention, SplitDay, Workout, WorkoutSet} from '@forma/core';
-import {EMPTY_SET_DRAFT, addSetSlot, draftHasText, parseSetDraft} from '../forms/index';
+import {EMPTY_SET_DRAFT, addSetSlot, draftHasValues, parseSetDraft} from '../forms/index';
 import type {FieldProblem, SetDraft} from '../forms/index';
 import {Button, Card, ConfirmSheet, ErrorNotice, Muted, ScreenHeader, describeError} from '../ui/controls';
 import {LoadPicker, LoadTrigger, loadLabel} from '../ui/LoadPicker';
@@ -171,7 +171,7 @@ function SetForm({ctx, workout, exerciseId, exerciseName, previous, nextIndex, o
   const slot = addSetSlot(workout.id, exerciseId);
   const [restored, setRestored] = useState(() => {
     const saved = forms.drafts.get<SetDraft>(draftKey);
-    return saved !== null && draftHasText(saved);
+    return saved !== null && draftHasValues(saved);
   });
   // A new exercise defaults to unknown load; a later set starts from the previous set of this exercise.
   const [draft, setDraft] = useState<SetDraft>(() => forms.drafts.get<SetDraft>(draftKey) ?? (previous ? draftFromSet(previous) : EMPTY_SET_DRAFT));

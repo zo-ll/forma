@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { FormaError } from '@forma/core';
 import {
-  EMPTY_SET_DRAFT, addSetSlot, commandSignature, createCommandLedger, createDraftStore, draftHasText, parseDecimal,
+  EMPTY_SET_DRAFT, addSetSlot, commandSignature, createCommandLedger, createDraftStore, draftHasValues, parseDecimal,
   parseOptionalDecimal, parseSetDraft, parseWholeNumber, withTypedDates,
 } from '../apps/mobile/src/forms/index.js';
 import { memoryFixture } from './helpers.js';
@@ -215,6 +215,18 @@ test('drafts keep values until cleared', () => {
   assert.equal(drafts.get('set'), null);
 });
 
+test('a load-only draft restores its values and activates the restored-state notice', () => {
+  const drafts = createDraftStore();
+  for (const loadConvention of ['entered', 'combined', 'body-weight', 'per-hand']) {
+    const saved = { ...EMPTY_SET_DRAFT, loadConvention, implementCount: loadConvention === 'per-hand' ? 2 as const : null };
+    drafts.set('set', saved);
+    const restored = drafts.get<typeof saved>('set');
+    assert.deepEqual(restored, saved);
+    assert.equal(restored !== null && draftHasValues(restored), true, loadConvention);
+  }
+  assert.equal(draftHasValues({ ...EMPTY_SET_DRAFT, implementCount: 1 }), true);
+});
+
 test('keyboard parsing reports the field and leaves ranges to the core', () => {
   assert.deepEqual(parseWholeNumber(' 10 ', 'reps', 'reps'), { ok: true, value: 10 });
   assert.deepEqual(parseWholeNumber('0', 'reps', 'reps'), { ok: true, value: 0 });
@@ -240,8 +252,8 @@ test('a set draft reports every typing problem with the core field names', () =>
 test('a valid set draft keeps the load choice and an empty RPE as null', () => {
   assert.deepEqual(parseSetDraft({ reps: '10', weight: '22,5', rpe: '', loadConvention: 'per-hand', implementCount: 2 }),
     { ok: true, value: { reps: 10, weightKg: 22.5, rpe: null, loadConvention: 'per-hand', implementCount: 2 } });
-  assert.equal(draftHasText(EMPTY_SET_DRAFT), false);
-  assert.equal(draftHasText({ ...EMPTY_SET_DRAFT, rpe: '8' }), true);
+  assert.equal(draftHasValues(EMPTY_SET_DRAFT), false);
+  assert.equal(draftHasValues({ ...EMPTY_SET_DRAFT, rpe: '8' }), true);
 });
 
 test('the core still rejects a parsed value outside the record rules', async (t) => {

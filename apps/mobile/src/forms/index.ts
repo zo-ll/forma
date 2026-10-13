@@ -212,7 +212,8 @@ export function parseSetDraft(draft: SetDraft): Parsed<SetValues> {
   }};
 }
 
-/** A draft that differs from the empty form holds unsaved text. */
-export function draftHasText(draft: SetDraft): boolean {
-  return draft.reps.trim() !== '' || draft.weight.trim() !== '' || draft.rpe.trim() !== '';
+/** Text or an explicit load choice makes the draft different from the empty form. */
+export function draftHasValues(draft: SetDraft): boolean {
+  return draft.reps.trim() !== '' || draft.weight.trim() !== '' || draft.rpe.trim() !== ''
+    || draft.loadConvention !== EMPTY_SET_DRAFT.loadConvention || draft.implementCount !== EMPTY_SET_DRAFT.implementCount;
 }
