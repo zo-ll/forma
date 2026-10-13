@@ -1,10 +1,10 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {AppState, BackHandler, ScrollView, StatusBar, StyleSheet, Text, View, Pressable, useColorScheme} from 'react-native';
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import {FormaError} from '@forma/core';
 import {MOBILE_THEMES} from '@forma/mobile-host';
 import type {MobileHost, MobileHostSnapshot} from '@forma/mobile-host';
-import {mobileForms, mobileRoot} from './src/root';
+import {mobileArchiveFlow, mobileForms, mobileRoot} from './src/root';
 import {deviceAdapters} from './src/adapters/device';
 import {runHostGate} from './src/gate';
 import {DARK, LIGHT} from './src/ui/theme';
@@ -17,6 +17,7 @@ import {EditDetails} from './src/screens/EditDetails';
 import {SetEdit} from './src/screens/SetEdit';
 import {History} from './src/screens/History';
 import {Progress} from './src/screens/Progress';
+import {ArchiveSettings} from './src/screens/Archive';
 import {ConfirmSheet} from './src/ui/controls';
 
 type Route = 'Home' | 'History' | 'Progress' | 'Settings';
@@ -59,6 +60,18 @@ function Shell({host}: {host: MobileHost}) {
     return () => {unsubscribe(); appState.remove();};
     // Component disposal is not host disposal. The React instance retains its one host.
   }, [host]);
+  // A records replacement invalidates saved commands, drafts, stack screens, cursors, and query state.
+  const seenEpoch = useRef(snapshot.recordsEpoch);
+  useEffect(() => {
+    if (snapshot.recordsEpoch === seenEpoch.current) return;
+    seenEpoch.current = snapshot.recordsEpoch;
+    const forms = mobileForms();
+    forms.commands.clear();
+    forms.drafts.clearAll();
+    setStack([]);
+    setRoute(current => current === 'Settings' ? current : 'Home');
+    setVisits(count => count + 1);
+  }, [snapshot.recordsEpoch]);
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (stack.length === 0) return false;
@@ -94,8 +107,8 @@ function Shell({host}: {host: MobileHost}) {
       {top?.name === 'EditDetails' && <EditDetails key={top.workoutId} ctx={ctx} workoutId={top.workoutId}/>}
       {top?.name === 'SetEdit' && <SetEdit key={top.setId} ctx={ctx} workoutId={top.workoutId} setId={top.setId}/>}
       {!top && route === 'Home' && <Home ctx={ctx} refreshKey={String(visits)}/>}
-      {!top && route === 'History' && ready && <History ctx={ctx}/>}
-      {!top && route === 'Progress' && ready && <Progress ctx={ctx}/>}
+      {!top && route === 'History' && ready && <History key={`history-${snapshot.recordsEpoch}`} ctx={ctx}/>}
+      {!top && route === 'Progress' && ready && <Progress key={`progress-${snapshot.recordsEpoch}`} ctx={ctx}/>}
       {!top && route === 'Settings' && <View style={[styles.card, {backgroundColor: colors.card}]}>
         <Text accessibilityRole="header" style={[styles.title, {color: colors.text}]}>Local preferences</Text>
         <Text style={{color: colors.muted}}>Date context: current device timezone</Text>
@@ -106,6 +119,7 @@ function Shell({host}: {host: MobileHost}) {
         }, snapshot.preferences.theme === theme, !ready)}</React.Fragment>)}
         {action('Close local service', () => setConfirmingClose(true), false, !ready)}
         <Text style={{color: colors.muted}}>Close drains accepted work. It does not delete records.</Text>
+        <ArchiveSettings palette={colors} flow={mobileArchiveFlow()} ready={ready}/>
       </View>}
     </ScrollView>
     <ConfirmSheet palette={colors} visible={confirmingClose} busy={closing}
