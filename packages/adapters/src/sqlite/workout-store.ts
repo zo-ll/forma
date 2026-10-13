@@ -2,7 +2,7 @@ import type { SqliteConnection, SqliteRow as Row } from './connection.js';
 import { FormaError, normalizeExerciseAlias, validateSetLoadDetails, validateWorkoutSession, WORKOUT_HISTORY_LIMITS } from '@forma/core';
 import type {
   Exercise, ListWorkoutsInput, Workout, SplitDay, WorkoutReader, WorkoutSet,
-  HistoryStorePage, HistoryStoreQuery, RequestReceipt, SetLoadDetails, WorkoutSessionDetails, WorkoutStore, WorkoutWriter,
+  ArchiveCounts, ArchiveRecords, HistoryStorePage, HistoryStoreQuery, RequestReceipt, SetLoadDetails, WorkoutSessionDetails, WorkoutStore, WorkoutWriter,
 } from '@forma/core';
 import { pendingMigrations, runSqliteMigrations } from './migrations.js';
 import { SQLITE_MIGRATIONS } from './registry.js';
@@ -136,6 +136,16 @@ export class SharedSqliteWorkoutStore implements WorkoutStore {
         if (!writable) throw new FormaError('STORAGE_FAILURE', 'A read transaction cannot save a workout.');
         this.saveWorkout(workout);
       },
+      listRequestReceipts: async () => {
+        check();
+        return this.db.prepare('SELECT * FROM request_receipts ORDER BY request_id').all().map((row) => this.receiptFromRow(row));
+      },
+      countArchiveRecords: async () => { check(); return this.countArchiveRecords(); },
+      replaceArchiveRecords: async (records) => {
+        check();
+        if (!writable) throw new FormaError('STORAGE_FAILURE', 'A read transaction cannot replace records.');
+        this.replaceArchiveRecords(records);
+      },
     };
     try {
       const result = await run(view);
@@ -151,7 +161,36 @@ export class SharedSqliteWorkoutStore implements WorkoutStore {
 
   private getRequestReceipt(id: string): RequestReceipt | null {
     const row = this.db.prepare('SELECT * FROM request_receipts WHERE request_id = ?').get(id);
-    if (!row) return null;
+    return row ? this.receiptFromRow(row) : null;
+  }
+
+  private countArchiveRecords(): ArchiveCounts {
+    const row = this.db.prepare('SELECT (SELECT COUNT(*) FROM workouts) AS workouts, (SELECT COUNT(*) FROM sets) AS sets, '
+      + "(SELECT COUNT(*) FROM request_receipts) AS receipts, (SELECT COUNT(*) FROM workouts WHERE status = 'in-progress') AS in_progress").get();
+    if (!row) throw new FormaError('STORAGE_FAILURE', 'The record counts are unavailable.');
+    return {
+      workouts: numberValue(row, 'workouts'), sets: numberValue(row, 'sets'),
+      receipts: numberValue(row, 'receipts'), inProgress: numberValue(row, 'in_progress'),
+    };
+  }
+
+  /** Full replacement inside the caller's write transaction. Catalog rows stay unchanged. */
+  private replaceArchiveRecords(records: ArchiveRecords): void {
+    this.db.exec('DELETE FROM sets');
+    this.db.exec('DELETE FROM workouts');
+    this.db.exec('DELETE FROM request_receipts');
+    for (const workout of records.workouts) this.saveWorkout(workout);
+    const insert = this.db.prepare(
+      'INSERT INTO request_receipts (request_id, operation, input_signature, result_json, format_version) VALUES (?, ?, ?, ?, ?)',
+    );
+    for (const receipt of records.receipts) {
+      insert.run(receipt.requestId, receipt.operation, receipt.inputSignature, receipt.resultJson, receipt.formatVersion);
+    }
+    // Advance the local revision also for an empty replacement. An archive never supplies a revision.
+    this.db.exec('UPDATE workout_history_state SET revision = revision + 1 WHERE id = 1');
+  }
+
+  private receiptFromRow(row: Row): RequestReceipt {
     if (numberValue(row, 'format_version') !== 1) {
       throw new FormaError('STORAGE_FAILURE', 'The request receipt format is not supported.');
     }

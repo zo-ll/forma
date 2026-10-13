@@ -7,7 +7,7 @@ export interface ResultCodec<T> {
 }
 
 /** Only validated, normalized DTOs belong in a command signature. */
-function canonicalJson(value: unknown): string {
+export function canonicalJson(value: unknown): string {
   if (value === null || typeof value === 'string' || typeof value === 'boolean'
     || (typeof value === 'number' && Number.isFinite(value))) {
     return JSON.stringify(value);

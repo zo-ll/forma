@@ -15,6 +15,7 @@ import { requestContract } from './request-contract.js';
 import { loadContract } from './load-contract.js';
 import { sessionContract } from './session-contract.js';
 import { historyContract } from './history-contract.js';
+import { archiveContract } from './archive-contract.js';
 
 // This checks adapter mapping and lifecycle only. It does NOT establish Android readiness.
 function shim(path: string, closed: () => void = () => {}): OpSqliteDatabase {
@@ -51,6 +52,7 @@ requestContract('Android binding, Node shim', fixture);
 loadContract('Android binding, Node shim', fixture);
 sessionContract('Android binding, Node shim', fixture);
 historyContract('Android binding, Node shim', fixture);
+archiveContract('Android binding, Node shim', async (t, ids) => (await fixture(t, ids)).service);
 
 test('the Android composition root injects its native binding, clock, and IDs', async (t) => {
   const name = 'composition-' + ++sequence;

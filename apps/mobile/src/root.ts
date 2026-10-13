@@ -3,6 +3,9 @@ import {openAndroidForma} from '@forma/adapters/android';
 import {createMobileHost} from '@forma/mobile-host';
 import type {MobileHost} from '@forma/mobile-host';
 import {deviceAdapters} from './adapters/device';
+import {ARCHIVE_LIMITS} from '@forma/core';
+import {createArchiveFlow} from './archive/flow';
+import type {ArchiveFlow} from './archive/flow';
 import {createCommandLedger, createDraftStore} from './forms/index';
 import type {CommandLedger, DraftStore} from './forms/index';
 
@@ -27,6 +30,8 @@ export function mobileRoot(): MobileHost {
 export interface MobileForms {
   readonly commands: CommandLedger;
   readonly drafts: DraftStore;
+  /** The restore command identity. A records change does not clear it, so an unconfirmed restore can retry. */
+  readonly restore: CommandLedger;
 }
 
 const formsKey = Symbol.for('forma.mobile.forms.v1');
@@ -34,7 +39,27 @@ const formsKey = Symbol.for('forma.mobile.forms.v1');
 export function mobileForms(): MobileForms {
   const existing = registry[formsKey] as MobileForms | undefined;
   if (existing) return existing;
-  const forms: MobileForms = {commands: createCommandLedger(deviceAdapters.ids), drafts: createDraftStore()};
+  const forms: MobileForms = {
+    commands: createCommandLedger(deviceAdapters.ids), drafts: createDraftStore(), restore: createCommandLedger(deviceAdapters.ids),
+  };
   registry[formsKey] = forms;
   return forms;
+}
+
+const archiveKey = Symbol.for('forma.mobile.archive.v1');
+/** One archive flow per host lifetime, so a picker result survives navigation. */
+export function mobileArchiveFlow(): ArchiveFlow {
+  const existing = registry[archiveKey] as ArchiveFlow | undefined;
+  if (existing) return existing;
+  const host = mobileRoot();
+  const flow = createArchiveFlow({
+    service: () => host.service(),
+    replaceRecords: run => host.replaceRecords(run),
+    files: deviceAdapters.files,
+    restoreLedger: mobileForms().restore,
+    localDate: () => host.snapshot().calendar?.dateFrom ?? new Date().toISOString().slice(0, 10),
+    maxBytes: ARCHIVE_LIMITS.maxArchiveBytes,
+  });
+  registry[archiveKey] = flow;
+  return flow;
 }
