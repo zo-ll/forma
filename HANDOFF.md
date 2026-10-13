@@ -1,6 +1,40 @@
 # Forma — workout UI handoff
 
-## Stop state
+## Final verification state
+
+The user resumed the session and authorized the final phone checks and merge.
+The large-dataset UI check completed in 107 seconds on the unmodified `9810004` feature APK.
+All 12 large-dataset assertions passed. All four restoration assertions also passed.
+History advanced correctly, Progress showed exact counts and volumes, and the 1,000-workout source list opened an owned fixture.
+
+The scale cleanup deleted all 1,000 owned workouts in 1,933 ms through the reviewed service harness.
+It confirmed zero remaining owned records, exact preservation of all 21 baseline records, and unchanged active-session identity.
+The marker now contains a `cleaned` tombstone, not a pending seed.
+The final feature APK replaced the temporary APK without a data reset.
+Its installed hash matched `1915d63000991b39323c1bc8bf22bf5028e261c0156ddd112280ea0bcfc32aa0`.
+At restoration, Home was ready, the system theme remained selected, and no active workout existed.
+The phone returned to the user. No further phone operation is scheduled.
+
+Scoped frame evidence recorded 3,498 frames, 66 janky frames (1.89%), and a 14 ms frame p95.
+The legacy counter recorded 774 janky frames (22.13%). These counters use different definitions.
+The memory snapshot recorded 276,517 KiB PSS and 380,508 KiB RSS.
+The current process had no error-level log entries in the captured sample.
+These observations are not an official performance threshold or proof for larger datasets.
+
+The source code still equals reviewed code head `9810004`. Only this handoff changed after that head.
+The documentation tip needs an independent delta check before merge, not another APK build or full test run.
+Gate #14 remains unapproved. Archive restore, physical full-workout acceptance, and screen-reader focus remain outside this merge.
+The temporary harness stays on its separate local branch and must not merge.
+
+Final evidence: `~/.local/state/forma/ui-scale-9810004/` and the existing `~/.local/state/forma/scale/` run results.
+The private continuation note now records cleanup and restoration.
+After the feature merge, stop. Do not start another feature.
+
+## Historical pause snapshot
+
+The sections below record the earlier pause. The final state above supersedes their pending actions and phone state.
+
+### Stop state
 
 The user paused the session and authorized only a branch push and this handoff.
 Do not operate the phone until the user resumes.
