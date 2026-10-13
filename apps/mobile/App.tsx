@@ -13,6 +13,9 @@ import type {ScreenContext, StackScreen} from './src/screens/context';
 import {Home} from './src/screens/Home';
 import {ExerciseOrder, SplitPicker} from './src/screens/StartWorkout';
 import {Entry} from './src/screens/Entry';
+import {Summary} from './src/screens/Summary';
+import {EditDetails} from './src/screens/EditDetails';
+import {SetEdit} from './src/screens/SetEdit';
 
 type Route = 'Home' | 'History' | 'Settings';
 function errorText(error: unknown): string {
@@ -83,6 +86,9 @@ function Shell({host}: {host: MobileHost}) {
       {top?.name === 'SplitPicker' && <SplitPicker ctx={ctx}/>}
       {top?.name === 'ExerciseOrder' && <ExerciseOrder key={top.splitDayId} ctx={ctx} splitDayId={top.splitDayId}/>}
       {top?.name === 'Entry' && <Entry key={top.workoutId} ctx={ctx} workoutId={top.workoutId}/>}
+      {top?.name === 'Summary' && <Summary key={top.workoutId} ctx={ctx} workoutId={top.workoutId}/>}
+      {top?.name === 'EditDetails' && <EditDetails key={top.workoutId} ctx={ctx} workoutId={top.workoutId}/>}
+      {top?.name === 'SetEdit' && <SetEdit key={top.setId} ctx={ctx} workoutId={top.workoutId} setId={top.setId}/>}
       {!top && route === 'Home' && <Home ctx={ctx} refreshKey={String(visits)}/>}
       {!top && route === 'History' && ready && <History host={host} textColor={colors.text} mutedColor={colors.muted} button={action}/>}
       {!top && route === 'Settings' && <View style={[styles.card, {backgroundColor: colors.card}]}>

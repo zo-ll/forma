@@ -8,7 +8,10 @@ import type {Palette} from '../ui/theme';
 export type StackScreen =
   | {readonly name: 'SplitPicker'}
   | {readonly name: 'ExerciseOrder'; readonly splitDayId: string}
-  | {readonly name: 'Entry'; readonly workoutId: string};
+  | {readonly name: 'Entry'; readonly workoutId: string}
+  | {readonly name: 'Summary'; readonly workoutId: string}
+  | {readonly name: 'EditDetails'; readonly workoutId: string}
+  | {readonly name: 'SetEdit'; readonly workoutId: string; readonly setId: string};
 
 export interface ScreenContext {
   readonly host: MobileHost;
@@ -52,4 +55,31 @@ export function useServiceRead<T>(host: MobileHost, key: string, read: (service:
     return () => {generation.current++;};
   }, [reload, key]);
   return {loaded, reload};
+}
+
+/**
+ * Send one write through the host-lifetime ledger. A command that is still
+ * running after navigation is attached again instead of sent twice.
+ */
+export function useCommand<I, R>(ctx: ScreenContext, slot: string,
+  send: (service: FormaService, requestId: string, input: I) => Promise<R>, onDone: (result: R) => void) {
+  const [busy, setBusy] = useState(() => ctx.forms.commands.busy(slot));
+  const [failure, setFailure] = useState<unknown>(null);
+  const doneRef = useRef(onDone);
+  doneRef.current = onDone;
+  const attach = useCallback((attempt: Promise<R>) => {
+    setBusy(true);
+    setFailure(null);
+    attempt.then(result => {setBusy(false); doneRef.current(result);}, error => {setBusy(false); setFailure(error);});
+  }, []);
+  useEffect(() => {
+    const running = ctx.forms.commands.current<R>(slot);
+    if (running) attach(running);
+  }, [ctx.forms, slot, attach]);
+  const run = (input: I) => {
+    if (ctx.forms.commands.busy(slot)) return;
+    attach(ctx.forms.commands.run(slot, input, (requestId, saved) => send(ctx.host.service(), requestId, saved)));
+  };
+  const unconfirmed = !busy && ctx.forms.commands.pending(slot)?.unconfirmed === true;
+  return {busy, failure, unconfirmed, run, clearFailure: () => setFailure(null)};
 }

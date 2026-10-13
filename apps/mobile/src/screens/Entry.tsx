@@ -3,12 +3,13 @@ import {Modal, Pressable, ScrollView, Text, TextInput, View} from 'react-native'
 import type {AddSetInput, Exercise, LoadConvention, SplitDay, Workout, WorkoutSet} from '@forma/core';
 import {EMPTY_SET_DRAFT, draftHasText, parseSetDraft} from '../forms/index';
 import type {FieldProblem, SetDraft} from '../forms/index';
-import {Button, Card, ErrorNotice, Muted, ScreenHeader, describeError} from '../ui/controls';
+import {Button, Card, ConfirmSheet, ErrorNotice, Muted, ScreenHeader, describeError} from '../ui/controls';
 import {LoadPicker, LoadTrigger, loadLabel} from '../ui/LoadPicker';
 import type {Palette} from '../ui/theme';
 import {shared} from '../ui/theme';
 import type {ScreenContext} from './context';
-import {useServiceRead} from './context';
+import {useCommand, useServiceRead} from './context';
+import {finishSlot, useRemoveWorkout} from './workoutCommands';
 import {setCountText, splitName} from './Home';
 
 interface EntryData {
@@ -47,13 +48,15 @@ export function setSummary(set: Pick<WorkoutSet, 'reps' | 'weightKg' | 'loadConv
   return `${set.reps} × ${set.weightKg} kg · ${convention}`;
 }
 
-function SetRow({palette, index, set, note}: {palette: Palette; index: number; set: WorkoutSet; note?: string}) {
-  return <View accessible accessibilityLabel={`Set ${index}, ${set.reps} reps, ${set.weightKg} kilograms, ${loadLabel(set)}, ${set.rpe === null ? 'RPE not set' : 'RPE ' + set.rpe}`}
+/** The whole row opens Set edit when `onPress` is given. */
+export function SetRow({palette, index, set, note, onPress}: {palette: Palette; index: number; set: WorkoutSet; note?: string | undefined; onPress?: (() => void) | undefined}) {
+  return <Pressable accessible accessibilityRole={onPress ? 'button' : undefined} disabled={!onPress} onPress={onPress}
+    accessibilityLabel={`Set ${index}, ${set.reps} reps, ${set.weightKg} kilograms, ${loadLabel(set)}, ${set.rpe === null ? 'RPE not set' : 'RPE ' + set.rpe}${onPress ? '. Edit' : ''}`}
     style={[shared.row, {minHeight: 48, flexWrap: 'wrap'}]}>
     <Text style={[shared.code, {color: palette.muted, width: 20}]}>{index}</Text>
     <Text style={{color: palette.text, flex: 1, minWidth: 160}}>{setSummary(set)}</Text>
     <Text style={{color: palette.muted}}>{note ?? rpeText(set.rpe)}</Text>
-  </View>;
+  </Pressable>;
 }
 
 /** Design brief §6.3, layout 1a. Resume is a read; it never writes. */
@@ -70,13 +73,22 @@ export function Entry({ctx, workoutId}: {ctx: ScreenContext; workoutId: string})
     ?? {current: null, extra: []});
   const [savedSetId, setSavedSetId] = useState<string | null>(null);
   const [choosing, setChoosing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const workoutValue = loaded.state === 'ready' ? loaded.value.workout : null;
+  const finish = useCommand<{workoutId: string}, Workout>(ctx, finishSlot(workoutId),
+    (service, requestId, input) => service.workouts.finish({requestId, ...input}),
+    () => ctx.reset([{name: 'Summary', workoutId}]));
+  const discard = useRemoveWorkout(ctx, workoutValue, () => {setConfirming(false); ctx.reset([]);});
+  const live = ctx.snapshot.phase === 'ready' || ctx.snapshot.phase === 'background';
+  const closed = live ? null : 'The local service is closed.';
   const remember = (next: {current: string | null; extra: readonly string[]}) => {setView(next); forms.drafts.set(currentKey, next);};
   const back = {label: 'Home', onPress: () => ctx.reset([])};
 
   if (loaded.state === 'loading') return <View style={{gap: 18}}><ScreenHeader palette={palette} title="Workout" back={back}/>
     <Muted palette={palette}>Loading workout…</Muted></View>;
   if (loaded.state === 'error') return <View style={{gap: 18}}><ScreenHeader palette={palette} title="Workout" back={back}/>
-    <ErrorNotice palette={palette} error={loaded.error}/><Button palette={palette} label="Reload workout" onPress={reload}/></View>;
+    <ErrorNotice palette={palette} error={loaded.error}/><Button palette={palette} label="Reload workout" onPress={reload}/>
+    <Button palette={palette} label="Open workout summary" onPress={() => ctx.reset([{name: 'Summary', workoutId}])}/></View>;
 
   const {workout, splitDays, exercises} = loaded.value;
   const names = new Map(exercises.map(exercise => [exercise.id, exercise.name]));
@@ -85,6 +97,7 @@ export function Entry({ctx, workoutId}: {ctx: ScreenContext; workoutId: string})
   return <View style={{gap: 14}}>
     <ScreenHeader palette={palette} title={splitName(splitDays, workout.splitDayId)} back={back}
       subtitle={`${workout.date} · ${setCountText(workout.sets.length)} saved`}/>
+    <Button palette={palette} label="Edit details" disabledReason={closed} onPress={() => ctx.push({name: 'EditDetails', workoutId})}/>
     {sections.map((section, index) => {
       const isCurrent = section.exerciseId === current;
       const name = names.get(section.exerciseId) ?? section.exerciseId;
@@ -98,13 +111,26 @@ export function Entry({ctx, workoutId}: {ctx: ScreenContext; workoutId: string})
             {isCurrent ? 'CURRENT' : section.sets.length ? setCountText(section.sets.length) : 'no sets'}</Text>
         </Pressable>
         {section.sets.map((set, setIndex) => <SetRow key={set.id} palette={palette} index={setIndex + 1} set={set}
-          note={set.id === savedSetId ? '✓ saved' : undefined}/>)}
+          note={set.id === savedSetId ? '✓ saved' : undefined}
+          onPress={live ? () => ctx.push({name: 'SetEdit', workoutId, setId: set.id}) : undefined}/>)}
         {isCurrent && <SetForm ctx={ctx} workout={workout} exerciseId={section.exerciseId} exerciseName={name}
           previous={section.sets[section.sets.length - 1] ?? null} nextIndex={section.sets.length + 1}
           onSettled={setId => {setSavedSetId(setId); reload();}}/>}
       </Card>;
     })}
     <Button palette={palette} label="Log another exercise" onPress={() => setChoosing(true)}/>
+    {finish.failure != null && <ErrorNotice palette={palette} error={finish.failure}/>}
+    {discard.command.failure != null && <ErrorNotice palette={palette} error={discard.command.failure}/>}
+    {finish.unconfirmed && <Muted palette={palette}>The last finish is unconfirmed. Finish again sends the same request.</Muted>}
+    <View style={shared.row}>
+      <Button palette={palette} style={{flex: 1}} label="Discard" accessibilityLabel="Discard workout" disabledReason={closed}
+        onPress={() => setConfirming(true)}/>
+      <Button palette={palette} style={{flex: 1}} label="Finish" accessibilityLabel="Finish workout"
+        busyLabel={finish.busy ? 'Finishing…' : null} disabledReason={closed} onPress={() => finish.run({workoutId})}/>
+    </View>
+    <ConfirmSheet palette={palette} visible={confirming} busy={discard.command.busy} title="Discard this workout?"
+      body={`The in-progress ${splitName(splitDays, workout.splitDayId)} workout and its ${setCountText(workout.sets.length)} will be removed from this phone. This cannot be undone.`}
+      confirmLabel="Discard workout" keepLabel="Keep workout" onConfirm={discard.run} onKeep={() => setConfirming(false)}/>
     <Modal visible={choosing} animationType="slide" onRequestClose={() => setChoosing(false)}>
       <ScrollView style={{flex: 1, backgroundColor: palette.background}} contentContainerStyle={{padding: 20, gap: 8}}>
         <ScreenHeader palette={palette} title="Choose an exercise" back={{label: 'Workout', onPress: () => setChoosing(false)}}/>
@@ -118,7 +144,7 @@ export function Entry({ctx, workoutId}: {ctx: ScreenContext; workoutId: string})
   </View>;
 }
 
-function Field({palette, label, value, onChange, problem, keyboard, editable, restored, accessibilityLabel, children}: {
+export function Field({palette, label, value, onChange, problem, keyboard, editable, restored, accessibilityLabel, children}: {
   palette: Palette; label: string; value: string; onChange: (text: string) => void; problem: string | undefined;
   keyboard: 'number-pad' | 'decimal-pad'; editable: boolean; restored: boolean; accessibilityLabel: string; children?: React.ReactNode;
 }) {
@@ -135,7 +161,7 @@ function Field({palette, label, value, onChange, problem, keyboard, editable, re
   </View>;
 }
 
-function draftFromSet(set: WorkoutSet): SetDraft {
+export function draftFromSet(set: WorkoutSet): SetDraft {
   return {reps: String(set.reps), weight: String(set.weightKg), rpe: set.rpe === null ? '' : String(set.rpe),
     loadConvention: set.loadConvention, implementCount: set.implementCount};
 }

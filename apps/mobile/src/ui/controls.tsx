@@ -1,5 +1,5 @@
 import React from 'react';
-import {Pressable, Text, View} from 'react-native';
+import {Modal, Pressable, Text, View} from 'react-native';
 import type {StyleProp, ViewStyle} from 'react-native';
 import {FormaError} from '@forma/core';
 import type {Palette} from './theme';
@@ -73,4 +73,22 @@ export function ScreenHeader({palette, title, subtitle, back}: {palette: Palette
 
 export function Muted({palette, children}: {palette: Palette; children: React.ReactNode}) {
   return <Text style={{color: palette.muted}}>{children}</Text>;
+}
+
+/**
+ * Explicit confirmation before a destructive command. The safe option is the
+ * bottom button, nearest the thumb. Cancelling sends no command.
+ */
+export function ConfirmSheet({palette, visible, title, body, confirmLabel, keepLabel, busy, onConfirm, onKeep}: {
+  palette: Palette; visible: boolean; title: string; body: string; confirmLabel: string; keepLabel: string;
+  busy: boolean; onConfirm: () => void; onKeep: () => void;
+}) {
+  return <Modal visible={visible} transparent={false} animationType="fade" onRequestClose={busy ? () => undefined : onKeep}>
+    <View accessibilityRole="alert" style={{flex: 1, justifyContent: 'flex-end', padding: 20, gap: 12, backgroundColor: palette.background}}>
+      <Text accessibilityRole="header" style={[shared.title, {color: palette.text}]}>{title}</Text>
+      <Text style={{color: palette.text}}>{body}</Text>
+      <Button palette={palette} label={confirmLabel} busyLabel={busy ? `${confirmLabel}…` : null} onPress={onConfirm}/>
+      <Button palette={palette} primary label={keepLabel} disabledReason={busy ? 'The command is running.' : null} onPress={onKeep}/>
+    </View>
+  </Modal>;
 }

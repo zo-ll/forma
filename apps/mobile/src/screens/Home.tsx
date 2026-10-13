@@ -1,5 +1,5 @@
 import React from 'react';
-import {Text, View} from 'react-native';
+import {Pressable, Text, View} from 'react-native';
 import type {SplitDay, Workout} from '@forma/core';
 import {Button, Card, ErrorNotice, Muted} from '../ui/controls';
 import {shared} from '../ui/theme';
@@ -83,14 +83,15 @@ export function Home({ctx, refreshKey}: {ctx: ScreenContext; refreshKey: string}
       </Card>}
     {recent.length > 0 && <View style={{gap: 8}}>
       <Text accessibilityRole="header" style={[shared.label, {color: palette.muted}]}>Recent workouts</Text>
-      {recent.map(workout => <View key={workout.id} accessible
+      {recent.map(workout => <Pressable key={workout.id} accessibilityRole="button"
+        onPress={() => ctx.push({name: 'Summary', workoutId: workout.id})}
         accessibilityLabel={`${splitName(splitDays, workout.splitDayId)}, ${workout.date}, ${setCountText(workout.sets.length)}`}>
         <Card palette={palette} style={[shared.row, {justifyContent: 'space-between', paddingVertical: 14}]}>
           <View><Text style={{color: palette.text, fontWeight: '600'}}>{splitName(splitDays, workout.splitDayId)}</Text>
             <Muted palette={palette}>{workout.date}</Muted></View>
           <Muted palette={palette}>{setCountText(workout.sets.length)}</Muted>
         </Card>
-      </View>)}
+      </Pressable>)}
     </View>}
   </View>;
 }
