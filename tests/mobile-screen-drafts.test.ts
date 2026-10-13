@@ -382,3 +382,48 @@ test('progress Apply and a range change use the visible dates and keep relative 
   returned.render();
   assert.equal(reads.last('exercises'), progressQuery({dateFrom: '2026-01-01', dateTo: '2026-02-28'}));
 });
+
+test('history date edits preserve both fields without an intervening render', () => {
+  const store = forms();
+  const {reads, open} = historyScreen(store);
+  const mounted = open();
+  let screen = mounted.render();
+  // Both events use handlers from the same render.
+  typeInto(screen, 'History start date', '2099-01-01');
+  typeInto(screen, 'History end date', '2099-01-02');
+  screen = mounted.render();
+  assert.equal(screen.byAccessibility('History start date').props.value, '2099-01-01');
+  assert.equal(screen.byAccessibility('History end date').props.value, '2099-01-02');
+  assert.equal(store.drafts.get<formsModule.DateDraft>('history:typedDates')?.dateFrom, '2099-01-01');
+  assert.equal(store.drafts.get<formsModule.DateDraft>('history:typedDates')?.dateTo, '2099-01-02');
+  assert.equal(reads.last('catalog'), historyQuery());
+  screen = open().render();
+  assert.equal(screen.byAccessibility('History start date').props.value, '2099-01-01');
+  assert.equal(screen.byAccessibility('History end date').props.value, '2099-01-02');
+});
+
+test('progress date edits preserve both fields without an intervening render', () => {
+  const store = forms();
+  const {reads, open} = progressScreen(store);
+  const mounted = open();
+  let screen = mounted.render();
+  chooseIncline(screen);
+  screen = mounted.render();
+  (screen.byLabel('Custom dates').props.onPress as () => void)();
+  screen = mounted.render();
+  typeInto(screen, 'Progress start date', '2026-01-01');
+  typeInto(screen, 'Progress end date', '2026-01-31');
+  screen = mounted.render();
+  assert.equal(screen.byAccessibility('Progress start date').props.value, '2026-01-01');
+  assert.equal(screen.byAccessibility('Progress end date').props.value, '2026-01-31');
+  assert.equal(store.drafts.get<formsModule.DateDraft>('progress:typedDates')?.dateFrom, '2026-01-01');
+  assert.equal(store.drafts.get<formsModule.DateDraft>('progress:typedDates')?.dateTo, '2026-01-31');
+  assert.equal(reads.last('exercises'), progressQuery({dateFrom: '', dateTo: ''}));
+  const returned = open();
+  screen = returned.render();
+  assert.equal(screen.byAccessibility('Progress start date').props.value, '2026-01-01');
+  assert.equal(screen.byAccessibility('Progress end date').props.value, '2026-01-31');
+  (screen.byLabel('Apply dates').props.onPress as () => void)();
+  returned.render();
+  assert.equal(reads.last('exercises'), progressQuery({dateFrom: '2026-01-01', dateTo: '2026-01-31'}));
+});

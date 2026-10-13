@@ -73,9 +73,11 @@ export function Progress({ctx}: {ctx: ScreenContext}) {
     forms.drafts.clear(TYPED_KEY);
   };
   const type = (key: keyof DateDraft, text: string) => {
-    const next = {...typed, [key]: text};
-    setTyped(next);
-    forms.drafts.set(TYPED_KEY, next);
+    setTyped(current => {
+      const next = {...current, [key]: text};
+      forms.drafts.set(TYPED_KEY, next);
+      return next;
+    });
   };
   const catalog = useServiceRead<readonly Exercise[]>(ctx.host, 'exercises', service => service.exercises.list());
   const exercises = catalog.loaded.state === 'ready' ? catalog.loaded.value : [];
