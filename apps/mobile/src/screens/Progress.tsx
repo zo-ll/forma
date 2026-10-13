@@ -116,8 +116,9 @@ function StatisticsView({ctx, stats, exerciseName}: {ctx: ScreenContext; stats: 
   return <View style={{gap: 12}}>
     <Card palette={palette} style={{gap: 6}}>
       <Fact palette={palette} label="Workouts" value={`${stats.workoutCount.value} ${stats.workoutCount.unit}`}/>
-      <Fact palette={palette} label="Sets" value={`${stats.setCount.value} ${stats.setCount.unit}`}/>
       <Sources ctx={ctx} sources={stats.workoutCount.sources}/>
+      <Fact palette={palette} label="Sets" value={`${stats.setCount.value} ${stats.setCount.unit}`}/>
+      <Sources ctx={ctx} sources={stats.setCount.sources}/>
     </Card>
     {stats.groups.map(group => <Card key={group.convention} palette={palette} style={{gap: 6}}>
       <Text accessibilityRole="header" style={[shared.label, {color: palette.accent}]}>{GROUP_LABELS[group.convention].toUpperCase()}</Text>
