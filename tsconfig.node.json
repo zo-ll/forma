@@ -10,7 +10,8 @@
   },
   "include": [
     "tests/**/*.ts",
-    "examples/**/*.ts"
+    "examples/**/*.ts",
+    "apps/mobile/src/forms/index.ts"
   ],
   "references": [
     {
