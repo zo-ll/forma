@@ -9,7 +9,8 @@ Its exact candidate `210b828` passed all 703 tests and the cold Android CI build
 See [the CI contract](docs/ci.md) and [the actual runs](https://github.com/zo-ll/forma/actions/workflows/ci.yml).
 Match the run's source head before you use its result as proof.
 The user authorized all remaining non-nutrition issues on 2026-10-14.
-Next is #14, then notes #18–21, the local assistant #22–30, and privacy/release #31–32.
+Issue #14 passed its written acceptance checklist at runtime source `1c48410`.
+Next are notes #18–21, the local assistant #22–30, and privacy/release #31–32.
 Catalog management #33, voice notes #35, and iOS #36 follow the first Android release.
 Nutrition #15–17, meal photos #34, and nutrition-specific assistant tools remain deferred and open.
 Do not add placeholder nutrition modules or treat their exclusion as acceptance.
@@ -51,9 +52,9 @@ Private evidence on the original host:
 
 Keep raw archives, records, device addresses, keys, APKs, screenshots, and logs outside this public repository.
 
-## Issue #14 result
+## Issue #14 history — superseded by the latest verdict
 
-The native gate remains unapproved.
+The native gate remained unapproved at this earlier stage.
 The clean CI APK from source `5911450` passed actual upgrade preservation and all three catalog picker checks.
 Its installed hash is `c7f2c7aa0943a8543f1ff908ff560c69d97b0cb6f488d1210c6180a3b8b36976`.
 Background, real process restart, set correction, finish, and filtered History navigation preserved the expected records.
@@ -88,6 +89,47 @@ Progress facts and source navigation, the full History matrix, owned deletion/di
 Private evidence: `~/.local/state/forma/issue-14/NATIVE-RESULT.md`, `recheck-92ea79d/RESULT.md`, and `review-recheck-result.md`.
 Do not treat the old #12 live counts as the current dataset.
 
+## Latest #14 window — source `1c48410`
+
+This section supersedes earlier next-action notes for #14.
+Independent source review approved all five changed files. Both exact-head CI jobs passed, including 711 tests and the cold Android build.
+The current session also passed all 711 local tests, the mobile typecheck, the 64-file boundary check, and the dated dependency check.
+
+The user authorized a new exclusive phone window and temporary finish of the original active workout.
+A fresh UI backup preceded all changes. The installed APK matched the reviewed CI artifact exactly.
+Its SHA-256 is `1a438d183a49ca97392c50a88e3f02a10846149d11d59174f5dd2ae7659423ae`.
+Upgrade preserved every original catalog record, primary DTO, and raw receipt exactly.
+
+Two Save taps produced one set. Explicit confirmation permitted a deliberately identical second set.
+Three Save taps produced only that second set and left Save disabled.
+Per-tap screenshots and same-frame native bounds place confirmation away from the repeated tap coordinates.
+The burst includes a screenshot after each tap. It does not prove every possible input interval.
+Exact stored sets and receipts matched the two explicit intents.
+
+Progress passed independent entered/combined facts, unknown-load exclusion, counts, and exact source navigation.
+The History date filter opened the exact owned workout. Set correction, deletion, workout deletion, and discard passed.
+All three app themes passed selection checks. The original preference returned.
+Service close passed cancellation, disabled-control, and process-restart recovery checks.
+One discard check first failed because its header was outside the viewport. A bounded continuation proved the exact owned session before discard.
+
+Final restore preserved every exact original primary DTO, catalog record, and raw receipt.
+Only one new legitimate restore receipt remained. The original active workout returned unchanged.
+The restored modules stayed exact after force-stop and relaunch. The driver did not retain a before/after PID pair.
+The phone returned to usable Home. The driver exited. No further phone operation has authorization.
+One fresh plaintext baseline backup remains in Downloads. The new APK remains installed.
+
+Independent DeepSeek evidence review approved #14 against its written checklist.
+A separate Node comparison reproduced the exact archive and APK checks directly from the protected local files.
+Scoped Save response bounds are 1.023 and 1.486 seconds, including native input, ADB, screenshots, and transfers.
+These bounds are not isolated app latency or comprehensive benchmarks. Memory samples are not peak values.
+Earlier catalog and lifecycle evidence remains applicable: only `Entry.tsx` changed at runtime after source `5911450`.
+The latest pass covers that changed Save behavior. No further native rerun is required for #14.
+
+The [public acceptance record](docs/verification/android-workout-1c48410.md) states the exact source, artifact, evidence transfer, and limits.
+Screen-reader focus, large fonts, and comprehensive performance checks remain unverified. No release requirement is waived.
+Large fonts and TalkBack require separate permission.
+Private reports: `~/.local/state/forma/issue-14/window-1c48410/RESULT.md` and `~/.local/state/forma/issue-14/approval/FINAL-VERDICT.md`.
+
 ## Checks and build
 
 The #13 local CI candidate passed 703 tests and the mobile typecheck.
@@ -110,7 +152,8 @@ A cold CI build proves the procedure, not byte-identical APKs or device behavior
 
 ## Remaining acceptance limits
 
-Gate #14 remains unapproved. It still requires the complete physical workout UI acceptance and screen-reader checks.
+Gate #14 passed its written checklist. The Android v1 release still requires notes, the local assistant, privacy checks, and release acceptance.
+Screen-reader focus and large-font behavior remain unverified; #14 approval does not claim those results.
 The archive pass does not prove a valid full-limit 16 MiB file, maximum count budgets, or peak restore memory.
 Activity recreation during selection, failing-provider cleanup, cloud providers, large fonts, and TalkBack focus remain unverified.
 Node rollback and unconfirmed-retry tests do not substitute for native failure-injection proof.

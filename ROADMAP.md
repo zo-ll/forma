@@ -6,10 +6,10 @@ This document defines the approved product and its phase gates.
 It does not claim that planned capabilities exist.
 [Issue #1](https://github.com/zo-ll/forma/issues/1) tracks implementation and dependencies.
 
-The current merged baseline is `bddc125`, after issues #2 through #13.
 The workout core, Android screens, shared SQLite adapters, local archive, and continuous checks exist.
-All 703 source tests and the cold Android CI build passed at reviewed source `210b828`.
-The complete workout device gate #14 remains open. Independent notes and the local assistant do not exist yet.
+The accepted workout runtime is `1c48410`, with 711 passing tests and the cold Android CI build.
+The workout device gate #14 passed its [written checklist](docs/verification/android-workout-1c48410.md).
+Independent notes and the local assistant do not exist yet.
 
 The user authorized every remaining non-nutrition issue on 2026-10-14.
 Nutrition #15–17, meal photos #34, and nutrition-specific assistant tools remain outside the current scope.
@@ -83,7 +83,8 @@ The approved persisted session contract below governs the current resume control
 6. Record latency, memory use, failures, and results.
 
 The Node tests do not satisfy this device gate.
-Complete [#14](https://github.com/zo-ll/forma/issues/14) before the next active feature batch.
+Issue [#14](https://github.com/zo-ll/forma/issues/14) passed with [documented evidence and limits](docs/verification/android-workout-1c48410.md).
+The next active feature batch is notes #18–21.
 
 ## Deferred phase — Nutrition
 

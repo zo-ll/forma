@@ -107,4 +107,4 @@ Inspect the [actual workflow run](https://github.com/zo-ll/forma/actions/workflo
 Match its source head to the pull request. Download the APK and metadata when you need the artifact identity.
 The source job preserves dependency verdicts, including the accepted risk.
 The Android job must finish successfully before its artifact exists.
-Gate #14 still requires the complete workout UI/device acceptance. CI does not approve that gate.
+Gate #14 passed through separate [native acceptance](verification/android-workout-1c48410.md). CI alone does not approve a device gate.

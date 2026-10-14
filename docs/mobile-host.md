@@ -42,7 +42,8 @@ The gate runs only in the native hostgate flavor. Snapshot methods enforce that 
 All records are synthetic. Verify reads exact primary records before it replays original receipts.
 Every mode requires its exact assertion count. Seed and verify must have distinct process IDs.
 Only this test package is installed, stopped, or inspected by the runner.
-The complete workout UI/device gate #14 remains separate. Nutrition still waits for that gate.
+The separate workout gate #14 passed its [written checklist](verification/android-workout-1c48410.md).
+Nutrition remains deferred and requires new authorization.
 
 ## Dependency audit
 

@@ -10,9 +10,9 @@ The workout core and a SQLite adapter for Node exist.
 The injected Android adapter passed all 143 native storage cases on the Nothing Phone (2a).
 Exact record and receipt persistence also passed across a process restart.
 Issues #9–13 added the Android host, workout screens, history/progress screens, local archives, and continuous checks.
-The current source suite passed 703 tests. The cold CI build produced the standalone ARM64 APK.
+The accepted workout source `1c48410` passed 711 tests. The cold CI build produced the standalone ARM64 APK.
 The archive device pass preserved all original records and receipts exactly.
-The complete workout device gate #14 remains open.
+The workout device gate #14 passed its written checklist. See [the acceptance record](docs/verification/android-workout-1c48410.md).
 See [the mobile host](apps/mobile/README.md) and [continuous checks](docs/ci.md) for commands.
 See [docs/android-storage-tests.md](docs/android-storage-tests.md) for commands and remaining checks.
 The approved Android v1 plan includes workouts, notes, local history questions, and local backup and restore.
@@ -103,7 +103,7 @@ Read [ROADMAP.md](ROADMAP.md) for the full app contracts and unresolved decision
 ## Limits
 
 The Android host has workout entry, history, progress, preferences, and archive screens.
-The full workout device gate remains unapproved. Independent notes and inference remain unimplemented.
+The workout gate passed with [documented limits](docs/verification/android-workout-1c48410.md). Independent notes and inference remain unimplemented.
 Nutrition and meal photos are outside the active scope.
 The catalog has no edit API.
 Use `workouts.history()` for bounded pages. The legacy `workouts.list()` remains unbounded for compatibility.
