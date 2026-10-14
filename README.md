@@ -1,20 +1,23 @@
 # Forma
 
 Forma is a local-first fitness app with a portable TypeScript service.
-The current implementation includes workouts only.
-Nutrition must wait for the workout device gate.
+The implemented record module is workouts. The Android app also supports local backup and atomic restore.
+The active plan excludes nutrition, meal photos, and nutrition-specific assistant tools.
 
 ## Status
 
 The workout core and a SQLite adapter for Node exist.
 The injected Android adapter passed all 143 native storage cases on the Nothing Phone (2a).
 Exact record and receipt persistence also passed across a process restart.
-Issue #9 adds a thin Android host with navigation, local preferences, and a read-only history form.
-Its source passed independent review. Its standalone build and host checks passed on the Nothing Phone (2a).
-Navigation, accessible form errors, themes, and close/restart also passed device checks.
-See [the mobile host](apps/mobile/README.md) for commands. The complete workout UI is not ready.
+Issues #9–13 added the Android host, workout screens, history/progress screens, local archives, and continuous checks.
+The current source suite passed 703 tests. The cold CI build produced the standalone ARM64 APK.
+The archive device pass preserved all original records and receipts exactly.
+The complete workout device gate #14 remains open.
+See [the mobile host](apps/mobile/README.md) and [continuous checks](docs/ci.md) for commands.
 See [docs/android-storage-tests.md](docs/android-storage-tests.md) for commands and remaining checks.
-The approved Android v1 plan includes workouts, nutrition, notes, local history questions, and local backup and restore.
+The approved Android v1 plan includes workouts, notes, local history questions, and local backup and restore.
+Nutrition #15–17 and meal photos #34 remain open but deferred.
+Catalog management, voice notes, and iOS remain authorized after the first Android release.
 [ROADMAP.md](ROADMAP.md) separates that plan from current capabilities and defines each phase gate.
 
 The service can:
@@ -30,6 +33,7 @@ The service can:
 - Preserve records after the database closes and reopens.
 - Replay successful write commands without duplicate changes, including after restart.
 - Save explicit set load conventions without assuming the meaning of old weights.
+- Export, inspect, and atomically restore versioned local archives.
 
 The core also resolves calendar ranges from an explicit UTC instant and device timezone.
 It supplies source-linked load facts and rejects incompatible load comparisons.
@@ -85,7 +89,7 @@ The client must retrieve the record if it needs the current state.
 - [`@forma/adapters/node`](packages/adapters/src/node/index.ts) implements the storage port and constructs the Node service.
 - [`@forma/adapters/android`](packages/adapters/src/android/index.ts) binds injected native OP-SQLite to the same storage contract.
 - [`@forma/mobile-host`](packages/mobile-host/src/index.ts) owns portable host lifetime, preferences, and calendar context.
-- [`apps/mobile/`](apps/mobile/README.md) constructs the Android host and renders its thin client screens.
+- [`apps/mobile/`](apps/mobile/README.md) constructs the Android host and renders workout, history, progress, and archive screens.
 - [`examples/workouts.ts`](examples/workouts.ts) acts as a client of the service.
 - [`tests/`](tests/) checks the same behavior with memory and SQLite adapters.
 
@@ -98,8 +102,9 @@ Read [ROADMAP.md](ROADMAP.md) for the full app contracts and unresolved decision
 
 ## Limits
 
-The Android host has only navigation, preferences, and a read-only history form.
-Full workout entry screens, nutrition, and inference remain incomplete.
+The Android host has workout entry, history, progress, preferences, and archive screens.
+The full workout device gate remains unapproved. Independent notes and inference remain unimplemented.
+Nutrition and meal photos are outside the active scope.
 The catalog has no edit API.
 Use `workouts.history()` for bounded pages. The legacy `workouts.list()` remains unbounded for compatibility.
 A record change invalidates earlier page cursors. Restart the query after a cursor conflict.

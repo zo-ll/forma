@@ -1,4 +1,4 @@
-# Forma — Android v1 plan
+# Forma — non-nutrition plan
 
 ## Status and scope
 
@@ -6,18 +6,23 @@ This document defines the approved product and its phase gates.
 It does not claim that planned capabilities exist.
 [Issue #1](https://github.com/zo-ll/forma/issues/1) tracks implementation and dependencies.
 
-The merged implementation baseline at `e10eb8d` has the workout core, Node SQLite storage, shared migrations, persistent request receipts, calendar context, explicit load conventions, persisted sessions, metadata edits, and whole-workout deletion.
-All 368 tests passed at that baseline.
-The Android app, nutrition, independent notes, and local assistant do not exist yet.
-Workouts remain the only active implementation module.
+The current merged baseline is `bddc125`, after issues #2 through #13.
+The workout core, Android screens, shared SQLite adapters, local archive, and continuous checks exist.
+All 703 source tests and the cold Android CI build passed at reviewed source `210b828`.
+The complete workout device gate #14 remains open. Independent notes and the local assistant do not exist yet.
 
-Android v1 includes workouts, nutrition, notes, local history questions, and explicit local backup and restore.
+The user authorized every remaining non-nutrition issue on 2026-10-14.
+Nutrition #15–17, meal photos #34, and nutrition-specific assistant tools remain outside the current scope.
+Keep those issues open as deferred work. Do not mark them complete or add placeholder capabilities.
+Android v1 includes workouts, notes, local history questions, and explicit local backup and restore.
 The target device is the Nothing Phone (2a) with 8 GB RAM.
 The client uses React Native and TypeScript.
 The release uses a signed standalone APK with an embedded JavaScript bundle.
 It requires no backend, accounts, cloud sync, hosted inference, or Metro.
 
-Catalog edits, photos, voice notes, iOS, Telegram, and a reference knowledge base remain outside Android v1.
+Catalog management #33, voice notes #35, and iOS #36 are authorized after the first Android release.
+They do not block that first release. iOS requires a named device and a supported native build environment.
+Meal photos, Telegram, and a reference knowledge base remain outside the current scope.
 The separate [validation app](https://github.com/zo-ll/on-device-validation) supplies experimental evidence only.
 Its device results do not prove Forma behavior or simultaneous model memory use.
 No gate requires an airplane-mode test.
@@ -60,13 +65,13 @@ The existing catalog and order in [SPEC.md](SPEC.md#4-exercise-catalog) remain u
 - Current: explicit persisted start, resume, finish, and discard behavior.
 - Current on memory, Node SQLite, and native Android OP-SQLite: paged history with date and exercise filters, previous sets, selected-range best facts, and supported volume totals.
 - Verified: shared Android query cases, storage diagnostics, and exact process-restart persistence. See [evidence](docs/android-storage-tests.md).
-- Planned: versioned archive export, validation, and atomic restore through platform adapters.
+- Current: versioned archive export, validation, and atomic restore through platform adapters. See [the archive contract](docs/archive-contract.md).
 
 A history page carries an opaque cursor and stable record order.
 Each numerical result carries units, date context, load convention, and source record IDs.
 Unknown or incompatible load conventions must not produce misleading comparisons.
 Existing records keep an unknown convention until the user confirms it.
-The approved persisted session contract below must guide the future resume controls.
+The approved persisted session contract below governs the current resume controls.
 
 ### Device gate — issue #14
 
@@ -78,12 +83,13 @@ The approved persisted session contract below must guide the future resume contr
 6. Record latency, memory use, failures, and results.
 
 The Node tests do not satisfy this device gate.
-Do not start nutrition before [#14](https://github.com/zo-ll/forma/issues/14) passes.
+Complete [#14](https://github.com/zo-ll/forma/issues/14) before the next active feature batch.
 
-## Phase 2 — Nutrition
+## Deferred phase — Nutrition
 
 Issues: [#15](https://github.com/zo-ll/forma/issues/15), [#16](https://github.com/zo-ll/forma/issues/16), and [#17](https://github.com/zo-ll/forma/issues/17).
-Start only after the workout device gate.
+These issues and their contracts remain outside the current authorization, even after the workout gate passes.
+They require new permission. Their absence must not block notes, assistant tools, privacy checks, or the Android release.
 
 ### Public contracts
 
@@ -156,7 +162,7 @@ Resolve artifact precision and device limits in [#23](https://github.com/zo-ll/f
 | Inference capabilities | Report missing, ready, and failed states through plain DTOs |
 | Model import | Validate approved local artifacts before activation without a remote download |
 | Note index | Bind vectors to note revision and vector profile with durable pending jobs |
-| Fixed history tools | Return verified workout, nutrition, and note facts with units, date context, and sources |
+| Fixed history tools | Return verified workout and note facts with units, date context, and sources |
 | `history.ask` | Return an answer, clarification, no-data result, unsupported intent, or unavailable capability |
 
 Each vector profile identifies its artifact, runtime, precision, dimensions, task prefixes, and normalization rules.
@@ -167,6 +173,7 @@ The service must report partial index coverage.
 
 The rule router selects fixed read tools first.
 A read tool must not edit or delete records.
+Keep nutrition tools absent. Nutrition questions return unsupported or unavailable, not invented facts or zero totals.
 The service must not accept model-written SQL.
 Treat note text as data rather than instructions.
 Pain questions require confirmed typed filters rather than vector similarity alone.
@@ -188,7 +195,7 @@ Primary record operations must not wait for inference.
 
 ### Assistant gate — issue #30
 
-1. Use fixed fixtures for workout, nutrition, note, negation, ambiguity, and no-data questions.
+1. Use fixed fixtures for workout, note, negation, ambiguity, no-data, and unsupported nutrition questions.
 2. Verify every numerical answer against the expected code result.
 3. Verify exact source links.
 4. Report retrieval quality separately from answer quality.
@@ -202,7 +209,8 @@ Gallery results and validation-app results do not satisfy this gate.
 ## Phase 5 — Complete Android v1 release
 
 Issues: [#31](https://github.com/zo-ll/forma/issues/31) and [#32](https://github.com/zo-ll/forma/issues/32).
-The release must include all four feature areas and their source navigation.
+The release must include workouts, notes, and history questions with exact source navigation.
+Nutrition and meal photos are not release dependencies. Their exclusion does not count as acceptance.
 
 ### Operational contracts
 
@@ -215,7 +223,8 @@ The release must include all four feature areas and their source navigation.
 
 Archive export must capture a coherent view rather than copy an active SQLite file without its WAL state.
 The archive must include primary records, stable IDs, audit timestamps, and request receipts.
-Its extension contract must cover foods, meals, notes, and later media.
+Its active extension contract must cover notes and later voice media.
+Foods, meals, and meal photos remain future extensions. Do not archive placeholder data for absent modules.
 Model binaries and rebuildable vectors remain outside normal archives by default.
 A failed restore must preserve the current database.
 Warn before personal data leaves private app storage.
@@ -223,7 +232,7 @@ Warn before personal data leaves private app storage.
 ### Release gate — issue #32
 
 1. Use the signed standalone release APK without a server or Metro.
-2. Verify workouts, nutrition, notes, and history questions on the target phone.
+2. Verify workouts, notes, and history questions on the target phone.
 3. Verify fresh install, upgrade, process restart, export, and full restore.
 4. Verify record use without installed models.
 5. Verify record preservation after failed operations and upgrades.
@@ -232,7 +241,9 @@ Warn before personal data leaves private app storage.
 
 A private release channel is enough.
 Store publication does not form part of the gate.
-Close the roadmap only after all required issues pass their acceptance checks.
+The first Android release requires #14 and #18–32, including each applicable device gate.
+The complete authorized roadmap also requires #33, #35, and #36.
+Close the roadmap only after all authorized issues pass. Keep excluded nutrition issues open.
 
 ## Approved calendar and load contract — issue #5
 
@@ -300,7 +311,7 @@ Its Android acceptance check passed through the disposable native storage host.
 | Calendar context and load conventions | Approved above for #5; preserve in statistics and screens |
 | Persisted session states and record operations | Approved above for #6; preserve in workout screens |
 | History, best facts, supported volume, and pagination semantics | Approved above for #7; Android query tests passed |
-| Nutrient quantity basis, precision, the rule to round values, and food-edit effects on saved meals | #15 and nutrition totals |
+| Nutrient quantity basis, precision, the rule to round values, and food-edit effects on saved meals | Deferred; new nutrition authorization before #15 |
 | Body-part vocabulary, typed field definitions, and user confirmation rules | #19 and exact pain questions |
 | Approved weight quantization, runtime precision, and output precision | #23 and production inference |
 | Artifact URLs, hashes, licenses, tokenizer requirements, and runtime compatibility | #23 and model activation |
@@ -318,13 +329,14 @@ The initial candidates remain EmbeddingGemma 2 Text 270M on CPU and Gemma 4 E2B 
 They remain candidates rather than default production capabilities.
 No numerical budget follows from Gallery throughput or the phone's nominal RAM alone.
 
-## Later enhancements
+## Authorized enhancements after Android v1
 
 - [#33](https://github.com/zo-ll/forma/issues/33): exercise and split day management.
-- [#34](https://github.com/zo-ll/forma/issues/34): local meal photos and photo retrieval.
 - [#35](https://github.com/zo-ll/forma/issues/35): private voice notes and local transcription.
-- [#36](https://github.com/zo-ll/forma/issues/36): iOS adapters after Android v1.
+- [#36](https://github.com/zo-ll/forma/issues/36): iOS adapters after Android v1 and native validation.
+
+[#34](https://github.com/zo-ll/forma/issues/34), local meal photos and photo retrieval, remains deferred with nutrition.
 
 A Telegram client requires separate approval and a different privacy statement.
 Telegram messages pass through its servers.
-Neither Telegram nor later enhancements block the defined Android v1 release.
+The authorized enhancements follow the first Android release. Telegram remains outside scope.

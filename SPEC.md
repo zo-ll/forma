@@ -1,14 +1,14 @@
 # Forma — Specification
 
-Version 0.6. Current implementation: the workout core. Planned product: the complete Android v1 app.
+Version 0.7. Current implementation: the Android workout app and local archive. Active plan: all remaining non-nutrition issues.
 
 ## 1. Purpose
 
 Forma is a local-first fitness service for one user.
-Android v1 includes workouts, nutrition, notes, and local history questions.
-The mobile app will act as a thin client of the service.
-Workouts remain the first active implementation module.
-Nutrition starts only after the workout device gate passes.
+Android v1 includes workouts, notes, and local history questions.
+The mobile app acts as a thin client of the service.
+Workouts remain the implemented record module. Notes and inference remain planned.
+The user excluded nutrition #15–17, meal photos #34, and nutrition-specific assistant tools on 2026-10-14.
 
 ## 2. Current scope
 
@@ -22,9 +22,12 @@ Nutrition starts only after the workout device gate passes.
 - Page history with stable order and reject stale cursors after record changes.
 - Retrieve previous sets and code-derived finished-workout facts with exact sources.
 - Store records locally in SQLite.
+- Export and atomically restore local records with explicit confirmation.
+- Use Android workout, history, progress, and Settings screens.
 - Test the core without React Native.
 
-This milestone has no mobile screens, nutrition module, standalone notes module, or models.
+The app has no nutrition module, standalone notes module, or models.
+The complete workout device gate #14 remains open.
 Workout notes remain a field of a workout record.
 The catalog has no edit API in this milestone.
 
@@ -36,7 +39,7 @@ The core does not import React, Expo, a SQLite driver, or native handles.
 `@forma/adapters` implements the core ports.
 The first adapter uses SQLite in Node.
 The injected Android adapter uses OP-SQLite. Its shared contracts and restart checks passed on the target phone.
-The production Android client remains planned.
+The Android client exists. The production-signed release and its complete device gate remain planned.
 
 Each host constructs adapters and injects them into `createFormaService`.
 Clients use the same public service API.
@@ -242,27 +245,29 @@ They do not include an airplane-mode test.
 ## 8. Approved full app plan
 
 The planned product has these phases.
-Only the workout core has an implementation today.
+The workout core, Android client, local archive, and continuous checks exist today.
 The planned contracts do not add placeholder APIs to the core.
 
 | Phase | Public contract | Acceptance gate |
 | --- | --- | --- |
 | Workouts on Android | Current workout APIs plus metadata, sessions, paged history, statistics, and local archives | Complete workout flow on the target phone in #14 |
-| Nutrition | Local foods, meals in grams, nutrient sources, and code-derived totals | Node and Android contracts plus phone entry, history, and restore checks |
+| Deferred nutrition | Future foods, meals, and code-derived totals; no active placeholders | New user authorization before implementation |
 | Notes | Primary text, revisions, confirmed pain and sleep fields, and FTS5 search | Model-free records, negation checks, exact sources, and phone persistence |
 | Local assistant | Optional local models, revision-bound vectors, fixed tools, deterministic facts, and source links | Correct facts, exact sources, latency, and joint memory checks in #30 |
-| Android v1 release | All four feature areas, privacy controls, and complete local restore | Signed standalone APK and complete device checks in #32 |
+| Android v1 release | Workouts, notes, history questions, privacy controls, and complete local restore | Signed standalone APK and complete device checks in #32 |
 
 [ROADMAP.md](ROADMAP.md) defines each phase's public contracts and complete acceptance checks.
 [Issue #1](https://github.com/zo-ll/forma/issues/1) tracks the required tasks and dependencies.
-Do not start nutrition before the workout device gate passes.
+Nutrition remains excluded even after the workout device gate passes.
+Catalog management #33, voice notes #35, and iOS #36 remain authorized after the first Android release.
+Do not claim iOS parity before native validation.
 Code must compute numerical facts.
 A model must not generate numerical facts or free SQL.
 
 The calendar rules and load conventions approved for #5 are recorded in [ROADMAP.md](ROADMAP.md#approved-calendar-and-load-contract--issue-5).
 Existing records keep an unknown load convention unless the user confirms it.
 The session-state rules approved for #6 are recorded in [ROADMAP.md](ROADMAP.md#approved-workout-session-contract--issue-6).
-Nutrient precision, note confirmation rules, and model limits remain explicit decisions.
+Note confirmation rules and model limits remain explicit decisions. Nutrient decisions remain deferred.
 [The decision register](ROADMAP.md#decision-register) identifies their required approval points.
 
 Android remains the first mobile target.
