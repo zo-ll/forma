@@ -51,7 +51,14 @@ Version-2 archives preserve primary notes, confirmations, deleted-ID reservation
 Physical Forma notes/FTS5/restart/archive proof remains pending.
 See [the notes contract](docs/notes-contract.md) for its storage port and current limits.
 
-The core does not use React, Expo, a SQLite driver, or a model.
+`FormaService.inference` provides optional text embedding and source-linked note generation through injected adapters.
+Default services report both capabilities as missing. No real model or runtime SDK is included.
+Outputs remain untrusted. They never save facts, confirm fields, or write vectors.
+Cancellation and restore discard late replies without blocking record storage.
+See [the inference contract](docs/inference-contract.md) for ownership, limits, and deferred work.
+Ready adapter status is not production approval. #23 precision policy and #30 native model checks remain pending.
+
+The core does not use React, Expo, a SQLite driver, or a model SDK.
 
 ## Start
 

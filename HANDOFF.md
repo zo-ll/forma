@@ -11,7 +11,13 @@ Match the run's source head before you use its result as proof.
 The user authorized all remaining non-nutrition issues on 2026-10-14.
 Issue #14 passed its written acceptance checklist at runtime source `1c48410`.
 Notes #18–21 now have source implementations. Physical #20/#21 acceptance remains pending.
-The local assistant #22–30 and privacy/release #31–32 remain later work.
+Issue #22 now has a portable optional inference module and adversarial fake-adapter tests in source.
+Default services still report missing models. Ready status is not production approval.
+See [the inference contract](docs/inference-contract.md) for public DTOs, precision limits, source safety, cancellation, and runtime ownership.
+Runtime calls stay outside the storage queue. Restore invalidates derived waits without waiting for native cancellation.
+Close starts storage cleanup independently; an ignored runtime cancellation can keep overall close pending.
+No native model, inference UI, import, vectors, extraction, history questions, or nutrition are included.
+Model policy #23, assistant #24–30, and privacy/release #31–32 remain later work.
 Catalog management #33, voice notes #35, and iOS #36 follow the first Android release.
 Nutrition #15–17, meal photos #34, and nutrition-specific assistant tools remain deferred and open.
 Do not add placeholder nutrition modules or treat their exclusion as acceptance.

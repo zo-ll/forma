@@ -9,7 +9,7 @@ Android v1 includes workouts, notes, and local history questions.
 The mobile app acts as a thin client of the service.
 Workouts and independent notes are the Android record modules.
 Independent notes have shared durable SQLite storage, confirmed fields, literal FTS5, version-2 archives, and Notes screens in source.
-Physical #20/#21 acceptance remains pending. Inference remains planned.
+Physical #20/#21 acceptance remains pending. Portable optional inference exists in source; real models remain absent.
 The user excluded nutrition #15–17, meal photos #34, and nutrition-specific assistant tools on 2026-10-14.
 
 ## 2. Current scope
@@ -32,6 +32,11 @@ The user excluded nutrition #15–17, meal photos #34, and nutrition-specific as
 - Test the core without React Native.
 
 The app has no nutrition module or models.
+The optional `FormaService.inference` boundary reports missing capabilities by default.
+Injected fake-tested adapters can embed text or generate untrusted text from exact saved note sources.
+No model writes facts, confirms fields, or enters the storage write queue.
+See [the inference contract](docs/inference-contract.md) for profile identity, bounds, cancellation, ownership, and restore safety.
+File import, vector persistence, history questions, model policy approval, and native inference remain deferred.
 `FormaService.notes` supports create, detail, revision-checked edits, deletion, bounded history, and literal search.
 See [the notes contract](docs/notes-contract.md) and [mobile Notes screens](docs/mobile-notes.md).
 Notes and fields share the store, receipts, lifetime, and restore exclusion with workouts.

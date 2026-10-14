@@ -4,6 +4,13 @@ Forma records workouts, independent notes, and their explicitly confirmed meanin
 
 ## Language
 
+**Embedding profile**:
+The complete identity and text rules that determine whether note and query vectors are compatible.
+A shared profile name alone does not establish compatibility.
+
+**Derived inference output**:
+Untrusted model output that does not change a primary record or confirm its meaning.
+
 **Note**:
 An independent text record with a user-assigned calendar date.
 It is not the notes field of a workout.

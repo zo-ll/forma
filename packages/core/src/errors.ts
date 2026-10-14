@@ -3,7 +3,10 @@ export type FormaErrorCode =
   | 'NOT_FOUND'
   | 'CONFLICT'
   | 'SERVICE_CLOSED'
-  | 'STORAGE_FAILURE';
+  | 'STORAGE_FAILURE'
+  | 'INFERENCE_UNAVAILABLE'
+  | 'INFERENCE_FAILURE'
+  | 'CANCELLED';
 
 export class FormaError extends Error {
   readonly code: FormaErrorCode;
