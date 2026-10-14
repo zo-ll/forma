@@ -250,6 +250,35 @@ test('restore previews, keeps records on cancel, and replaces them after explici
   assert.equal(s.ledger.pending(flowModule.RESTORE_SLOT), null);
 });
 
+test('version-2 archive screen previews and restores exact notes, fields, and reserved-ID counts', async t => {
+  const source = await setup(t); const api = source.host.service();
+  const note = await api.notes.create({requestId: 'v2-note', date: '2026-10-14', text: 'No left knee pain.\nOriginal text'});
+  const confirmation = await api.notes.confirmFields({requestId: 'v2-fields', noteId: note.id, expectedRevision: 1,
+    fields: {pain: [{bodyPart: 'knee', otherBodyPart: null, side: 'left', state: 'absent', severity: null}], sleep: null, personalBest: null}});
+  const removed = await api.notes.create({requestId: 'v2-removed', date: '2026-10-13', text: 'deleted source'});
+  await api.notes.delete({requestId: 'v2-delete', noteId: removed.id, expectedRevision: 1});
+  const exact = await api.notes.get(note.id); const exported = await api.archive.export();
+  const sourceFlow = source.flow(); const sourceUI = screen(sourceFlow);
+  sourceUI.render().button('Export archive').onPress(); sourceUI.render().sheet('Export personal records?').onConfirm(); await settled(sourceFlow);
+  assert.match(sourceUI.render().text, /Archive saved: 0 workouts, 0 sets, 4 receipts, 1 note, 1 note confirmation, 2 reserved note IDs/);
+  const target = await setup(t); const own = await target.host.service().notes.create({requestId: 'v2-target', date: '2026-10-12', text: 'keep until confirmed'});
+  target.files.open = async () => ({status: 'opened', text: exported.text});
+  const flow = target.flow(); const ui = screen(flow);
+  ui.render().button('Restore from archive').onPress(); await settled(flow);
+  let sheet = ui.render().sheet('Replace all records on this phone?');
+  assert.match(sheet.body, /Archive from .*1 note, 1 note confirmation, 2 reserved note IDs/);
+  assert.match(sheet.body, /This phone now: .*1 note, 0 note confirmations, 1 reserved note ID/);
+  assert.doesNotMatch(sheet.body, /version-1 archive/);
+  sheet.onKeep(); assert.deepEqual(await target.host.service().notes.get(own.id), own);
+  ui.render().button('Restore from archive').onPress(); await settled(flow); sheet = ui.render().sheet('Replace all records on this phone?');
+  sheet.onConfirm(); sheet.onConfirm(); await settled(flow);
+  assert.match(ui.render().text, /Restore finished: 0 workouts, 0 sets, 4 receipts, 1 note, 1 note confirmation, 2 reserved note IDs/);
+  assert.equal(target.store.replacements, 1); assert.equal(target.host.snapshot().recordsEpoch, 1);
+  assert.deepEqual(await target.host.service().notes.get(note.id), exact);
+  assert.deepEqual((await target.host.service().notes.fields(note.id)).confirmation, confirmation);
+  assert.equal(target.store.notesStore.state.reservedIds.has(removed.id), true);
+});
+
 test('legacy archive warning names notes loss and confirmation uses the global revision', async (t) => {
   const root = JSON.parse(await archiveText(t)); root.formatVersion = 1; delete root.modules.notes;
   const text = signedArchive(root);

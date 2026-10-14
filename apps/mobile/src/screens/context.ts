@@ -1,11 +1,15 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import type {FormaService} from '@forma/core';
+import type {FormaService, NoteSource} from '@forma/core';
 import type {MobileHost, MobileHostSnapshot} from '@forma/mobile-host';
 import type {MobileForms} from '../root';
 import type {Palette} from '../ui/theme';
 
 /** Stack screens of the entry flow. The tabs stay hidden while one is open. */
 export type StackScreen =
+  | {readonly name: 'NoteCreate'}
+  | {readonly name: 'NoteDetail'; readonly source: NoteSource}
+  | {readonly name: 'NoteEdit'; readonly source: NoteSource}
+  | {readonly name: 'NoteFields'; readonly source: NoteSource}
   | {readonly name: 'SplitPicker'}
   | {readonly name: 'ExerciseOrder'; readonly splitDayId: string}
   | {readonly name: 'Entry'; readonly workoutId: string}

@@ -9,9 +9,10 @@ It does not claim that planned capabilities exist.
 The workout core, Android screens, shared SQLite adapters, local archive, and continuous checks exist.
 The accepted workout runtime is `1c48410`, with 711 passing tests and the cold Android CI build.
 The workout device gate #14 passed its [written checklist](docs/verification/android-workout-1c48410.md).
-Independent notes have portable core and memory-test support.
-Confirmed note fields and conservative English suggestions also have core and memory-test support.
-Durable notes storage, screens, and the local assistant remain unimplemented.
+Independent notes, confirmed fields, conservative English suggestions, durable shared SQLite storage, literal FTS5, and version-2 archives exist in source.
+The [Notes screens](docs/mobile-notes.md) also exist in source.
+Physical notes FTS5, restart, archive, and UI acceptance remain pending in #20/#21.
+The local assistant remains unimplemented. Earlier workout evidence does not prove notes.
 
 The user authorized every remaining non-nutrition issue on 2026-10-14.
 Nutrition #15–17, meal photos #34, and nutrition-specific assistant tools remain outside the current scope.
@@ -49,8 +50,8 @@ History tools read primary records rather than request receipts.
 Models must not calculate or generate numerical facts.
 Record features must work when models are absent or fail.
 
-The following method names describe proposed contracts, not available exports.
-[ARCHITECTURE.md](ARCHITECTURE.md) defines the current workout API.
+Tables marked proposed describe future contracts, not available exports.
+[ARCHITECTURE.md](ARCHITECTURE.md) defines the current workout API and shared notes integration.
 Each implementation issue must finalize its input and result DTOs before code changes.
 The decision register below identifies contracts that still need approval.
 
@@ -122,13 +123,14 @@ No model estimates food nutrients, portion mass, or totals.
 
 Issues: [#18](https://github.com/zo-ll/forma/issues/18) through [#21](https://github.com/zo-ll/forma/issues/21).
 Notes must work without inference.
-The core-only #18 implementation and its limits are in [the notes contract](docs/notes-contract.md).
+The #18 primary-text contract and its limits are in [the notes contract](docs/notes-contract.md).
 The user-approved #19 fields and confirmation rules are in [the field contract](docs/note-fields-contract.md).
-It is not yet composed into the SQLite service or Android host.
+#20 composes these APIs into the Node and Android service with durable storage, literal FTS5, and atomic version-2 archives.
+#21 supplies the [Notes screens](docs/mobile-notes.md). The source is present; the physical acceptance gate below remains pending.
 
 ### Public contracts
 
-| Proposed capability | Contract |
+| Current source capability | Contract |
 | --- | --- |
 | `notes` | Create, edit, delete, retrieve, and page independent notes |
 | `notes.confirmFields` | Save explicit confirmation for typed pain, sleep, and personal-best fields |
