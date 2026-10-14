@@ -1,7 +1,8 @@
 # Forma
 
 Forma is a local-first fitness app with a portable TypeScript service.
-The implemented record module is workouts. The Android app also supports local backup and atomic restore.
+The Android app records workouts and supports local backup and atomic restore.
+The core also supplies a portable notes module. Notes storage and screens are not integrated yet.
 The active plan excludes nutrition, meal photos, and nutrition-specific assistant tools.
 
 ## Status
@@ -39,6 +40,10 @@ The core also resolves calendar ranges from an explicit UTC instant and device t
 It supplies source-linked load facts and rejects incompatible load comparisons.
 It also returns bounded history pages, previous sets, and source-linked finished-workout statistics.
 Statistics keep incompatible load conventions separate and report excluded sets.
+
+The portable notes module supports create, detail, revision-checked edits, deletion, and bounded history.
+It uses the shared receipt mechanism and requires no model.
+See [the notes contract](docs/notes-contract.md) for its storage port and current limits.
 
 The core does not use React, Expo, a SQLite driver, or a model.
 
@@ -103,7 +108,9 @@ Read [ROADMAP.md](ROADMAP.md) for the full app contracts and unresolved decision
 ## Limits
 
 The Android host has workout entry, history, progress, preferences, and archive screens.
-The workout gate passed with [documented limits](docs/verification/android-workout-1c48410.md). Independent notes and inference remain unimplemented.
+The workout gate passed with [documented limits](docs/verification/android-workout-1c48410.md).
+Notes currently have core and memory-test support only. SQLite storage, archive integration, and screens remain planned.
+Inference remains unimplemented.
 Nutrition and meal photos are outside the active scope.
 The catalog has no edit API.
 Use `workouts.history()` for bounded pages. The legacy `workouts.list()` remains unbounded for compatibility.
