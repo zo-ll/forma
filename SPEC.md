@@ -1,14 +1,15 @@
 # Forma — Specification
 
-Version 0.7. Current implementation: the Android workout app and local archive. Active plan: all remaining non-nutrition issues.
+Version 0.8. Current source: the Android workout app, independent notes, literal FTS5, and version-2 local archives. Active plan: all remaining non-nutrition issues.
 
 ## 1. Purpose
 
 Forma is a local-first fitness service for one user.
 Android v1 includes workouts, notes, and local history questions.
 The mobile app acts as a thin client of the service.
-Workouts remain the Android record module.
-Independent notes have portable core support. Notes persistence, screens, and inference remain planned.
+Workouts and independent notes are the Android record modules.
+Independent notes have shared durable SQLite storage, confirmed fields, literal FTS5, version-2 archives, and Notes screens in source.
+Physical #20/#21 acceptance remains pending. Inference remains planned.
 The user excluded nutrition #15–17, meal photos #34, and nutrition-specific assistant tools on 2026-10-14.
 
 ## 2. Current scope
@@ -24,15 +25,20 @@ The user excluded nutrition #15–17, meal photos #34, and nutrition-specific as
 - Retrieve previous sets and code-derived finished-workout facts with exact sources.
 - Store records locally in SQLite.
 - Export and atomically restore local records with explicit confirmation.
-- Use Android workout, history, progress, and Settings screens.
+- Use Android workout, history, progress, Notes, and Settings screens.
+- Save exact independent note text without models; edit with revisions and confirm deletion.
+- Review suggestions separately and deliberately confirm structured pain, sleep, and personal-best fields.
+- Search notes with literal FTS5 and open exact source revisions.
 - Test the core without React Native.
 
-The app has no nutrition module, integrated standalone notes, or models.
-The core notes module supports create, detail, revision-checked edits, deletion, and bounded history.
-See [the notes contract](docs/notes-contract.md). Its storage adapter and screens remain issues #20–21.
-Core-only note fields include conservative English suggestions and explicit confirmation.
+The app has no nutrition module or models.
+`FormaService.notes` supports create, detail, revision-checked edits, deletion, bounded history, and literal search.
+See [the notes contract](docs/notes-contract.md) and [mobile Notes screens](docs/mobile-notes.md).
+Notes and fields share the store, receipts, lifetime, and restore exclusion with workouts.
+Note fields include conservative English suggestions and explicit confirmation.
 Any later note edit clears confirmation. See [the approved field contract](docs/note-fields-contract.md).
 The workout device gate #14 passed its [written checklist](docs/verification/android-workout-1c48410.md).
+That evidence and older native harness checks do not prove notes FTS5, restart, archives, or UI.
 Workout notes remain a field of a workout record.
 The catalog has no edit API in this milestone.
 
@@ -176,6 +182,9 @@ The SQLite schema has these tables:
 - `workouts`
 - `sets`
 - `request_receipts`
+- `notes`, `note_ids`, `note_confirmations`, `notes_history_state`
+- `notes_fts` (FTS5 index)
+- `archive_state`
 
 The adapter owns table names, row conversion, and migrations.
 The initial workout schema has version 1 in `PRAGMA user_version`.
@@ -185,6 +194,12 @@ Version 4 adds persisted session state and enforces one in-progress workout.
 Old workouts receive finished state and a null finish timestamp. Their audit timestamps stay unchanged.
 Version 5 adds a persistent history revision and primary-record triggers for cursor invalidation.
 Record and revision changes share the same transaction. Failed operations preserve both.
+Version 6 adds primary notes, reserved note IDs, current confirmations, and a notes history revision.
+Version 7 adds literal FTS5 with atomic index updates. Missing FTS5 fails startup rather than disabling search.
+Version 8 adds a global opaque archive revision for all-module restore confirmation.
+Version-2 archives preserve notes, current confirmations, reservations, workouts, and exact receipts atomically.
+Legacy version-1 restore explicitly empties notes and warns before replacement.
+Restore invalidates both query revisions and host record views/drafts.
 Released migrations and saved receipt contents remain unchanged.
 Legacy set result snapshots receive unknown load metadata when replayed.
 Legacy workout result snapshots receive finished state with no invented finish time.
@@ -250,7 +265,8 @@ They do not include an airplane-mode test.
 ## 8. Approved full app plan
 
 The planned product has these phases.
-The workout core, Android client, local archive, and continuous checks exist today.
+The workout core, Android client, durable notes, literal FTS5, Notes screens, version-2 archives, and continuous checks exist in source.
+Physical #20/#21 acceptance remains pending.
 The planned contracts do not add placeholder APIs to the core.
 
 | Phase | Public contract | Acceptance gate |

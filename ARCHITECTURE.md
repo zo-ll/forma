@@ -1,6 +1,6 @@
 # Workout architecture
 
-This document describes the implemented workout service.
+This document describes the implemented workout service and its shared notes integration.
 [ROADMAP.md](ROADMAP.md) describes future modules, contracts, and phase gates.
 [The notes contract](docs/notes-contract.md) describes the portable notes module.
 Node and Android factories now compose `FormaService.notes` on the same store, receipt namespace, lifetime, and restore exclusion.
@@ -12,6 +12,9 @@ Node and Android-shim tests do not prove device behavior.
 [The field contract](docs/note-fields-contract.md) extends it with unconfirmed suggestions and explicit field confirmation.
 Confirmation advances note revision. Ordinary note edits and deletion clear the confirmation atomically.
 Released note receipt DTOs stay unchanged; field confirmation uses a separate result codec.
+The [mobile Notes screens](docs/mobile-notes.md) now use these APIs for primary records and deliberate structured confirmation.
+Durable notes, literal FTS5, version-2 archives, and these screens exist in source.
+Physical #20/#21 acceptance remains pending. Earlier workout and native harness evidence does not prove notes.
 
 ## Ownership
 
@@ -22,9 +25,8 @@ The core has no runtime package dependencies.
 Its compiler configuration has no Node or DOM types.
 
 `@forma/adapters` owns SQL, schema changes, and database access.
-The current adapter uses `node:sqlite`.
+The Node adapter uses `node:sqlite`. The Android adapter binds injected OP-SQLite to the shared storage implementation.
 Only Node hosts import `@forma/adapters/node`.
-A future mobile adapter will implement the same `WorkoutStore` port.
 
 The host chooses the database path.
 The host provides a clock and an ID generator.
@@ -303,7 +305,9 @@ See [mobile ownership and limits](docs/mobile-host.md).
 
 `service.archive` exports, inspects, and restores a versioned plaintext archive. See the [archive contract](docs/archive-contract.md).
 Export reads one coherent view through the store. It does not copy the SQLite file.
-Restore is full replacement in one write transaction. The user confirms the archive digest and the current history revision.
+Restore is full replacement in one write transaction. The user confirms the archive digest and an opaque global archive revision.
+The released field name `currentHistoryRevision` does not make that token a workout-only revision.
+Settings previews notes, confirmations, and reserved IDs as well as workout counts.
 The core validates the whole archive before mutation, including receipt signatures and results with the released codecs.
 A core exclusion rejects new operations through any API reference during a restore. Accepted operations drain first.
 The SHA-256 digest detects damage. It is not authentication or encryption.
@@ -315,7 +319,7 @@ The adapter keeps the version 1 names `workout_groups`, `workout_group_exercises
 The adapter maps these names to `SplitDay` and `splitDayId`.
 
 `@forma/adapters/sqlite` exports platform-independent migrations and a synchronous driver contract.
-The Node adapter supplies the driver. A future Android adapter can use `executeSync` for the same contract.
+The Node adapter supplies the driver. The injected Android adapter uses `executeSync` for the same contract.
 The registry contains consecutive versions, starting at 1. Each item contains one complete SQL statement.
 
 The runner applies every pending version in one transaction and rechecks the version after it acquires the write lock.

@@ -24,6 +24,7 @@ export function FieldsForm({ctx, note, fields}: {ctx: ScreenContext; note: Note;
     result => ctx.reset([{name: 'NoteDetail', source: result.source}]));
   const stale = draft.expectedRevision !== note.revision || (command.failure instanceof FormaError && command.failure.code === 'CONFLICT');
   const disabled = noteUnavailable(ctx) ?? (command.busy || command.unconfirmed ? 'Settle the captured confirmation first.' : null);
+  const painDisabled = disabled ?? (draft.pain.length >= 32 ? 'At most 32 entries.' : null);
   const change = (patch: Partial<FieldsDraft>) => {
     if (disabled) return;
     const next = {...intent.current, ...patch}; intent.current = next; setDraft(next); forms.drafts.set(key, next); setProblem(null);
@@ -43,7 +44,7 @@ export function FieldsForm({ctx, note, fields}: {ctx: ScreenContext; note: Note;
     <Muted palette={palette}>Unknown values stay empty. These controls replace all confirmed fields. Empty pain does not mean absence. A personal-best claim is not a computed record.</Muted>
     <Suggestions ctx={ctx} fields={fields}/>
     <Muted palette={palette}>Copying a suggestion only changes this draft. It does not confirm fields.</Muted>
-    {fields.suggestions.pain.items.map((s, i) => s.value && <Button key={i} palette={palette} label={`Copy pain suggestion ${i + 1} to draft`} disabledReason={disabled} onPress={() => add(s.value)}/>)}
+    {fields.suggestions.pain.items.map((s, i) => s.value && <Button key={i} palette={palette} label={`Copy pain suggestion ${i + 1} to draft`} disabledReason={painDisabled} onPress={() => add(s.value)}/>)}
     {fields.suggestions.sleep.items.map((s, i) => s.value && <Button key={i} palette={palette} label={`Copy sleep suggestion ${i + 1} to draft`} disabledReason={disabled}
       onPress={() => {if (s.value) change({minutes: s.value.durationMin === null ? '' : String(s.value.durationMin), quality: s.value.quality});}}/>)}
     {fields.suggestions.personalBest.items.map((s, i) => s.value && <Button key={i} palette={palette} label={`Copy personal-best suggestion ${i + 1} to draft`} disabledReason={disabled}
@@ -61,7 +62,7 @@ export function FieldsForm({ctx, note, fields}: {ctx: ScreenContext; note: Note;
       <Muted palette={palette}>State changes retain severity for review. Present permits above zero or empty. Absent permits zero or empty. Uncertain requires empty. Correct any contradiction before confirmation.</Muted>
       <Button palette={palette} label={`Remove pain entry ${i + 1}`} disabledReason={disabled} onPress={() => change({pain: intent.current.pain.filter((_, n) => n !== i)})}/>
     </Card>)}
-    <Button palette={palette} label="Add pain entry" disabledReason={disabled ?? (draft.pain.length >= 32 ? 'At most 32 entries.' : null)} onPress={() => add(null)}/>
+    <Button palette={palette} label="Add pain entry" disabledReason={painDisabled} onPress={() => add(null)}/>
     <Text accessibilityRole="header" style={{color: palette.text}}>Sleep draft</Text>
     <NoteInput ctx={ctx} label="Sleep minutes (optional 0–1440)" value={draft.minutes} onChange={minutes => change({minutes})} editable={!disabled}/>
     <View style={[shared.row, {flexWrap: 'wrap'}]}>{([null, 'poor', 'fair', 'good'] as const).map(quality => <Button key={quality ?? 'unknown'} palette={palette} label={`Sleep quality: ${quality ?? 'unknown'}`} selected={draft.quality === quality} disabledReason={disabled} onPress={() => change({quality})}/>)}</View>

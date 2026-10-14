@@ -1,6 +1,8 @@
 # Notes storage extension — issue #20
 
-Status: source implementation complete. Independent review, cold CI, and physical native proof remain pending.
+Status: #20 source merged at `23a71b5` after independent review and exact-head cold ARM64 CI of `d8fac48`.
+Durable notes, literal FTS5, and version-2 archives exist in source. Physical #20 acceptance remains pending.
+The [Notes screens](mobile-notes.md) also exist in source; final #21 review/CI and physical acceptance remain separate checks.
 
 ## Shared storage
 
@@ -57,5 +59,6 @@ New overlapping confirmation commands still fail. Models and vectors remain abse
 ## Verification limits
 
 Portable fixtures and Node-backed Android binding tests do not prove physical Android behavior.
+Historical #14 workout and older native harness evidence do not prove notes.
 Real Forma FTS5, storage restart, and archive checks remain pending until a separately authorized device run.
 No device operation is authorized for this implementation task.

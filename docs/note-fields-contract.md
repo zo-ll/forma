@@ -91,7 +91,10 @@ Memory tests prove core behavior only.
 The [issue #20 storage extension](notes-storage-contract.md) now adds SQLite tables, FTS5, durable reopen, and shared service composition.
 Version-2 archive replacement now preserves primary fields and original confirmation receipts.
 Physical native Android checks remain pending.
-Issue #21 owns the confirmation UI. Inference remains absent.
+Issue #21 supplies the [structured confirmation UI](mobile-notes.md) in source.
+Copying a suggestion changes only a draft. Confirmation requires a deliberate action.
+Physical notes UI and restart acceptance remain pending. Earlier workout/native evidence does not prove these fields.
+Inference remains absent.
 The rule corrections retain explicit confirmation. Hedge, third-person, and future phrasing stays uncertain.
 Coordinated left/right phrases preserve both sides as bilateral.
 Known body-part aliases in `otherBodyPart` cannot bypass location overlap checks.

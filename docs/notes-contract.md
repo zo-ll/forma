@@ -14,7 +14,8 @@ Issue #18 did not add confirmed fields.
 The core-only [issue #19 extension](note-fields-contract.md) now adds suggestions and explicit field confirmation.
 Those earlier slices did not add SQLite tables, FTS5, screens, or inference.
 `FormaService.notes` now composes notes with the shared store, lifetime, receipts, and restore exclusion.
-Both Node and Android factories expose it. Screens and inference remain absent.
+Both Node and Android factories expose it.
+The [Notes screens](mobile-notes.md) now use these APIs in source. Inference remains absent.
 Do not attach an independent notes owner to a live workout database.
 Archive version 2 includes primary notes, current confirmations, all reserved IDs, and original receipts.
 A legacy workout-only archive explicitly empties notes during full replacement. See [the archive contract](archive-contract.md).
@@ -73,7 +74,7 @@ The module uses the released `withRequest()` mechanism and receipt format 1.
 Operations are `notes.create`, `notes.update`, `notes.delete`, and `notes.confirmFields`.
 Field confirmation uses a separate versioned result DTO. Released note result DTOs remain unchanged.
 The note change, ID reservation, history revision, and receipt share one atomic write.
-Later integrated adapters must use the same receipt namespace as workouts.
+The integrated adapters use the same receipt namespace as workouts.
 Backup and restore preserve deleted-ID reservations.
 Restore invalidates notes cursors. A global archive revision protects confirmation against intervening notes writes.
 
@@ -96,7 +97,7 @@ This order must match SQLite BINARY collation in issue #20.
 A page has `items`, normalized `filter`, `revision`, and `nextCursor`.
 The cursor is opaque and limited to 8,192 characters.
 It binds the filters, last record key, and persistent notes history revision.
-A note create, edit, or delete advances that history revision in the same transaction.
+A note create, edit, explicit field confirmation, or delete advances that history revision in the same transaction.
 Adapters must reject history revision overflow and roll back the write.
 Unchanged data and receipt replay preserve a cursor.
 Changed data produces `CONFLICT` on `cursor`. Restart the query.
@@ -120,4 +121,6 @@ The module rejects new calls as soon as close starts. Repeated close calls share
 Memory tests prove portable behavior only.
 Node and Android-shim tests now cover durable reopen and actual Node FTS5.
 Shared notes archive replacement has portable, Node, and Android-shim tests.
-Physical Forma FTS5, restart, and archive proof remain pending in issue #20.
+Durable notes, literal FTS5, version-2 archives, and mobile Notes screens exist in source.
+Physical Forma FTS5, restart, and archive proof remain pending in issue #20. Physical notes UI acceptance remains pending in #21.
+Older native harness and #14 workout evidence do not prove notes.

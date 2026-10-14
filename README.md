@@ -2,7 +2,8 @@
 
 Forma is a local-first fitness app with a portable TypeScript service.
 The Android app records workouts and supports local backup and atomic restore.
-The core also supplies a portable notes module. Shared SQLite notes storage, literal FTS5 search, and atomic notes archives are implemented. Notes screens remain separate work.
+The source includes independent notes, shared SQLite storage, literal FTS5 search, version-2 archives, and Notes screens.
+Physical notes storage and UI acceptance remain pending in #20/#21. See [mobile notes](docs/mobile-notes.md).
 The active plan excludes nutrition, meal photos, and nutrition-specific assistant tools.
 
 ## Status
@@ -41,7 +42,8 @@ It supplies source-linked load facts and rejects incompatible load comparisons.
 It also returns bounded history pages, previous sets, and source-linked finished-workout statistics.
 Statistics keep incompatible load conventions separate and report excluded sets.
 
-The portable notes module supports create, detail, revision-checked edits, deletion, and bounded history.
+`FormaService.notes` supports create, detail, revision-checked edits, deletion, bounded history, and literal FTS5 search.
+The mobile Notes screens support these records and deliberate structured field confirmation.
 It also supplies conservative English field suggestions and explicit pain, sleep, and personal-best confirmation.
 See [the field contract](docs/note-fields-contract.md). Suggestions are not confirmed facts.
 It uses the shared receipt mechanism and requires no model.
@@ -98,7 +100,7 @@ The client must retrieve the record if it needs the current state.
 - [`@forma/adapters/node`](packages/adapters/src/node/index.ts) implements the storage port and constructs the Node service.
 - [`@forma/adapters/android`](packages/adapters/src/android/index.ts) binds injected native OP-SQLite to the same storage contract.
 - [`@forma/mobile-host`](packages/mobile-host/src/index.ts) owns portable host lifetime, preferences, and calendar context.
-- [`apps/mobile/`](apps/mobile/README.md) constructs the Android host and renders workout, history, progress, and archive screens.
+- [`apps/mobile/`](apps/mobile/README.md) constructs the Android host and renders workout, history, progress, notes, and archive screens.
 - [`examples/workouts.ts`](examples/workouts.ts) acts as a client of the service.
 - [`tests/`](tests/) checks the same behavior with memory and SQLite adapters.
 
@@ -111,9 +113,10 @@ Read [ROADMAP.md](ROADMAP.md) for the full app contracts and unresolved decision
 
 ## Limits
 
-The Android host has workout entry, history, progress, preferences, and archive screens.
+The Android host source has workout entry, history, progress, notes, preferences, and archive screens.
 The workout gate passed with [documented limits](docs/verification/android-workout-1c48410.md).
-Notes currently have core and memory-test support only. SQLite storage, archive integration, and screens remain planned.
+Durable notes, confirmed fields, version-2 archives, literal FTS5, and Notes screens exist in source.
+The #14 workout evidence and older native harness checks do not prove physical notes behavior.
 Inference remains unimplemented.
 Nutrition and meal photos are outside the active scope.
 The catalog has no edit API.

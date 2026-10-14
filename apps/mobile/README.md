@@ -3,7 +3,8 @@
 Issue #9 adds the client foundation. Issues #10 and #11 add the workout record, history, and progress screens.
 Issue #21 adds notes entry, history, exact-source detail, editing, deletion confirmation, and structured field confirmation.
 See [mobile notes ownership and limits](../../docs/mobile-notes.md).
-Physical notes restart and UI checks remain pending. The starting issue #20 archive checkpoint is not final.
+The source is integrated onto merged #20 with durable notes, literal FTS5, and atomic version-2 archives.
+Physical notes FTS5, restart, archive, and UI checks remain pending. Earlier native evidence does not prove notes.
 See [the design board mapping](../../docs/design-board-phase1.md) for the approved screens and decisions.
 The host uses React Native 0.87.1 and the tested OP-SQLite 18.2.5 adapter.
 

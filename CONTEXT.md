@@ -13,7 +13,8 @@ A user-selected label for a note.
 A pain, sleep, or personal-best label does not confirm a fact.
 
 **Note revision**:
-The version of a note after an accepted edit.
+The version of a note after an accepted edit or explicit field confirmation.
+Explicit field confirmation advances this version even when the primary text stays unchanged.
 A source identifies one exact revision.
 
 **Note date**:

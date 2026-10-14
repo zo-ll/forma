@@ -10,7 +10,8 @@ See [the CI contract](docs/ci.md) and [the actual runs](https://github.com/zo-ll
 Match the run's source head before you use its result as proof.
 The user authorized all remaining non-nutrition issues on 2026-10-14.
 Issue #14 passed its written acceptance checklist at runtime source `1c48410`.
-Next are notes #18–21, the local assistant #22–30, and privacy/release #31–32.
+Notes #18–21 now have source implementations. Physical #20/#21 acceptance remains pending.
+The local assistant #22–30 and privacy/release #31–32 remain later work.
 Catalog management #33, voice notes #35, and iOS #36 follow the first Android release.
 Nutrition #15–17, meal photos #34, and nutrition-specific assistant tools remain deferred and open.
 Do not add placeholder nutrition modules or treat their exclusion as acceptance.
@@ -130,18 +131,26 @@ Screen-reader focus, large fonts, and comprehensive performance checks remain un
 Large fonts and TalkBack require separate permission.
 Private reports: `~/.local/state/forma/issue-14/window-1c48410/RESULT.md` and `~/.local/state/forma/issue-14/approval/FINAL-VERDICT.md`.
 
-## Notes continuation — issues #18–19
+## Notes continuation — issues #18–21
 
 Issue #18 merged through PR #54 at `e6352ff`.
-The separate core-only module has no SQLite or Android host integration.
+That original slice supplied the standalone core module. #20 now composes notes into the shared SQLite service and Android host.
 The user approved the #19 field vocabulary, pain scale, sleep fields, personal-best claims, and explicit confirmation rules.
 See [the field contract](docs/note-fields-contract.md).
 
-The #19 source candidate adds English suggestions and revision-checked field confirmation.
+The #19 source adds English suggestions and revision-checked field confirmation.
 Suggestions remain unconfirmed. Every ordinary edit clears prior confirmation in the same transaction.
 Confirmation advances the note revision. Old note receipt DTOs remain unchanged.
-The next storage work is #20. It must preserve fields, revisions, ID reservations, receipts, and atomic archive replacement.
-Screens remain #21. No notes feature is installed on the phone. No device operation has authorization.
+#20 merged through PR #56 at `23a71b560749bc03980621e3dd7865668f8da765`.
+Its reviewed source `d8fac488f4c9ee80169e67df678b56a630af5b0b` passed independent review and exact-head cold ARM64 CI.
+Durable notes, literal FTS5, version-2 archives, and global restore confirmation now exist in source.
+#21 adds entry, history, exact-source detail, edit, delete confirmation, and structured field controls.
+See [mobile notes ownership and limits](docs/mobile-notes.md).
+The #21 branch is integrated onto merged #20. Its local suite passed 970 tests.
+The focused Notes/archive callback and host tests passed 33 tests.
+Final exact-head review and CI remain separate checks.
+Physical Forma notes FTS5, restart, archive, and UI proof remain pending. No notes feature is installed on the phone.
+Earlier #14 and native harness evidence do not prove notes. No device operation has authorization.
 
 ## Checks and build
 

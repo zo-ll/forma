@@ -7,7 +7,8 @@ import ts from 'typescript';
 import * as core from '@forma/core';
 import * as forms from '../apps/mobile/src/forms/index.js';
 import * as noteForms from '../apps/mobile/src/forms/index.js';
-import {memoryFixture} from './helpers.js';
+import {createMobileHost} from '@forma/mobile-host';
+import {memoryFixture, MemoryWorkoutStore, TEST_TIME} from './helpers.js';
 
 interface Element {type: unknown; props: Record<string, any>; children: unknown[]}
 /** Callback harness, not native layout or a device scheduler. */
@@ -224,6 +225,59 @@ test('suggestion copy is not confirmation; explicit rapid confirmation sends onc
   rendered = r.render(screen, props); assert.equal(rendered.label('Pain 1 state: absent').selected, true);
   const confirm = rendered.label('Confirm these fields').onPress; confirm(); confirm(); await settle(); confirm();
   assert.equal(count, 1); assert.equal((await f.service.notes.fields(note.id)).confirmation!.fields.pain[0]!.state, 'absent');
+});
+test('pain suggestion copy shares the cap reason and guards same-render callbacks', () => {
+  const s = context({}); const key = noteForms.noteKey('fieldsDraft', sample.id);
+  const entry: forms.PainDraft = {bodyPart: 'other', otherBodyPart: 'manual location', side: 'unspecified', state: 'uncertain', severity: ''};
+  s.ctx.forms.drafts.set(key, {...noteForms.fieldsDraft(1, null), pain: Array.from({length: 31}, () => ({...entry}))});
+  const r = runtime(); const screen = load('NoteFields.tsx', r.react).FieldsForm;
+  const props = {ctx: s.ctx, note: sample, fields: fieldView()}; let rendered = r.render(screen, props);
+  assert.equal(rendered.label('Copy pain suggestion 1 to draft').disabledReason, null);
+  const copy = rendered.label('Copy pain suggestion 1 to draft').onPress;
+  rendered.label('Add pain entry').onPress(); copy(); copy();
+  assert.equal(s.ctx.forms.drafts.get<forms.FieldsDraft>(key)!.pain.length, 32);
+  rendered = r.render(screen, props);
+  assert.equal(rendered.label('Copy pain suggestion 1 to draft').disabledReason, 'At most 32 entries.');
+  assert.equal(rendered.label('Add pain entry').disabledReason, rendered.label('Copy pain suggestion 1 to draft').disabledReason);
+  rendered.label('Remove pain entry 32').onPress(); rendered = r.render(screen, props);
+  assert.equal(rendered.label('Copy pain suggestion 1 to draft').disabledReason, null);
+  rendered.label('Copy pain suggestion 1 to draft').onPress();
+  assert.equal(s.ctx.forms.drafts.get<forms.FieldsDraft>(key)!.pain.length, 32);
+  s.ctx.snapshot.phase = 'closed'; rendered = r.render(screen, props);
+  assert.equal(rendered.label('Copy pain suggestion 1 to draft').disabledReason, rendered.label('Add pain entry').disabledReason);
+  assert.match(rendered.label('Copy pain suggestion 1 to draft').disabledReason, /service/);
+});
+test('real all-module restore invalidates a delayed note reply and its host-lifetime state', async t => {
+  const records = new MemoryWorkoutStore(); let id = 0; let preferences: string | null = null;
+  const host = createMobileHost({openService: () => core.createFormaService({store: records, clock: {nowUtc: () => TEST_TIME}, ids: {next: () => `integration-${++id}`}}),
+    preferences: {read: () => preferences, write: value => {preferences = value;}},
+    platform: {timeZone: () => 'Europe/Rome', nowUtc: () => TEST_TIME}});
+  t.after(() => host.close()); await host.start();
+  const service = host.service(); const empty = await service.archive.export();
+  const saved = store(); const routes: unknown[] = [];
+  let reply!: () => void; let committed!: () => void;
+  const hasCommitted = new Promise<void>(resolve => {committed = resolve;});
+  const slow = {...service, notes: {...service.notes, create: async (input: core.CreateNoteInput) => {
+    const result = await service.notes.create(input); committed(); await new Promise<void>(resolve => {reply = resolve;}); return result;
+  }}};
+  const ctx = {host: {snapshot: () => host.snapshot(), service: () => slow}, snapshot: host.snapshot(), forms: saved, palette: {},
+    reset: (route: unknown) => routes.push(route), push: (route: unknown) => routes.push(route), pop: () => {}};
+  const stop = host.subscribe(() => {
+    if (host.snapshot().recordsEpoch !== ctx.snapshot.recordsEpoch) {saved.commands.clear(); saved.drafts.clearAll();}
+  }); t.after(stop);
+  const r = runtime(); const first = r.render(load('Notes.tsx', r.react).NoteForm, {ctx, note: null});
+  first.label('Original note text').onChange(sample.text); const submit = first.label('Save note').onPress; submit(); await hasCommitted;
+  saved.drafts.set(noteForms.noteKey('filters'), {query: 'pain'});
+  saved.drafts.set(`${noteForms.noteKey('update', 'old', 1)}:completed`, {result: sample});
+  const preview = await service.archive.inspect({text: empty.text});
+  await host.replaceRecords(active => active.archive.restore({requestId: 'integration-restore', text: empty.text,
+    expectedDigest: preview.digest, expectedHistoryRevision: preview.currentHistoryRevision}));
+  assert.equal(host.snapshot().recordsEpoch, 1); assert.equal((await service.notes.history()).items.length, 0);
+  reply(); await settle(); submit(); await settle();
+  assert.equal(routes.length, 0); assert.equal(saved.commands.pending(noteForms.noteKey('create')), null);
+  assert.equal(saved.drafts.get(noteForms.noteKey('filters')), null);
+  assert.equal(saved.drafts.get(`${noteForms.noteKey('update', 'old', 1)}:completed`), null);
+  assert.equal(saved.drafts.get(`${noteForms.noteKey('create')}:completed`), null);
 });
 test('delete cancellation blocks even a queued confirmation callback', () => {
   let count = 0; const s = context({notes: {delete: () => {count++; return Promise.resolve();}}}); const r = runtime(); const screen = load('Notes.tsx', r.react).NoteDetailBody; const props = {ctx: s.ctx, note: sample, fields: fieldView()};
