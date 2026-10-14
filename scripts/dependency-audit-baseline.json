@@ -1,0 +1,286 @@
+{
+  "root": {
+    "findings": []
+  },
+  "mobile": {
+    "expires": "2026-11-13",
+    "advisory": "GHSA-vfj7-8cjw-p6xm",
+    "reason": "Existing braces stack-exhaustion DoS affects project build tools. The standalone bundle must exclude braces. No Metro server ships. New findings, changed versions/paths/causes, critical severity, and expiry fail.",
+    "findings": [
+      {
+        "name": "@react-native-community/cli",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/@react-native-community/cli",
+            "version": "20.2.0"
+          }
+        ],
+        "via": [
+          "@react-native-community/cli-clean",
+          "@react-native-community/cli-config",
+          "@react-native-community/cli-doctor"
+        ]
+      },
+      {
+        "name": "@react-native-community/cli-clean",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/@react-native-community/cli-clean",
+            "version": "20.2.0"
+          }
+        ],
+        "via": [
+          "fast-glob"
+        ]
+      },
+      {
+        "name": "@react-native-community/cli-config",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/@react-native-community/cli-config",
+            "version": "20.2.0"
+          }
+        ],
+        "via": [
+          "fast-glob"
+        ]
+      },
+      {
+        "name": "@react-native-community/cli-config-android",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/@react-native-community/cli-config-android",
+            "version": "20.2.0"
+          }
+        ],
+        "via": [
+          "fast-glob"
+        ]
+      },
+      {
+        "name": "@react-native-community/cli-config-apple",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/@react-native-community/cli-config-apple",
+            "version": "20.2.0"
+          }
+        ],
+        "via": [
+          "fast-glob"
+        ]
+      },
+      {
+        "name": "@react-native-community/cli-doctor",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/@react-native-community/cli-doctor",
+            "version": "20.2.0"
+          }
+        ],
+        "via": [
+          "@react-native-community/cli-config",
+          "@react-native-community/cli-platform-android",
+          "@react-native-community/cli-platform-apple",
+          "@react-native-community/cli-platform-ios"
+        ]
+      },
+      {
+        "name": "@react-native-community/cli-platform-android",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/@react-native-community/cli-platform-android",
+            "version": "20.2.0"
+          }
+        ],
+        "via": [
+          "@react-native-community/cli-config-android"
+        ]
+      },
+      {
+        "name": "@react-native-community/cli-platform-apple",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/@react-native-community/cli-platform-apple",
+            "version": "20.2.0"
+          }
+        ],
+        "via": [
+          "@react-native-community/cli-config-apple"
+        ]
+      },
+      {
+        "name": "@react-native-community/cli-platform-ios",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/@react-native-community/cli-platform-ios",
+            "version": "20.2.0"
+          }
+        ],
+        "via": [
+          "@react-native-community/cli-platform-apple"
+        ]
+      },
+      {
+        "name": "@react-native/community-cli-plugin",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/@react-native/community-cli-plugin",
+            "version": "0.87.1"
+          }
+        ],
+        "via": [
+          "@react-native/metro-config",
+          "metro"
+        ]
+      },
+      {
+        "name": "@react-native/metro-config",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/@react-native/metro-config",
+            "version": "0.87.1"
+          }
+        ],
+        "via": [
+          "metro-config"
+        ]
+      },
+      {
+        "name": "@react-native/virtualized-lists",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/@react-native/virtualized-lists",
+            "version": "0.87.1"
+          }
+        ],
+        "via": [
+          "react-native"
+        ]
+      },
+      {
+        "name": "braces",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/braces",
+            "version": "3.0.3"
+          }
+        ],
+        "via": [
+          {
+            "name": "braces",
+            "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+            "range": "<=3.0.3",
+            "severity": "high"
+          }
+        ]
+      },
+      {
+        "name": "fast-glob",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/fast-glob",
+            "version": "3.3.3"
+          }
+        ],
+        "via": [
+          "micromatch"
+        ]
+      },
+      {
+        "name": "metro",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/metro",
+            "version": "0.87.1"
+          }
+        ],
+        "via": [
+          "metro-config",
+          "metro-file-map",
+          "metro-transform-worker"
+        ]
+      },
+      {
+        "name": "metro-config",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/metro-config",
+            "version": "0.87.1"
+          }
+        ],
+        "via": [
+          "metro"
+        ]
+      },
+      {
+        "name": "metro-file-map",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/metro-file-map",
+            "version": "0.87.1"
+          }
+        ],
+        "via": [
+          "micromatch"
+        ]
+      },
+      {
+        "name": "metro-transform-worker",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/metro-transform-worker",
+            "version": "0.87.1"
+          }
+        ],
+        "via": [
+          "metro"
+        ]
+      },
+      {
+        "name": "micromatch",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/micromatch",
+            "version": "4.0.8"
+          }
+        ],
+        "via": [
+          "braces"
+        ]
+      },
+      {
+        "name": "react-native",
+        "severity": "high",
+        "nodes": [
+          {
+            "path": "node_modules/react-native",
+            "version": "0.87.1"
+          }
+        ],
+        "via": [
+          "@react-native/community-cli-plugin",
+          "@react-native/virtualized-lists"
+        ]
+      }
+    ]
+  }
+}

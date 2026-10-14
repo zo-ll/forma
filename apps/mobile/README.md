@@ -21,6 +21,9 @@ An unknown close failure does not reopen the owner. Restart the app to create a 
 
 ## Build and checks
 
+See [continuous checks](../../docs/ci.md) for the pinned tools, cold build, dependency policy, and CI artifacts.
+CI builds the standalone ARM64 hostgate APK. It does not start a device or run fixture modes.
+
 From the repository root:
 
 ```sh
@@ -61,9 +64,10 @@ It can block the JS thread. Android recommends DataStore for larger or frequent 
 A false commit result is unconfirmed, not proof that disk values stayed unchanged.
 The UI keeps its last confirmed value and asks for a restart to read stored state.
 
-## Verification status
+## Historical issue #9 verification
 
-The root suite passes 614 Node tests. App typecheck and the native ARM64 release build pass.
+The original thin-host suite passed 614 Node tests.
+The current CI runs every current contract and mobile test; it does not use that old count as a limit. App typecheck and the native ARM64 release build pass.
 The native bundle graph has no Forma Node adapter or Node runtime imports.
 The Nothing Phone (2a) passed all 12 fixture, 6 seed, and 8 restart assertions at clean source `b474f79`.
 It also passed 26 thin-host UI checks. A further 8-assertion verify run confirmed unchanged records after UI checks.
