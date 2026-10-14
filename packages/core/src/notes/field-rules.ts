@@ -16,7 +16,7 @@ const aliases: readonly [BodyPart, string][] = [
   ['thigh', 'thighs?'], ['knee', 'knees?'], ['calf', 'calf|calves'], ['ankle', 'ankles?'],
   ['foot', 'foot|feet'], ['other', 'back|arms?|legs?'],
 ];
-const caution = /\b(?:if|might|may|maybe|could|would|perhaps|whether|uncertain|unsure|yesterday|tomorrow|previously|last|used to|need|want|plan|wish|hope|should|his|her|their|brother|sister|friend)\b|not sure|["“”]|(?:^|\s)'[^']+'(?:$|\s)/i;
+const caution = /\b(?:if|might|may|maybe|could|would|perhaps|whether|uncertain|unsure|yesterday|tomorrow|previously|last|used to|need|want|plan|wish|hope|should|his|her|their|he|she|they|we|think|believe|suspect|probably|possibly|likely|seems|appears|will|going to|intend|brother|sister|friend)\b|not sure|["“”]|(?:^|\s)'[^']+'(?:$|\s)/i;
 const negation = /\b(?:no|not|never|without)\b|n['’]t\b/i;
 const positivePain = /\b(?:pain|painful|hurt|hurts|hurting|ache|aches|aching|sore|soreness)\b/i;
 const absence = [
@@ -63,7 +63,9 @@ function mentions(text: string): readonly Mention[] {
   for (const [bodyPart, pattern] of aliases) {
     const regex = new RegExp('(?<![\\p{L}\\p{N}_])(?:' + pattern + ')(?![\\p{L}\\p{N}_])', 'giu');
     for (const match of text.matchAll(regex)) {
-      const sideWord = /\b(left|right|both|bilateral)\s+(?:my\s+)?$/i.exec(text.slice(0, match.index))?.[1]?.toLowerCase();
+      const preceding = text.slice(0, match.index);
+      const coordinated = /\b(?:left\s+and\s+right|right\s+and\s+left)\s+(?:my\s+)?$/i.test(preceding);
+      const sideWord = coordinated ? 'bilateral' : /\b(left|right|both|bilateral)\s+(?:my\s+)?$/i.exec(preceding)?.[1]?.toLowerCase();
       const side: BodySide = sideWord === 'left' || sideWord === 'right' ? sideWord
         : sideWord === 'both' || sideWord === 'bilateral' ? 'bilateral' : 'unspecified';
       const label = bodyPart === 'other' ? match[0].toLowerCase().replace(/s$/, '') : null;

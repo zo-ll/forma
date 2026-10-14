@@ -47,6 +47,18 @@ function painField(value: unknown): PainField {
   return { bodyPart: field.bodyPart, otherBodyPart, side: field.side, state: field.state, severity };
 }
 
+function locationKey(field: PainField): string {
+  if (field.bodyPart !== 'other') return field.bodyPart;
+  const description = field.otherBodyPart!.trim().toLowerCase().replace(/[ -]+/g, '-');
+  const aliases: Readonly<Record<string, string>> = {
+    knees: 'knee', shoulders: 'shoulder', elbows: 'elbow', wrists: 'wrist', hands: 'hand',
+    hips: 'hip', thighs: 'thigh', calves: 'calf', ankles: 'ankle', feet: 'foot',
+    'upper-arms': 'upper-arm', forearms: 'forearm', necks: 'neck',
+  };
+  const known = aliases[description] ?? description;
+  return BODY_PARTS.includes(known as BodyPart) && known !== 'other' ? known : 'other:' + description;
+}
+
 /** A complete, detached replacement. Missing keys never silently erase a field. */
 export function validateNoteFields(value: unknown): NoteFields {
   objectInput(value, ['pain', 'sleep', 'personalBest']);
@@ -58,8 +70,7 @@ export function validateNoteFields(value: unknown): NoteFields {
   for (let i = 0; i < pain.length; i++) {
     for (let j = 0; j < i; j++) {
       const a = pain[i]!; const b = pain[j]!;
-      if (a.bodyPart === b.bodyPart && (a.otherBodyPart?.trim().toLowerCase() ?? null)
-        === (b.otherBodyPart?.trim().toLowerCase() ?? null)
+      if (locationKey(a) === locationKey(b)
         && (a.side === b.side || ['bilateral', 'unspecified'].includes(a.side)
           || ['bilateral', 'unspecified'].includes(b.side))) {
         invalid('pain', 'Pain fields must not repeat or overlap a location.');
