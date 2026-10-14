@@ -13,6 +13,8 @@
     "build": "tsc -b",
     "typecheck": "tsc -b",
     "test": "npm run build && node --test .build/tests/*.test.js",
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "check:dependencies": "node scripts/check-dependencies.mjs",
     "demo": "npm run build && node .build/examples/workouts.js",
     "clean": "tsc -b --clean"
   },
