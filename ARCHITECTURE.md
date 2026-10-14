@@ -2,6 +2,9 @@
 
 This document describes the implemented workout service.
 [ROADMAP.md](ROADMAP.md) describes future modules, contracts, and phase gates.
+[The notes contract](docs/notes-contract.md) describes the separate core-only notes module.
+`createNotesModule()` requires an injected notes store. Current Node and Android factories do not yet construct it.
+Its memory tests do not prove durable storage, archive integration, or device behavior.
 
 ## Ownership
 

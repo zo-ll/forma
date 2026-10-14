@@ -9,7 +9,8 @@ It does not claim that planned capabilities exist.
 The workout core, Android screens, shared SQLite adapters, local archive, and continuous checks exist.
 The accepted workout runtime is `1c48410`, with 711 passing tests and the cold Android CI build.
 The workout device gate #14 passed its [written checklist](docs/verification/android-workout-1c48410.md).
-Independent notes and the local assistant do not exist yet.
+Independent notes have portable core and memory-test support.
+Notes storage, confirmed fields, screens, and the local assistant remain unimplemented.
 
 The user authorized every remaining non-nutrition issue on 2026-10-14.
 Nutrition #15–17, meal photos #34, and nutrition-specific assistant tools remain outside the current scope.
@@ -120,6 +121,8 @@ No model estimates food nutrients, portion mass, or totals.
 
 Issues: [#18](https://github.com/zo-ll/forma/issues/18) through [#21](https://github.com/zo-ll/forma/issues/21).
 Notes must work without inference.
+The core-only #18 implementation and its limits are in [the notes contract](docs/notes-contract.md).
+It is not yet composed into the SQLite service or Android host.
 
 ### Public contracts
 

@@ -1,8 +1,24 @@
 # Forma
 
-Forma records workouts and their explicitly confirmed meaning.
+Forma records workouts, independent notes, and their explicitly confirmed meaning.
 
 ## Language
+
+**Note**:
+An independent text record with a user-assigned calendar date.
+It is not the notes field of a workout.
+
+**Note kind**:
+A user-selected label for a note.
+A pain, sleep, or personal-best label does not confirm a fact.
+
+**Note revision**:
+The version of a note after an accepted edit.
+A source identifies one exact revision.
+
+**Note date**:
+The calendar day assigned to a note by the user.
+It does not change when the user's timezone changes.
 
 **Previous sets**:
 The sets for an exercise in the latest finished workout before a specified workout date.

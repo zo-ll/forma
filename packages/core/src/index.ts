@@ -1,4 +1,14 @@
 export { createFormaService } from './service.js';
+export { createNotesModule } from './notes/service.js';
+export { NOTE_LIMITS } from './notes/validation.js';
+export { compareNotePositions } from './notes/history.js';
+export type {
+  CreateNoteInput, Note, NoteCommandInput, NoteHistoryFilter, NoteHistoryInput, NoteHistoryPage,
+  NoteKind, NotePosition, NoteRecord, NoteSource, NotesApi, NotesModule, UpdateNoteInput,
+} from './notes/types.js';
+export type {
+  NotesDependencies, NotesReader, NotesStore, NotesStorePage, NotesStoreQuery, NotesWriter,
+} from './notes/ports.js';
 export { FormaError } from './errors.js';
 export type { FormaErrorCode } from './errors.js';
 export { DEFAULT_EXERCISES, DEFAULT_SPLIT_DAYS } from './catalog.js';
