@@ -30,6 +30,8 @@ The user excluded nutrition #15–17, meal photos #34, and nutrition-specific as
 The app has no nutrition module, integrated standalone notes, or models.
 The core notes module supports create, detail, revision-checked edits, deletion, and bounded history.
 See [the notes contract](docs/notes-contract.md). Its storage adapter and screens remain issues #20–21.
+Core-only note fields include conservative English suggestions and explicit confirmation.
+Any later note edit clears confirmation. See [the approved field contract](docs/note-fields-contract.md).
 The workout device gate #14 passed its [written checklist](docs/verification/android-workout-1c48410.md).
 Workout notes remain a field of a workout record.
 The catalog has no edit API in this milestone.
@@ -270,7 +272,8 @@ A model must not generate numerical facts or free SQL.
 The calendar rules and load conventions approved for #5 are recorded in [ROADMAP.md](ROADMAP.md#approved-calendar-and-load-contract--issue-5).
 Existing records keep an unknown load convention unless the user confirms it.
 The session-state rules approved for #6 are recorded in [ROADMAP.md](ROADMAP.md#approved-workout-session-contract--issue-6).
-Note confirmation rules and model limits remain explicit decisions. Nutrient decisions remain deferred.
+Note confirmation rules are approved in [the field contract](docs/note-fields-contract.md).
+Model limits remain explicit decisions. Nutrient decisions remain deferred.
 [The decision register](ROADMAP.md#decision-register) identifies their required approval points.
 
 Android remains the first mobile target.

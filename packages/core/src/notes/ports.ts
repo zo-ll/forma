@@ -1,5 +1,6 @@
 import type { Clock, IdGenerator, RequestReader, RequestWriter } from '../ports.js';
 import type { NoteHistoryFilter, NotePosition, NoteRecord } from './types.js';
+import type { NoteFieldConfirmation } from './field-types.js';
 
 export interface NotesStoreQuery {
   readonly filter: NoteHistoryFilter;
@@ -14,6 +15,7 @@ export interface NotesStorePage {
 
 export interface NotesReader extends RequestReader {
   getNote(noteId: string): Promise<NoteRecord | null>;
+  getNoteConfirmation(noteId: string): Promise<NoteFieldConfirmation | null>;
   /** Includes deleted IDs. Source identities must never be reused. */
   hasNoteId(noteId: string): Promise<boolean>;
   getNotesHistoryRevision(): Promise<number>;
@@ -23,6 +25,9 @@ export interface NotesReader extends RequestReader {
 export interface NotesWriter extends NotesReader, RequestWriter {
   /** Reserve a new ID and advance notes history revision atomically with this write. */
   saveNote(note: NoteRecord): Promise<void>;
+  /** The primary note must already have the exact confirmation source revision. */
+  saveNoteConfirmation(confirmation: NoteFieldConfirmation): Promise<void>;
+  clearNoteConfirmation(noteId: string): Promise<void>;
   /** Remove the primary record, retain its ID reservation, and advance history revision. */
   deleteNote(noteId: string): Promise<void>;
 }

@@ -10,7 +10,8 @@ The workout core, Android screens, shared SQLite adapters, local archive, and co
 The accepted workout runtime is `1c48410`, with 711 passing tests and the cold Android CI build.
 The workout device gate #14 passed its [written checklist](docs/verification/android-workout-1c48410.md).
 Independent notes have portable core and memory-test support.
-Notes storage, confirmed fields, screens, and the local assistant remain unimplemented.
+Confirmed note fields and conservative English suggestions also have core and memory-test support.
+Durable notes storage, screens, and the local assistant remain unimplemented.
 
 The user authorized every remaining non-nutrition issue on 2026-10-14.
 Nutrition #15–17, meal photos #34, and nutrition-specific assistant tools remain outside the current scope.
@@ -122,6 +123,7 @@ No model estimates food nutrients, portion mass, or totals.
 Issues: [#18](https://github.com/zo-ll/forma/issues/18) through [#21](https://github.com/zo-ll/forma/issues/21).
 Notes must work without inference.
 The core-only #18 implementation and its limits are in [the notes contract](docs/notes-contract.md).
+The user-approved #19 fields and confirmation rules are in [the field contract](docs/note-fields-contract.md).
 It is not yet composed into the SQLite service or Android host.
 
 ### Public contracts
@@ -316,7 +318,7 @@ Its Android acceptance check passed through the disposable native storage host.
 | Persisted session states and record operations | Approved above for #6; preserve in workout screens |
 | History, best facts, supported volume, and pagination semantics | Approved above for #7; Android query tests passed |
 | Nutrient quantity basis, precision, the rule to round values, and food-edit effects on saved meals | Deferred; new nutrition authorization before #15 |
-| Body-part vocabulary, typed field definitions, and user confirmation rules | #19 and exact pain questions |
+| Body-part vocabulary, typed field definitions, and user confirmation rules | Approved for #19 in [the field contract](docs/note-fields-contract.md); preserve in exact pain questions |
 | Approved weight quantization, runtime precision, and output precision | #23 and production inference |
 | Artifact URLs, hashes, licenses, tokenizer requirements, and runtime compatibility | #23 and model activation |
 | Memory, latency, context, and quality limits for the 8 GB phone | #23 and default model enablement |

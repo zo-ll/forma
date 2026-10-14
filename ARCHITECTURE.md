@@ -5,6 +5,9 @@ This document describes the implemented workout service.
 [The notes contract](docs/notes-contract.md) describes the separate core-only notes module.
 `createNotesModule()` requires an injected notes store. Current Node and Android factories do not yet construct it.
 Its memory tests do not prove durable storage, archive integration, or device behavior.
+[The field contract](docs/note-fields-contract.md) extends it with unconfirmed suggestions and explicit field confirmation.
+Confirmation advances note revision. Ordinary note edits and deletion clear the confirmation atomically.
+Released note receipt DTOs stay unchanged; field confirmation uses a separate result codec.
 
 ## Ownership
 

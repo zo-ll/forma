@@ -42,6 +42,8 @@ It also returns bounded history pages, previous sets, and source-linked finished
 Statistics keep incompatible load conventions separate and report excluded sets.
 
 The portable notes module supports create, detail, revision-checked edits, deletion, and bounded history.
+It also supplies conservative English field suggestions and explicit pain, sleep, and personal-best confirmation.
+See [the field contract](docs/note-fields-contract.md). Suggestions are not confirmed facts.
 It uses the shared receipt mechanism and requires no model.
 See [the notes contract](docs/notes-contract.md) for its storage port and current limits.
 

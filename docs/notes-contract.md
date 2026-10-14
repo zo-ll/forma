@@ -9,7 +9,9 @@ The module exposes `notes` and `close()`.
 It owns its injected store. Do not share a store between independent lifetime owners.
 
 This issue supplies a storage port and memory contract tests.
-It does not add SQLite tables, FTS5, confirmed fields, screens, or inference.
+Issue #18 did not add confirmed fields.
+The core-only [issue #19 extension](note-fields-contract.md) now adds suggestions and explicit field confirmation.
+Neither slice adds SQLite tables, FTS5, screens, or inference.
 The existing `FormaService` and Android host do not expose this module yet.
 Issues #20 and #22 must compose it with the shared store, lifetime, receipts, and restore exclusion.
 Do not attach an independent notes owner to a live workout database.
@@ -33,7 +35,8 @@ Deleted IDs remain reserved. A new record cannot reuse an old source identity.
 
 Kinds are `general`, `pain`, `sleep`, and `personal-best`. Creation defaults to `general`.
 A kind is a user-selected label. It does not confirm a numerical or medical fact.
-No text extraction occurs. Pain confirmation and its vocabulary remain issue #19.
+The [approved field contract](note-fields-contract.md) defines conservative English suggestions and explicit confirmation.
+Suggestions never confirm pain or sleep facts.
 
 ## API
 
@@ -44,6 +47,8 @@ No text extraction occurs. Pain confirmation and its vocabulary remain issue #19
 | `notes.update({ requestId, noteId, expectedRevision, date?, text?, kind? })` | The edited note at the next revision |
 | `notes.delete({ requestId, noteId, expectedRevision })` | No value |
 | `notes.history({ dateFrom?, dateTo?, kind?, limit?, cursor? }?)` | A bounded history page |
+| `notes.fields(noteId)` | Current confirmation and unconfirmed suggestions for the exact note revision |
+| `notes.confirmFields({ requestId, noteId, expectedRevision, fields })` | Explicit confirmation at a new note revision |
 
 Updates require at least one supplied record field.
 Omitted fields stay unchanged. Null does not clear a required field.
@@ -62,7 +67,8 @@ This issue exposes the identity contract. It does not implement derived jobs.
 
 Each write requires a saved request ID and input.
 The module uses the released `withRequest()` mechanism and receipt format 1.
-Operations are `notes.create`, `notes.update`, and `notes.delete`.
+Operations are `notes.create`, `notes.update`, `notes.delete`, and `notes.confirmFields`.
+Field confirmation uses a separate versioned result DTO. Released note result DTOs remain unchanged.
 The note change, ID reservation, history revision, and receipt share one atomic write.
 Later integrated adapters must use the same receipt namespace as workouts.
 Issue #20 must preserve deleted-ID reservations in backup and restore.
@@ -98,7 +104,8 @@ Core validates the page size, order, filters, and continuation shape.
 
 ## Storage and lifetime
 
-`NotesReader` supplies primary reads, ID reservation checks, history revision, and bounded pages.
+`NotesReader` supplies primary reads, confirmation reads, ID reservation checks, history revision, and bounded pages.
+Field writes and clearing share the primary note transaction. See [the field contract](note-fields-contract.md).
 `NotesWriter` adds primary writes and the shared receipt writer.
 `NotesStore.read()` supplies a coherent view.
 `NotesStore.write()` supplies one atomic transaction.
