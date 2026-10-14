@@ -5,6 +5,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateHostResult, validateRestart } from './mobile-host-protocol.mjs';
+import { checkSourceBoundaries, validateMobileSources } from './check-boundaries.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const app = join(root, 'apps/mobile');
@@ -114,6 +115,7 @@ function validateRepository(metadata, stage) {
 }
 
 function build() {
+  console.log('Source boundaries passed (' + checkSourceBoundaries() + ' files).');
   console.log(run('npm', ['run', 'build']));
   console.log(run('npm', ['ci'], app));
   write(metadataPath, JSON.stringify({
@@ -130,17 +132,7 @@ function build() {
   const apk = findHostgateApk();
   const mapPath = findHostgateSourcemap();
   const sources = (JSON.parse(read(mapPath)).sources ?? []);
-  const forbidden = sources.filter((path) =>
-    /(^|\/)node:|\/node\/internal\/|\/packages\/adapters\/(?:src|dist)\/node\//.test(path));
-  if (forbidden.length) throw new Error('Node modules reached the mobile bundle: ' + forbidden.join(', '));
-  const required = {
-    opSqlite: sources.some((path) => path.includes('op-sqlite')),
-    mobileHost: sources.some((path) => path.includes('packages/mobile-host') || path.includes('@forma/mobile-host')),
-    deviceSpec: sources.some((path) => path.includes('NativeFormaDevice')),
-    hostGate: sources.some((path) => /mobile[\\/]src[\\/]gate/.test(path)),
-  };
-  const missing = Object.entries(required).filter(([, found]) => !found).map(([name]) => name);
-  if (missing.length) throw new Error('Required mobile graph modules are missing: ' + missing.join(', '));
+  const required = validateMobileSources(sources);
 
   const result = {
     ...metadata,
