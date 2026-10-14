@@ -112,6 +112,9 @@ Issue #10 builds these screens. Issue #11 builds history and progress.
   `unknown`, `entered`, `per-hand`, `combined`, and `body-weight`.
 - A per-hand set shows an implement count of 1 or 2.
 - Show `Save set` for the current exercise.
+- After Save, require a field change or explicit confirmation before another Save.
+- Keep the copied set values as defaults.
+- Place confirmation before the Previous sets panel, outside the Save section.
 - Show `Finish` and `Discard` controls.
 - Show `Edit details` for date, notes, and duration.
 - Show the number of saved sets. Saved sets are durable on the device.
