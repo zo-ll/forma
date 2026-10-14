@@ -43,7 +43,7 @@ export function createNoteFieldsApi(
       // Released cross-alias inputs may replay only an existing exact receipt.
       const fields = readReleasedNoteFields(input.fields);
       let newInputFailure: unknown;
-      try { validateNoteFields(input.fields); } catch (cause) { newInputFailure = cause; }
+      try { validateNoteFields(fields); } catch (cause) { newInputFailure = cause; }
       const fieldsSignature = canonicalJson(fields);
       const resultCodec = {
         parse(value: unknown) {

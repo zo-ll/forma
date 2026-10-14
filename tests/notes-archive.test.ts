@@ -12,7 +12,7 @@ import { ARCHIVE_LIMITS } from '@forma/core';
 import type { FormaService } from '@forma/core';
 import { canonicalArchiveValue, signedArchive } from './fixtures/archive-cases.js';
 import { fieldsWithPain, leftKnee } from './fixtures/note-field-cases.js';
-import { errorCode, TEST_TIME } from './helpers.js';
+import { errorCode, TEST_TIME, memoryFixture } from './helpers.js';
 
 async function database(t: TestContext, prefix: string) {
   const dir = await mkdtemp(join(tmpdir(), 'forma-notes-archive-'));
@@ -124,6 +124,18 @@ test('strict archive validation rejects malformed sources, receipts, normalized 
     await assert.rejects(target.service.archive.restore({ requestId: 'bad', text, expectedDigest: JSON.parse(text).integrity.digest, expectedHistoryRevision: 0 }), errorCode('INVALID_INPUT', field));
     assert.deepEqual(rows(target.path), before);
   }
+});
+
+test('new-input validation uses the detached fields, not a second read of caller-owned input', async (t) => {
+  const service = memoryFixture(t).service;
+  const note = await service.notes.create({requestId: 'create', date: '2026-10-14', text: 'knee'});
+  const invalidFields = fieldsWithPain([leftKnee(), {...leftKnee(), bodyPart: 'other', otherBodyPart: 'knee'}]);
+  let reads = 0;
+  const input = {requestId: 'getter-confirm', noteId: note.id, expectedRevision: 1,
+    get fields() { return reads++ === 0 ? invalidFields : fieldsWithPain(); }};
+  await assert.rejects(service.notes.confirmFields(input), errorCode('INVALID_INPUT', 'pain'));
+  assert.equal((await service.notes.get(note.id)).revision, 1);
+  assert.equal((await service.notes.fields(note.id)).confirmation, null);
 });
 
 test('released cross-alias confirmations have a read/replay-only compatibility path', async (t) => {
