@@ -2,9 +2,12 @@
 
 This document describes the implemented workout service.
 [ROADMAP.md](ROADMAP.md) describes future modules, contracts, and phase gates.
-[The notes contract](docs/notes-contract.md) describes the separate core-only notes module.
-`createNotesModule()` requires an injected notes store. Current Node and Android factories do not yet construct it.
-Its memory tests do not prove durable storage, archive integration, or device behavior.
+[The notes contract](docs/notes-contract.md) describes the portable notes module.
+Node and Android factories now compose `FormaService.notes` on the same store, receipt namespace, lifetime, and restore exclusion.
+`createNotesModule()` remains a standalone owner for an injected notes store.
+The [storage checkpoint](docs/notes-storage-contract.md) adds durable confirmations and literal FTS5 search.
+Archive integration is incomplete. Archive operations fail closed when any reserved note ID exists.
+Node and Android-shim tests do not prove device behavior.
 [The field contract](docs/note-fields-contract.md) extends it with unconfirmed suggestions and explicit field confirmation.
 Confirmation advances note revision. Ordinary note edits and deletion clear the confirmation atomically.
 Released note receipt DTOs stay unchanged; field confirmation uses a separate result codec.
@@ -329,6 +332,9 @@ Both capabilities obey the same coherent-view, read-only, and expired-view rules
 Version 5 adds a singleton history revision, six primary-record triggers, and a history index.
 It preserves all existing records, receipts, and released migrations.
 `getHistoryRevision()` and `listHistoryWorkouts()` run within the same coherent read view.
+Version 6 adds notes, deleted-ID reservations, confirmations, and a separate persistent notes history revision.
+Version 7 adds an external-content FTS5 table with atomic primary-record triggers.
+FTS5 absence fails startup and rolls back the migrations. Note text remains unchanged.
 
 `WorkoutStore.read()` supplies a coherent read view.
 `WorkoutStore.write()` supplies an atomic write transaction.

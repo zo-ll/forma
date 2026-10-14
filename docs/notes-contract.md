@@ -8,14 +8,16 @@ Workout notes remain a separate workout field.
 The module exposes `notes` and `close()`.
 It owns its injected store. Do not share a store between independent lifetime owners.
 
-This issue supplies a storage port and memory contract tests.
+Issue #18 supplied a storage port and memory contract tests.
+The [issue #20 storage checkpoint](notes-storage-contract.md) adds shared SQLite storage and literal text search.
 Issue #18 did not add confirmed fields.
 The core-only [issue #19 extension](note-fields-contract.md) now adds suggestions and explicit field confirmation.
-Neither slice adds SQLite tables, FTS5, screens, or inference.
-The existing `FormaService` and Android host do not expose this module yet.
-Issues #20 and #22 must compose it with the shared store, lifetime, receipts, and restore exclusion.
+Those earlier slices did not add SQLite tables, FTS5, screens, or inference.
+`FormaService.notes` now composes notes with the shared store, lifetime, receipts, and restore exclusion.
+Both Node and Android factories expose it. Screens and inference remain absent.
 Do not attach an independent notes owner to a live workout database.
 The current workout archive does not include notes.
+Archive operations fail closed when reserved note IDs exist. The archive extension is still required before #20 source acceptance.
 
 ## Records and sources
 
@@ -47,6 +49,7 @@ Suggestions never confirm pain or sleep facts.
 | `notes.update({ requestId, noteId, expectedRevision, date?, text?, kind? })` | The edited note at the next revision |
 | `notes.delete({ requestId, noteId, expectedRevision })` | No value |
 | `notes.history({ dateFrom?, dateTo?, kind?, limit?, cursor? }?)` | A bounded history page |
+| `notes.searchText({ query, dateFrom?, dateTo?, kind?, limit?, cursor? })` | A literal FTS5 phrase-search page with exact notes and sources |
 | `notes.fields(noteId)` | Current confirmation and unconfirmed suggestions for the exact note revision |
 | `notes.confirmFields({ requestId, noteId, expectedRevision, fields })` | Explicit confirmation at a new note revision |
 
@@ -115,4 +118,5 @@ Store close drains accepted work and rejects new operations.
 The module rejects new calls as soon as close starts. Repeated close calls share one promise.
 
 Memory tests prove portable behavior only.
-Durable reopen, FTS5, shared archive replacement, and physical Android proof remain issue #20.
+Node and Android-shim tests now cover durable reopen and actual Node FTS5.
+Shared notes archive replacement and physical Android proof remain incomplete in issue #20.

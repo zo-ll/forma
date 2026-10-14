@@ -142,6 +142,9 @@ test('published OP message-only unique errors have a narrow, code-aware fallback
   const store = AndroidSqliteWorkoutStore.open({ databaseName: 'message-' + ++sequence, openDatabase: () => native });
   try {
     const cases = [
+      ...['notes.id', 'note_ids.id', 'note_confirmations.note_id'].map(column => ({
+        message: '[op-sqlite] statement execution error: UNIQUE constraint failed: ' + column, code: 'CONFLICT' as const,
+      })),
       { message: '[op-sqlite] statement execution error: UNIQUE constraint failed: sets.id', code: 'CONFLICT' as const },
       { message: 'Exception in HostFunction: [op-sqlite] statement execution error: UNIQUE constraint failed: sets.id', code: 'CONFLICT' as const },
       { message: 'UNIQUE constraint failed: sets.id', code: 'STORAGE_FAILURE' as const },

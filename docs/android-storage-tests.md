@@ -47,7 +47,12 @@ Results go to the external host's `device-results.json`.
 - Eleven storage diagnostics for native pragmas/version, errors, transaction rollback, serialized snapshots, ownership, close/reopen, migration recovery, and unsupported schemas.
 - A separate process-restart check. Seed mode keeps the native connection open. The ADB host force-stops the test app. Verify mode must use a new PID and retrieve exact workout/set/session data and original request snapshots.
 
-The current expectation is 143 fixture/diagnostic cases plus seed and restart verification.
+The current source expectation is 175 fixture/diagnostic cases plus the existing workout-only seed and restart verification.
+The 32 added notes cases cover primary notes, confirmed fields, and literal FTS5 search.
+They use a standalone notes owner on a separate database, not a second owner on the workout connection.
+They are available for a later authorized native run. No new device run has occurred.
+The earlier 143-case physical evidence below does not cover these changes.
+The actual Forma mobile-host notes restart and archive gates remain pending.
 A failed case stops that run and reports its error. It is not a partial PASS.
 Only successful device results satisfy the native acceptance checks.
 Node binding simulations and an APK build do not satisfy them.

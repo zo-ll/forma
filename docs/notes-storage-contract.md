@@ -36,10 +36,19 @@ Edits, confirmation, deletion, and restore invalidate cursors. Receipt replay do
 Changed revisions yield `CONFLICT` on `cursor`. Invalid cursors yield `INVALID_INPUT` on `cursor`.
 Changing the page size is permitted. Search and history cursors are not interchangeable.
 
-## Planned composition and archive work
+## Composition and remaining archive work
 
-`FormaService.notes` must use the same store, receipt namespace, close owner, and restore exclusion as workouts.
-The standalone notes factory must keep its existing API and lifetime behavior.
+`FormaService.notes` uses the same store, receipt namespace, close owner, and restore exclusion as workouts.
+Both host factories expose this API. Cached notes APIs cannot bypass close or restore exclusion.
+`createNotesModule()` keeps its standalone API and lifetime behavior.
+Portable standalone stores may omit the optional `searchNotes` capability. Search then fails with `STORAGE_FAILURE`.
+Both durable SQLite adapters provide that capability.
+
+Archive integration is NOT complete in this checkpoint.
+The adapter rejects export, inspection, and replacement with `STORAGE_FAILURE` on `archive.notes` when any reserved note ID exists.
+This includes an ID for a deleted note. It prevents silent omission and mixed receipt replacement.
+A note-free database keeps the released workout-only archive behavior.
+Remove this temporary guard only after the following atomic archive extension and its tests are complete.
 Archive version 2 will add a notes module with records, current confirmations, and all reserved IDs.
 A version-1 archive will explicitly empty notes and reservations during full replacement.
 Inspection must warn about this loss. Counts must include notes, confirmations, and reserved IDs.

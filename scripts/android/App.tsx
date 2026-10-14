@@ -5,9 +5,12 @@ import { collectWorkoutCases } from 'forma-fixtures/workout-cases.js';
 import { collectRequestCases } from 'forma-fixtures/request-cases.js';
 import { collectLoadCases } from 'forma-fixtures/load-cases.js';
 import { collectSessionCases } from 'forma-fixtures/session-cases.js';
+import { collectNoteCases } from 'forma-fixtures/note-cases.js';
+import { collectNoteFieldCases } from 'forma-fixtures/note-field-cases.js';
+import { collectNoteSearchCases } from 'forma-fixtures/note-search-cases.js';
 import { createPortableAssert } from 'forma-fixtures/portable-assert.js';
 import { HISTORY_CASES } from 'forma-fixtures/history-cases.js';
-import { nativeFixture, NATIVE_STORAGE_CASES, seedNativeRestart, verifyNativeRestart,
+import { nativeFixture, nativeNotesFixture, NATIVE_STORAGE_CASES, seedNativeRestart, verifyNativeRestart,
   nativeRestartConnectionIsRetained } from 'forma-fixtures/native-storage-cases.js';
 import build from './forma-build.json';
 
@@ -32,6 +35,12 @@ export default function App({ formaMode = 'fixtures', formaRunId = 'manual' }: P
           for (const item of cases) {
             const fixture = nativeFixture(open, item.ids);
             try { await item.run(fixture.service); } finally { await fixture.service.close(); }
+            count++; say('PASS ' + count + ': ' + item.name);
+            await new Promise<void>((resolve) => setTimeout(resolve, 0));
+          }
+          for (const item of [...collectNoteCases(assert), ...collectNoteFieldCases(assert), ...collectNoteSearchCases(assert)]) {
+            const module = nativeNotesFixture(open);
+            try { await item.run(module); } finally { await module.close(); }
             count++; say('PASS ' + count + ': ' + item.name);
             await new Promise<void>((resolve) => setTimeout(resolve, 0));
           }

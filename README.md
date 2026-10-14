@@ -2,7 +2,7 @@
 
 Forma is a local-first fitness app with a portable TypeScript service.
 The Android app records workouts and supports local backup and atomic restore.
-The core also supplies a portable notes module. Notes storage and screens are not integrated yet.
+The core also supplies a portable notes module. Shared SQLite notes storage is implemented as a checkpoint. Notes archives and screens remain incomplete.
 The active plan excludes nutrition, meal photos, and nutrition-specific assistant tools.
 
 ## Status

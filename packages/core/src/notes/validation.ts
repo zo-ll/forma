@@ -4,6 +4,7 @@ import type { Note, NoteKind, NoteRecord } from './types.js';
 export const NOTE_LIMITS = Object.freeze({
   maxTextCharacters: 16_384,
   maxIdCharacters: 256,
+  maxSearchQueryCharacters: 512,
   defaultPageSize: 20,
   maxPageSize: 100,
   maxCursorCharacters: 8_192,

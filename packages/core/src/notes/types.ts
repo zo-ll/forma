@@ -68,12 +68,23 @@ export interface NoteHistoryPage {
   readonly nextCursor: string | null;
 }
 
+export interface NoteSearchInput extends NoteHistoryInput {
+  readonly query: string;
+}
+export interface NoteSearchFilter extends NoteHistoryFilter {
+  readonly query: string;
+}
+export interface NoteSearchPage extends NoteHistoryPage {
+  readonly filter: NoteSearchFilter;
+}
+
 export interface NotesApi {
   create(input: CreateNoteInput): Promise<Note>;
   get(noteId: string): Promise<Note>;
   update(input: UpdateNoteInput): Promise<Note>;
   delete(input: NoteCommandInput): Promise<void>;
   history(input?: NoteHistoryInput): Promise<NoteHistoryPage>;
+  searchText(input: NoteSearchInput): Promise<NoteSearchPage>;
   fields(noteId: string): Promise<NoteFieldsView>;
   confirmFields(input: ConfirmNoteFieldsInput): Promise<NoteFieldConfirmation>;
 }

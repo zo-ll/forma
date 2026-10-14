@@ -31,7 +31,7 @@ export class MemoryNotesStore implements NotesStore {
     this.state.revision++;
   }
 
-  private view(writable: boolean): { writer: NotesWriter; expire(): void } {
+  view(writable: boolean): { writer: NotesWriter; expire(): void } {
     let active = true;
     const check = (write = false): void => {
       if (!active) throw new FormaError('STORAGE_FAILURE', 'The transaction view expired.');

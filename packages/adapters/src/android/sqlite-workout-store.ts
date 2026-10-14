@@ -25,7 +25,7 @@ function storageError(cause: unknown): FormaError {
   const uniqueCode = native?.extendedCode === 1555 || native?.extendedCode === 2067;
   // Published 18.2.5 throws message-only C++ runtime errors. Upstream structured fields are newer.
   const uniqueMessage = native?.extendedCode === undefined && typeof native?.message === 'string'
-    && /^(?:Exception in HostFunction: )?\[op-sqlite\] statement execution error: UNIQUE constraint failed: (?:sets\.id|sets\.workout_id, sets\.position|workouts\.id|workouts\.status|request_receipts\.request_id)$/.test(native.message);
+    && /^(?:Exception in HostFunction: )?\[op-sqlite\] statement execution error: UNIQUE constraint failed: (?:sets\.id|sets\.workout_id, sets\.position|workouts\.id|workouts\.status|request_receipts\.request_id|notes\.id|note_ids\.id|note_confirmations\.note_id)$/.test(native.message);
   if (uniqueCode || uniqueMessage) {
     return new FormaError('CONFLICT', 'A stored ID or unique value already exists.', { cause });
   }

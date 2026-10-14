@@ -1,6 +1,12 @@
 # Local archive contract — issue #12
 
-Status: released. The coordinator approved this contract with corrections on 2026-10-13.
+Status: released workout-only format. The coordinator approved this contract with corrections on 2026-10-13.
+
+The [issue #20 storage checkpoint](notes-storage-contract.md) is incomplete.
+It adds durable notes but does not extend this archive format yet.
+Export, inspection, and replacement reject `STORAGE_FAILURE` on `archive.notes` when any reserved note ID exists.
+This guard prevents silent note omission and mixed receipt replacement.
+Version-2 notes archives, legacy replacement semantics, notes counts, and notes-write preview confirmation remain required before source acceptance.
 
 This contract defines a versioned local archive, export, inspection, and full-replacement restore.
 It adds no server, account, cloud sync, nutrition, notes, or inference.

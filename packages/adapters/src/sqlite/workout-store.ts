@@ -4,6 +4,7 @@ import type {
   Exercise, ListWorkoutsInput, Workout, SplitDay, WorkoutReader, WorkoutSet,
   ArchiveCounts, ArchiveRecords, HistoryStorePage, HistoryStoreQuery, RequestReceipt, SetLoadDetails, WorkoutSessionDetails, WorkoutStore, WorkoutWriter,
 } from '@forma/core';
+import { createSqliteNotesView } from './notes-view.js';
 import { pendingMigrations, runSqliteMigrations } from './migrations.js';
 import { SQLITE_MIGRATIONS } from './registry.js';
 import type { MigrationDriver, MigrationValue } from './migrations.js';
@@ -93,6 +94,7 @@ export class SharedSqliteWorkoutStore implements WorkoutStore {
       if (!active) throw new FormaError('STORAGE_FAILURE', 'The transaction view has expired.');
     };
     const view: WorkoutWriter = {
+      ...createSqliteNotesView(this.db, check, writable),
       listExercises: async () => { check(); return this.listExercises(); },
       getExercise: async (id) => { check(); return this.getExercise(id); },
       findExerciseByAlias: async (alias) => {
@@ -164,7 +166,16 @@ export class SharedSqliteWorkoutStore implements WorkoutStore {
     return row ? this.receiptFromRow(row) : null;
   }
 
+  private requireWorkoutOnlyArchive(): void {
+    // Notes archive integration is not released yet. Never silently export an incomplete backup
+    // or replace receipts while note identities still exist.
+    if (this.db.prepare('SELECT id FROM note_ids LIMIT 1').get() !== undefined) {
+      throw new FormaError('STORAGE_FAILURE', 'This archive version cannot preserve notes or reserved note IDs.', { field: 'archive.notes' });
+    }
+  }
+
   private countArchiveRecords(): ArchiveCounts {
+    this.requireWorkoutOnlyArchive();
     const row = this.db.prepare('SELECT (SELECT COUNT(*) FROM workouts) AS workouts, (SELECT COUNT(*) FROM sets) AS sets, '
       + "(SELECT COUNT(*) FROM request_receipts) AS receipts, (SELECT COUNT(*) FROM workouts WHERE status = 'in-progress') AS in_progress").get();
     if (!row) throw new FormaError('STORAGE_FAILURE', 'The record counts are unavailable.');
@@ -176,6 +187,7 @@ export class SharedSqliteWorkoutStore implements WorkoutStore {
 
   /** Full replacement inside the caller's write transaction. Catalog rows stay unchanged. */
   private replaceArchiveRecords(records: ArchiveRecords): void {
+    this.requireWorkoutOnlyArchive();
     this.db.exec('DELETE FROM sets');
     this.db.exec('DELETE FROM workouts');
     this.db.exec('DELETE FROM request_receipts');

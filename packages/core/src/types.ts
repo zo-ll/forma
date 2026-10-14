@@ -179,6 +179,7 @@ export interface ArchiveApi {
 }
 
 export interface FormaService {
+  readonly notes: import('./notes/types.js').NotesApi;
   readonly exercises: ExerciseApi;
   readonly splitDays: SplitDayApi;
   readonly workouts: WorkoutApi;

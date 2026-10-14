@@ -1,3 +1,4 @@
+import type { NotesReader, NotesWriter } from './notes/ports.js';
 import type { ArchiveCounts, Exercise, ListWorkoutsInput, Workout, SplitDay } from './types.js';
 import type { HistoryStorePage, HistoryStoreQuery } from './workouts/history-types.js';
 
@@ -26,7 +27,7 @@ export interface RequestWriter extends RequestReader {
   saveRequestReceipt(receipt: RequestReceipt): Promise<void>;
 }
 
-export interface WorkoutReader extends RequestReader {
+export interface WorkoutReader extends NotesReader {
   listExercises(): Promise<readonly Exercise[]>;
   getExercise(exerciseId: string): Promise<Exercise | null>;
   findExerciseByAlias(normalizedAlias: string): Promise<Exercise | null>;
@@ -48,7 +49,7 @@ export interface ArchiveRecords {
   readonly receipts: readonly RequestReceipt[];
 }
 
-export interface WorkoutWriter extends WorkoutReader, RequestWriter {
+export interface WorkoutWriter extends WorkoutReader, NotesWriter {
   saveWorkout(workout: Workout): Promise<void>;
   deleteWorkout(workoutId: string): Promise<void>;
   /** Delete all workouts, sets, and receipts, insert these rows exactly, and advance the history revision. */
