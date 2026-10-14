@@ -1,6 +1,6 @@
 # Notes storage extension — issue #20
 
-Status: implementation in progress. This contract does not claim source or native acceptance.
+Status: source implementation complete. Independent review, cold CI, and physical native proof remain pending.
 
 ## Shared storage
 
@@ -36,7 +36,7 @@ Edits, confirmation, deletion, and restore invalidate cursors. Receipt replay do
 Changed revisions yield `CONFLICT` on `cursor`. Invalid cursors yield `INVALID_INPUT` on `cursor`.
 Changing the page size is permitted. Search and history cursors are not interchangeable.
 
-## Composition and remaining archive work
+## Composition and archive replacement
 
 `FormaService.notes` uses the same store, receipt namespace, close owner, and restore exclusion as workouts.
 Both host factories expose this API. Cached notes APIs cannot bypass close or restore exclusion.
@@ -44,19 +44,15 @@ Both host factories expose this API. Cached notes APIs cannot bypass close or re
 Portable standalone stores may omit the optional `searchNotes` capability. Search then fails with `STORAGE_FAILURE`.
 Both durable SQLite adapters provide that capability.
 
-Archive integration is NOT complete in this checkpoint.
-The adapter rejects export, inspection, and replacement with `STORAGE_FAILURE` on `archive.notes` when any reserved note ID exists.
-This includes an ID for a deleted note. It prevents silent omission and mixed receipt replacement.
-A note-free database keeps the released workout-only archive behavior.
-Remove this temporary guard only after the following atomic archive extension and its tests are complete.
-Archive version 2 will add a notes module with records, current confirmations, and all reserved IDs.
-A version-1 archive will explicitly empty notes and reservations during full replacement.
-Inspection must warn about this loss. Counts must include notes, confirmations, and reserved IDs.
-Restore preview confirmation must detect intervening notes writes.
-Released receipt text must remain byte-exact, including legacy workout snapshots.
-All modules must roll back together after a restore failure.
-No model binaries or vectors belong in the archive.
-These paragraphs define remaining work. They do not describe completed behavior.
+[Archive version 2](archive-contract.md) includes primary records, current confirmations, and all reserved IDs.
+The temporary notes-bearing archive guard is removed.
+Version-1 restore explicitly empties notes, confirmations, and reservations. Inspection and Settings warn about this loss.
+Counts include notes, confirmations, and reserved IDs. Every module shares one replacement transaction.
+Migration 8 adds a separate global archive revision. It protects confirmation against changes in any module, including receipts.
+The public archive revision field keeps its released name `currentHistoryRevision`; callers must treat it as an opaque token.
+Both query revisions advance on restore, including empty replacement. FTS updates share that transaction.
+Released receipt strings remain exact. A narrow read/replay-only compatibility path preserves old #19 cross-alias confirmations.
+New overlapping confirmation commands still fail. Models and vectors remain absent.
 
 ## Verification limits
 

@@ -2,7 +2,7 @@
 
 Forma is a local-first fitness app with a portable TypeScript service.
 The Android app records workouts and supports local backup and atomic restore.
-The core also supplies a portable notes module. Shared SQLite notes storage is implemented as a checkpoint. Notes archives and screens remain incomplete.
+The core also supplies a portable notes module. Shared SQLite notes storage, literal FTS5 search, and atomic notes archives are implemented. Notes screens remain separate work.
 The active plan excludes nutrition, meal photos, and nutrition-specific assistant tools.
 
 ## Status
@@ -45,6 +45,8 @@ The portable notes module supports create, detail, revision-checked edits, delet
 It also supplies conservative English field suggestions and explicit pain, sleep, and personal-best confirmation.
 See [the field contract](docs/note-fields-contract.md). Suggestions are not confirmed facts.
 It uses the shared receipt mechanism and requires no model.
+Version-2 archives preserve primary notes, confirmations, deleted-ID reservations, and exact command receipts.
+Physical Forma notes/FTS5/restart/archive proof remains pending.
 See [the notes contract](docs/notes-contract.md) for its storage port and current limits.
 
 The core does not use React, Expo, a SQLite driver, or a model.

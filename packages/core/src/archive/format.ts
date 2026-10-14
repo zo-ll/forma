@@ -1,5 +1,7 @@
 import { FormaError } from '../errors.js';
-import type { ArchiveRecords, RequestReceipt } from '../ports.js';
+import { noteFromRecord, noteId } from '../notes/validation.js';
+import { noteFieldConfirmationResult } from '../notes/field-validation.js';
+import type { ArchiveNotesRecords, ArchiveRecords, RequestReceipt } from '../ports.js';
 import { canonicalJson } from '../requests/service.js';
 import type { ArchiveCounts, Exercise, SplitDay, Workout } from '../types.js';
 import { identifier, invalid, objectInput, text, utcTimestamp } from '../validation.js';
@@ -7,7 +9,7 @@ import { workoutResult } from '../workouts/results.js';
 import { checkReceiptContent } from './receipts.js';
 import { sha256Utf8, utf8ByteLength } from './sha256.js';
 
-export const ARCHIVE_FORMAT_VERSION = 1;
+export const ARCHIVE_FORMAT_VERSION = 2;
 
 /** A declared initial limit, not a device-proven capacity. A limit failure rejects the whole archive. */
 export const ARCHIVE_LIMITS = Object.freeze({
@@ -15,9 +17,10 @@ export const ARCHIVE_LIMITS = Object.freeze({
   maxWorkouts: 10_000,
   maxSets: 100_000,
   maxReceipts: 100_000,
+  maxNotes: 10_000, maxNoteConfirmations: 10_000, maxReservedNoteIds: 100_000, maxRecords: 250_000,
 });
 
-export const ARCHIVE_MODULES: readonly string[] = Object.freeze(['catalog', 'requests', 'workouts']);
+export const ARCHIVE_MODULES: readonly string[] = Object.freeze(['catalog', 'notes', 'requests', 'workouts']);
 
 export interface ArchiveContent extends ArchiveRecords {
   readonly createdAt: string;
@@ -26,6 +29,9 @@ export interface ArchiveContent extends ArchiveRecords {
 }
 
 export interface ParsedArchive extends ArchiveContent {
+  readonly formatVersion: 1 | 2;
+  readonly notes: ArchiveNotesRecords;
+  readonly missingModules: readonly string[];
   readonly digest: string;
   readonly byteLength: number;
   readonly counts: ArchiveCounts;
@@ -61,10 +67,10 @@ function list(value: unknown, field: string, label: string): readonly unknown[] 
 
 export function checkCounts(counts: ArchiveCounts): void {
   if (counts.workouts > ARCHIVE_LIMITS.maxWorkouts || counts.sets > ARCHIVE_LIMITS.maxSets
-    || counts.receipts > ARCHIVE_LIMITS.maxReceipts) {
-    throw archiveError('archive.size', 'The archive exceeds the record budget of '
-      + ARCHIVE_LIMITS.maxWorkouts + ' workouts, ' + ARCHIVE_LIMITS.maxSets + ' sets, and '
-      + ARCHIVE_LIMITS.maxReceipts + ' receipts.');
+    || counts.receipts > ARCHIVE_LIMITS.maxReceipts || counts.notes > ARCHIVE_LIMITS.maxNotes
+    || counts.noteConfirmations > ARCHIVE_LIMITS.maxNoteConfirmations || counts.reservedNoteIds > ARCHIVE_LIMITS.maxReservedNoteIds
+    || counts.workouts + counts.sets + counts.receipts + counts.notes + counts.noteConfirmations + counts.reservedNoteIds > ARCHIVE_LIMITS.maxRecords) {
+    throw archiveError('archive.size', 'The archive exceeds an individual record budget or the combined 250000-row budget.');
   }
 }
 
@@ -81,6 +87,7 @@ function body(content: ArchiveContent): Fields {
     createdAt: content.createdAt,
     modules: {
       catalog: { version: 1, exercises: content.exercises, splitDays: content.splitDays },
+      notes: { version: 1, ...(content.notes ?? { records: [], confirmations: [], reservedIds: [] }) },
       requests: { version: 1, receipts: content.receipts },
       workouts: { version: 1, workouts: content.workouts },
     },
@@ -164,13 +171,14 @@ export function parseArchive(value: unknown): ParsedArchive {
 
   const root = fields(parsed, ['format', 'formatVersion', 'createdAt', 'modules', 'integrity'], 'archive', 'The archive');
   if (root.format !== 'forma.archive') throw archiveError('archive.formatVersion', 'The file is not a Forma archive.');
-  if (root.formatVersion !== ARCHIVE_FORMAT_VERSION) throw archiveError('archive.formatVersion', 'The archive format version is not supported.');
+  if (root.formatVersion !== 1 && root.formatVersion !== ARCHIVE_FORMAT_VERSION) throw archiveError('archive.formatVersion', 'The archive format version is not supported.');
   const createdAt = within('archive', 'The archive time', () => utcTimestamp(root.createdAt));
   if (root.modules === null || typeof root.modules !== 'object' || Array.isArray(root.modules)) {
     throw archiveError('archive.modules', 'The archive modules must be an object.');
   }
   const names = Object.keys(root.modules).sort();
-  if (canonicalJson(names) !== canonicalJson(ARCHIVE_MODULES)) {
+  const moduleNames = root.formatVersion === 1 ? ['catalog', 'requests', 'workouts'] : ARCHIVE_MODULES;
+  if (canonicalJson(names) !== canonicalJson(moduleNames)) {
     throw archiveError('archive.modules', 'The archive must contain exactly the supported modules: ' + ARCHIVE_MODULES.join(', ') + '.');
   }
   const modules = root.modules as Fields;
@@ -187,6 +195,12 @@ export function parseArchive(value: unknown): ParsedArchive {
   const digest = sha256Utf8(canonicalJson(unsigned));
   if (integrity.digest !== digest) throw archiveError('archive.integrity', 'The archive digest does not match its content.');
 
+  const noteModule = root.formatVersion === 1 ? { version: 1, records: [], confirmations: [], reservedIds: [] }
+    : fields(modules.notes, ['version', 'records', 'confirmations', 'reservedIds'], 'archive.notes', 'The notes module');
+  if (noteModule.version !== 1) throw archiveError('archive.modules', 'The notes module version is not supported.');
+  const rawNotes = list(noteModule.records, 'archive.notes', 'The notes');
+  const rawConfirmations = list(noteModule.confirmations, 'archive.notes', 'The confirmations');
+  const rawIds = list(noteModule.reservedIds, 'archive.notes', 'The reserved IDs');
   const rawWorkouts = list(workoutModule.workouts, 'archive.workouts', 'The workouts');
   const rawReceipts = list(requests.receipts, 'archive.requests', 'The receipts');
   let setCount = 0;
@@ -194,7 +208,8 @@ export function parseArchive(value: unknown): ParsedArchive {
     const sets = workout !== null && typeof workout === 'object' ? (workout as Fields).sets : undefined;
     if (Array.isArray(sets)) setCount += sets.length;
   }
-  checkCounts({ workouts: rawWorkouts.length, sets: setCount, receipts: rawReceipts.length, inProgress: 0 });
+  checkCounts({ workouts: rawWorkouts.length, sets: setCount, receipts: rawReceipts.length, inProgress: 0,
+    notes: rawNotes.length, noteConfirmations: rawConfirmations.length, reservedNoteIds: rawIds.length });
 
   const exercises = list(catalog.exercises, 'archive.catalog', 'The exercises').map(parseExercise);
   const splitDays = list(catalog.splitDays, 'archive.catalog', 'The split days').map(parseSplitDay);
@@ -217,11 +232,39 @@ export function parseArchive(value: unknown): ParsedArchive {
   const inProgress = workouts.filter((workout) => workout.status === 'in-progress').length;
   if (inProgress > 1) throw archiveError('archive.workouts', 'The archive has more than one workout in progress.');
 
+  const records = rawNotes.map(value => within('archive.notes', 'A note', () => {
+    const { source: _source, ...record } = noteFromRecord(value); return record;
+  }));
+  const confirmations = rawConfirmations.map(value => within('archive.notes', 'A confirmation', () => noteFieldConfirmationResult.parse(value)));
+  const reservedIds = rawIds.map(value => within('archive.notes', 'A reserved ID', () => noteId(value)));
+  unique(records.map(note => note.id), 'archive.notes', 'note ID');
+  unique(confirmations.map(value => value.source.noteId), 'archive.notes', 'confirmation ID');
+  unique(reservedIds, 'archive.notes', 'reserved ID');
+  const reserved = new Set(reservedIds);
+  const byId = new Map(records.map(note => [note.id, note]));
+  for (const note of records) if (!reserved.has(note.id)) throw archiveError('archive.notes', 'A primary note ID is not reserved.');
+  for (const confirmation of confirmations) {
+    const note = byId.get(confirmation.source.noteId);
+    if (!note || note.revision !== confirmation.source.revision || note.updatedAt !== confirmation.confirmedAt) {
+      throw archiveError('archive.notes', 'A confirmation does not identify the current primary note.');
+    }
+  }
   const receipts = rawReceipts.map(parseReceipt);
+  for (const receipt of receipts) {
+    if (!receipt.operation.startsWith('notes.')) continue;
+    if (root.formatVersion === 1) throw archiveError('archive.requests', 'Version 1 cannot contain notes receipts.');
+    const input = JSON.parse(receipt.inputSignature) as Fields;
+    const result = JSON.parse(receipt.resultJson) as Fields | null;
+    const id = receipt.operation === 'notes.create' ? result!.id : input.noteId;
+    if (!reserved.has(id as string)) throw archiveError('archive.notes', 'A notes receipt ID is not reserved.');
+  }
   unique(receipts.map((receipt) => receipt.requestId), 'archive.requests', 'request ID');
 
   return {
     createdAt, exercises, splitDays, workouts, receipts, digest, byteLength,
-    counts: { workouts: workouts.length, sets: setCount, receipts: receipts.length, inProgress },
+    formatVersion: root.formatVersion, notes: { records, confirmations, reservedIds },
+    missingModules: root.formatVersion === 1 ? ['notes'] : [],
+    counts: { workouts: workouts.length, sets: setCount, receipts: receipts.length, inProgress,
+      notes: records.length, noteConfirmations: confirmations.length, reservedNoteIds: reservedIds.length },
   };
 }

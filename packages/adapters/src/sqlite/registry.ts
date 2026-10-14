@@ -7,6 +7,7 @@ import { SCHEMA_V4 } from './schema-v4.js';
 import { SCHEMA_V5 } from './schema-v5.js';
 import { SCHEMA_V6 } from './schema-v6.js';
 import { SCHEMA_V7 } from './schema-v7.js';
+import { SCHEMA_V8 } from './schema-v8.js';
 
 function initialCatalogStatements(): readonly MigrationStatement[] {
   const statements: MigrationStatement[] = [];
@@ -76,6 +77,8 @@ export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = Object.freeze([
     statements: Object.freeze(SCHEMA_V6.map((sql) => Object.freeze({ sql }))) }),
   Object.freeze({ version: 7, name: 'Index literal note text with FTS5',
     statements: Object.freeze(SCHEMA_V7.map((sql) => Object.freeze({ sql }))) }),
+  Object.freeze({ version: 8, name: 'Protect archive confirmation across modules',
+    statements: Object.freeze(SCHEMA_V8.map((sql) => Object.freeze({ sql }))) }),
 ]);
 
 export const SCHEMA_VERSION = SQLITE_MIGRATIONS.length;

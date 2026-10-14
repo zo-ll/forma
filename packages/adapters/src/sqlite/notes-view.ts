@@ -1,9 +1,9 @@
-import { FormaError, noteFieldConfirmationResult, noteFromRecord } from '@forma/core';
+import { FormaError, noteFieldConfirmationResult, noteFromRecord, validateNoteFields } from '@forma/core';
 import type { NoteRecord, NotesStoreQuery, NotesSearchQuery, NotesWriter, RequestWriter } from '@forma/core';
 import type { SqliteConnection, SqliteRow } from './connection.js';
 import type { MigrationValue } from './migrations.js';
 
-function storedNote(row: SqliteRow): NoteRecord {
+export function noteRecordFromRow(row: SqliteRow): NoteRecord {
   try {
     const { source: _source, ...record } = noteFromRecord({
       id: row.id, date: row.date, text: row.text, kind: row.kind, revision: row.revision,
@@ -23,7 +23,7 @@ export function createSqliteNotesView(
   }
   function getNote(id: string): NoteRecord | null {
     const row = db.prepare('SELECT * FROM notes WHERE id = ?').get(id);
-    return row ? storedNote(row) : null;
+    return row ? noteRecordFromRow(row) : null;
   }
   function page(input: NotesStoreQuery, search?: NotesSearchQuery) {
     const conditions: string[] = [];
@@ -45,7 +45,7 @@ export function createSqliteNotesView(
     values.push(input.limit + 1);
     const rows = db.prepare('SELECT n.* FROM notes n' + (conditions.length ? ' WHERE ' + conditions.join(' AND ') : '')
       + ' ORDER BY n.date DESC, n.created_at DESC, n.id ASC LIMIT ?').all(...values);
-    return { items: rows.slice(0, input.limit).map(storedNote), hasMore: rows.length > input.limit };
+    return { items: rows.slice(0, input.limit).map(noteRecordFromRow), hasMore: rows.length > input.limit };
   }
   return {
     getNote: async (id) => { check(); return getNote(id); },
@@ -92,6 +92,7 @@ export function createSqliteNotesView(
     saveNoteConfirmation: async (value) => {
       write();
       const confirmation = noteFieldConfirmationResult.parse(value);
+      validateNoteFields(confirmation.fields);
       if (getNote(confirmation.source.noteId)?.revision !== confirmation.source.revision) {
         throw new FormaError('CONFLICT', 'The confirmation source is obsolete.', { field: 'expectedRevision' });
       }

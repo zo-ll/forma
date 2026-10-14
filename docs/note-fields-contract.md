@@ -88,10 +88,13 @@ Current read views suppress a valid stale confirmation rather than publish it fo
 Malformed stored confirmations fail with STORAGE_FAILURE.
 
 Memory tests prove core behavior only.
-The [issue #20 storage checkpoint](notes-storage-contract.md) now adds SQLite tables, FTS5, durable reopen, and shared service composition.
-Archive extensions and native Android checks remain incomplete.
+The [issue #20 storage extension](notes-storage-contract.md) now adds SQLite tables, FTS5, durable reopen, and shared service composition.
+Version-2 archive replacement now preserves primary fields and original confirmation receipts.
+Physical native Android checks remain pending.
 Issue #21 owns the confirmation UI. Inference remains absent.
 The rule corrections retain explicit confirmation. Hedge, third-person, and future phrasing stays uncertain.
 Coordinated left/right phrases preserve both sides as bilateral.
 Known body-part aliases in `otherBodyPart` cannot bypass location overlap checks.
-The archive format remains workout-only. Archive operations fail closed when reserved note IDs exist.
+A read/replay-only compatibility reader preserves the released #19 cross-alias overlap behavior in stored version-1 confirmations.
+Only an exact matching old receipt can replay that input. New overlapping writes still fail.
+All other field validation remains strict. See [the archive contract](archive-contract.md).

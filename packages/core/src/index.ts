@@ -39,7 +39,7 @@ export { ARCHIVE_FORMAT_VERSION, ARCHIVE_LIMITS } from './archive/format.js';
 export { sha256Utf8 } from './archive/sha256.js';
 export type { ResultCodec } from './requests/service.js';
 export type {
-  ArchiveRecords, Clock, FormaDependencies, IdGenerator, RequestReader, RequestReceipt, RequestWriter,
+  ArchiveNotesRecords, ArchiveRecords, Clock, FormaDependencies, IdGenerator, RequestReader, RequestReceipt, RequestWriter,
   WorkoutReader, WorkoutStore, WorkoutWriter,
 } from './ports.js';
 export type {

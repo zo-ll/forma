@@ -68,7 +68,7 @@ test('export, inspect, and restore keep exact records, receipts, catalog, and Un
   await seed(source.service);
   const exported = await source.service.archive.export();
   assert.equal(exported.createdAt, TEST_TIME);
-  assert.deepEqual(exported.counts, { workouts: 2, sets: 3, receipts: 7, inProgress: 1 });
+  assert.deepEqual(exported.counts, { notes: 0, noteConfirmations: 0, reservedNoteIds: 0, workouts: 2, sets: 3, receipts: 7, inProgress: 1 });
   assert.equal(exported.byteLength, Buffer.byteLength(exported.text, 'utf8'));
   const { integrity, ...unsigned } = JSON.parse(exported.text) as Envelope;
   assert.equal(integrity.digest, oracle(canonical(unsigned)));
@@ -78,9 +78,9 @@ test('export, inspect, and restore keep exact records, receipts, catalog, and Un
   const target = setup(t, 'dst');
   await target.service.workouts.create({ requestId: 'target-only', date: '2026-09-01' });
   const inspection = await target.service.archive.inspect({ text: exported.text });
-  assert.deepEqual(inspection.current, { workouts: 1, sets: 0, receipts: 1, inProgress: 0 });
+  assert.deepEqual(inspection.current, { notes: 0, noteConfirmations: 0, reservedNoteIds: 0, workouts: 1, sets: 0, receipts: 1, inProgress: 0 });
   assert.deepEqual(inspection.archive, exported.counts);
-  assert.deepEqual(inspection.modules, ['catalog', 'requests', 'workouts']);
+  assert.deepEqual(inspection.modules, ['catalog', 'notes', 'requests', 'workouts']);
   const result = await target.service.archive.restore({ requestId: 'restore-1', text: exported.text,
     expectedDigest: inspection.digest, expectedHistoryRevision: inspection.currentHistoryRevision });
   assert.deepEqual(result, { digest: exported.digest, counts: exported.counts });
@@ -144,8 +144,8 @@ test('invalid archives fail before any store operation', async (t) => {
     ['not JSON', text.slice(0, -1), 'archive'],
     ['extra root key', edit(text, (a) => { a.extra = 1; }), 'archive'],
     ['wrong format', edit(text, (a) => { a.format = 'other'; }), 'archive.formatVersion'],
-    ['newer format version', edit(text, (a) => { a.formatVersion = 2; }), 'archive.formatVersion'],
-    ['unknown module', edit(text, (a) => { a.modules.notes = { version: 1 }; }), 'archive.modules'],
+    ['newer format version', edit(text, (a) => { a.formatVersion = 3; }), 'archive.formatVersion'],
+    ['unknown module', edit(text, (a) => { a.modules.unknown = { version: 1 }; }), 'archive.modules'],
     ['missing module', edit(text, (a) => { delete a.modules.requests; }), 'archive.modules'],
     ['newer module version', edit(text, (a) => { a.modules.workouts.version = 2; }), 'archive.modules'],
     ['digest mismatch', text.replace('ünïcode', 'unicode'), 'archive.integrity'],
@@ -290,7 +290,7 @@ test('export checks the record budget before it reads the records', async (t) =>
   const counting: WorkoutStore = {
     read: (run) => store.read((reader) => run({
       ...reader,
-      countArchiveRecords: async () => ({ workouts: 1, sets: ARCHIVE_LIMITS.maxSets + 1, receipts: 0, inProgress: 0 }),
+      countArchiveRecords: async () => ({ notes: 0, noteConfirmations: 0, reservedNoteIds: 0, workouts: 1, sets: ARCHIVE_LIMITS.maxSets + 1, receipts: 0, inProgress: 0 }),
       listWorkouts: async (input) => { listed.push('workouts'); return reader.listWorkouts(input); },
     } satisfies WorkoutReader)),
     write: (run) => store.write(run),

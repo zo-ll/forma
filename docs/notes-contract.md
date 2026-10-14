@@ -9,15 +9,15 @@ The module exposes `notes` and `close()`.
 It owns its injected store. Do not share a store between independent lifetime owners.
 
 Issue #18 supplied a storage port and memory contract tests.
-The [issue #20 storage checkpoint](notes-storage-contract.md) adds shared SQLite storage and literal text search.
+The [issue #20 storage extension](notes-storage-contract.md) adds shared SQLite storage and literal text search.
 Issue #18 did not add confirmed fields.
 The core-only [issue #19 extension](note-fields-contract.md) now adds suggestions and explicit field confirmation.
 Those earlier slices did not add SQLite tables, FTS5, screens, or inference.
 `FormaService.notes` now composes notes with the shared store, lifetime, receipts, and restore exclusion.
 Both Node and Android factories expose it. Screens and inference remain absent.
 Do not attach an independent notes owner to a live workout database.
-The current workout archive does not include notes.
-Archive operations fail closed when reserved note IDs exist. The archive extension is still required before #20 source acceptance.
+Archive version 2 includes primary notes, current confirmations, all reserved IDs, and original receipts.
+A legacy workout-only archive explicitly empties notes during full replacement. See [the archive contract](archive-contract.md).
 
 ## Records and sources
 
@@ -74,8 +74,8 @@ Operations are `notes.create`, `notes.update`, `notes.delete`, and `notes.confir
 Field confirmation uses a separate versioned result DTO. Released note result DTOs remain unchanged.
 The note change, ID reservation, history revision, and receipt share one atomic write.
 Later integrated adapters must use the same receipt namespace as workouts.
-Issue #20 must preserve deleted-ID reservations in backup and restore.
-Restore must invalidate notes cursors and protect confirmation against intervening notes writes.
+Backup and restore preserve deleted-ID reservations.
+Restore invalidates notes cursors. A global archive revision protects confirmation against intervening notes writes.
 
 Input validation precedes receipt lookup.
 A retry returns the validated original result, even after a later edit or deletion.
@@ -119,4 +119,5 @@ The module rejects new calls as soon as close starts. Repeated close calls share
 
 Memory tests prove portable behavior only.
 Node and Android-shim tests now cover durable reopen and actual Node FTS5.
-Shared notes archive replacement and physical Android proof remain incomplete in issue #20.
+Shared notes archive replacement has portable, Node, and Android-shim tests.
+Physical Forma FTS5, restart, and archive proof remain pending in issue #20.

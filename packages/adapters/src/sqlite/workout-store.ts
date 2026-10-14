@@ -1,10 +1,10 @@
 import type { SqliteConnection, SqliteRow as Row } from './connection.js';
-import { FormaError, normalizeExerciseAlias, validateSetLoadDetails, validateWorkoutSession, WORKOUT_HISTORY_LIMITS } from '@forma/core';
+import { FormaError, noteFieldConfirmationResult, noteFromRecord, normalizeExerciseAlias, validateSetLoadDetails, validateWorkoutSession, WORKOUT_HISTORY_LIMITS } from '@forma/core';
 import type {
   Exercise, ListWorkoutsInput, Workout, SplitDay, WorkoutReader, WorkoutSet,
-  ArchiveCounts, ArchiveRecords, HistoryStorePage, HistoryStoreQuery, RequestReceipt, SetLoadDetails, WorkoutSessionDetails, WorkoutStore, WorkoutWriter,
+  ArchiveCounts, ArchiveNotesRecords, ArchiveRecords, HistoryStorePage, HistoryStoreQuery, RequestReceipt, SetLoadDetails, WorkoutSessionDetails, WorkoutStore, WorkoutWriter,
 } from '@forma/core';
-import { createSqliteNotesView } from './notes-view.js';
+import { createSqliteNotesView, noteRecordFromRow } from './notes-view.js';
 import { pendingMigrations, runSqliteMigrations } from './migrations.js';
 import { SQLITE_MIGRATIONS } from './registry.js';
 import type { MigrationDriver, MigrationValue } from './migrations.js';
@@ -142,6 +142,13 @@ export class SharedSqliteWorkoutStore implements WorkoutStore {
         check();
         return this.db.prepare('SELECT * FROM request_receipts ORDER BY request_id').all().map((row) => this.receiptFromRow(row));
       },
+      readArchiveNotes: async () => { check(); return this.readArchiveNotes(); },
+      getArchiveRevision: async () => {
+        check();
+        const value = this.db.prepare('SELECT revision FROM archive_state WHERE id = 1').get()?.revision;
+        if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) throw new FormaError('STORAGE_FAILURE', 'Invalid archive revision.');
+        return value;
+      },
       countArchiveRecords: async () => { check(); return this.countArchiveRecords(); },
       replaceArchiveRecords: async (records) => {
         check();
@@ -166,20 +173,28 @@ export class SharedSqliteWorkoutStore implements WorkoutStore {
     return row ? this.receiptFromRow(row) : null;
   }
 
-  private requireWorkoutOnlyArchive(): void {
-    // Notes archive integration is not released yet. Never silently export an incomplete backup
-    // or replace receipts while note identities still exist.
-    if (this.db.prepare('SELECT id FROM note_ids LIMIT 1').get() !== undefined) {
-      throw new FormaError('STORAGE_FAILURE', 'This archive version cannot preserve notes or reserved note IDs.', { field: 'archive.notes' });
+  private readArchiveNotes(): ArchiveNotesRecords {
+    try { return {
+      records: this.db.prepare('SELECT * FROM notes ORDER BY date DESC, created_at DESC, id').all().map(noteRecordFromRow),
+      confirmations: this.db.prepare('SELECT note_id, confirmation_json FROM note_confirmations ORDER BY note_id').all()
+        .map(row => {
+          const value = noteFieldConfirmationResult.parse(JSON.parse(stringValue(row, 'confirmation_json')));
+          if (value.source.noteId !== stringValue(row, 'note_id')) throw new FormaError('STORAGE_FAILURE', 'The confirmation row has a different identity.');
+          return value;
+        }),
+      reservedIds: this.db.prepare('SELECT id FROM note_ids ORDER BY id').all().map(row => stringValue(row, 'id')),
+    }; } catch (cause) {
+      throw new FormaError('STORAGE_FAILURE', 'The stored notes cannot form an archive.', {field: 'archive.notes', cause});
     }
   }
 
   private countArchiveRecords(): ArchiveCounts {
-    this.requireWorkoutOnlyArchive();
     const row = this.db.prepare('SELECT (SELECT COUNT(*) FROM workouts) AS workouts, (SELECT COUNT(*) FROM sets) AS sets, '
-      + "(SELECT COUNT(*) FROM request_receipts) AS receipts, (SELECT COUNT(*) FROM workouts WHERE status = 'in-progress') AS in_progress").get();
+      + "(SELECT COUNT(*) FROM notes) AS notes, (SELECT COUNT(*) FROM note_confirmations) AS note_confirmations, "
+      + "(SELECT COUNT(*) FROM note_ids) AS reserved_note_ids, (SELECT COUNT(*) FROM request_receipts) AS receipts, (SELECT COUNT(*) FROM workouts WHERE status = 'in-progress') AS in_progress").get();
     if (!row) throw new FormaError('STORAGE_FAILURE', 'The record counts are unavailable.');
     return {
+      notes: numberValue(row, 'notes'), noteConfirmations: numberValue(row, 'note_confirmations'), reservedNoteIds: numberValue(row, 'reserved_note_ids'),
       workouts: numberValue(row, 'workouts'), sets: numberValue(row, 'sets'),
       receipts: numberValue(row, 'receipts'), inProgress: numberValue(row, 'in_progress'),
     };
@@ -187,11 +202,28 @@ export class SharedSqliteWorkoutStore implements WorkoutStore {
 
   /** Full replacement inside the caller's write transaction. Catalog rows stay unchanged. */
   private replaceArchiveRecords(records: ArchiveRecords): void {
-    this.requireWorkoutOnlyArchive();
+    this.db.exec('DELETE FROM note_confirmations');
+    this.db.exec('DELETE FROM notes');
+    this.db.exec('DELETE FROM note_ids');
     this.db.exec('DELETE FROM sets');
     this.db.exec('DELETE FROM workouts');
     this.db.exec('DELETE FROM request_receipts');
     for (const workout of records.workouts) this.saveWorkout(workout);
+    for (const id of records.notes?.reservedIds ?? []) this.db.prepare('INSERT INTO note_ids (id) VALUES (?)').run(id);
+    for (const value of records.notes?.records ?? []) {
+      const note = noteFromRecord(value);
+      this.db.prepare('INSERT INTO notes (id, date, text, kind, revision, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+        .run(note.id, note.date, note.text, note.kind, note.revision, note.createdAt, note.updatedAt);
+    }
+    for (const value of records.notes?.confirmations ?? []) {
+      const confirmation = noteFieldConfirmationResult.parse(value);
+      const row = this.db.prepare('SELECT revision, updated_at FROM notes WHERE id = ?').get(confirmation.source.noteId);
+      if (!row || row.revision !== confirmation.source.revision || row.updated_at !== confirmation.confirmedAt) {
+        throw new FormaError('STORAGE_FAILURE', 'The imported confirmation source is invalid.');
+      }
+      this.db.prepare('INSERT INTO note_confirmations (note_id, confirmation_json) VALUES (?, ?)')
+        .run(confirmation.source.noteId, JSON.stringify(confirmation));
+    }
     const insert = this.db.prepare(
       'INSERT INTO request_receipts (request_id, operation, input_signature, result_json, format_version) VALUES (?, ?, ?, ?, ?)',
     );
@@ -200,6 +232,8 @@ export class SharedSqliteWorkoutStore implements WorkoutStore {
     }
     // Advance the local revision also for an empty replacement. An archive never supplies a revision.
     this.db.exec('UPDATE workout_history_state SET revision = revision + 1 WHERE id = 1');
+    this.db.exec('UPDATE notes_history_state SET revision = revision + 1 WHERE id = 1');
+    this.db.exec('UPDATE archive_state SET revision = revision + 1 WHERE id = 1');
   }
 
   private receiptFromRow(row: Row): RequestReceipt {

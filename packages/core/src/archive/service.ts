@@ -56,7 +56,7 @@ export function createArchiveApi(
         checkCounts(await reader.countArchiveRecords());
         return {
           createdAt, exercises: await reader.listExercises(), splitDays: await reader.listSplitDays(),
-          workouts: await reader.listWorkouts({}), receipts: await reader.listRequestReceipts(),
+          workouts: await reader.listWorkouts({}), receipts: await reader.listRequestReceipts(), notes: await reader.readArchiveNotes(),
         };
       });
       const { text, digest } = serializeArchive(content);
@@ -79,10 +79,10 @@ export function createArchiveApi(
       return exclusion.store.read(async (reader) => {
         await requireCatalog(reader, archive);
         const current = await reader.countArchiveRecords();
-        const currentHistoryRevision = await reader.getHistoryRevision();
+        const currentHistoryRevision = await reader.getArchiveRevision();
         return {
-          digest: archive.digest, formatVersion: 1, createdAt: archive.createdAt, byteLength: archive.byteLength,
-          modules: [...ARCHIVE_MODULES], archive: archive.counts, current, currentHistoryRevision,
+          digest: archive.digest, formatVersion: archive.formatVersion, missingModules: archive.missingModules, createdAt: archive.createdAt, byteLength: archive.byteLength,
+          modules: ARCHIVE_MODULES.filter(name => !archive.missingModules.includes(name)), archive: archive.counts, current, currentHistoryRevision,
         };
       });
     },
@@ -105,13 +105,13 @@ export function createArchiveApi(
       try {
         return await withRequest(store, requestId, 'archive.restore', { digest: archive.digest, expectedHistoryRevision },
           restoreResult, async (writer) => {
-            if (await writer.getHistoryRevision() !== expectedHistoryRevision) {
+            if (await writer.getArchiveRevision() !== expectedHistoryRevision) {
               throw new FormaError('CONFLICT', 'The records changed after the inspection. Inspect the archive again.', {
                 field: 'expectedHistoryRevision',
               });
             }
             await requireCatalog(writer, archive);
-            await writer.replaceArchiveRecords({ workouts: archive.workouts, receipts: archive.receipts });
+            await writer.replaceArchiveRecords({ workouts: archive.workouts, receipts: archive.receipts, notes: archive.notes });
             return { digest: archive.digest, counts: archive.counts };
           });
       } finally {

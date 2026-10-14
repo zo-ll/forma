@@ -1,3 +1,4 @@
+import type { FormaService } from '@forma/core';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { open } from '@op-engineering/op-sqlite';
@@ -5,6 +6,7 @@ import { collectWorkoutCases } from 'forma-fixtures/workout-cases.js';
 import { collectRequestCases } from 'forma-fixtures/request-cases.js';
 import { collectLoadCases } from 'forma-fixtures/load-cases.js';
 import { collectSessionCases } from 'forma-fixtures/session-cases.js';
+import { collectArchiveCases } from 'forma-fixtures/archive-cases.js';
 import { collectNoteCases } from 'forma-fixtures/note-cases.js';
 import { collectNoteFieldCases } from 'forma-fixtures/note-field-cases.js';
 import { collectNoteSearchCases } from 'forma-fixtures/note-search-cases.js';
@@ -41,6 +43,17 @@ export default function App({ formaMode = 'fixtures', formaRunId = 'manual' }: P
           for (const item of [...collectNoteCases(assert), ...collectNoteFieldCases(assert), ...collectNoteSearchCases(assert)]) {
             const module = nativeNotesFixture(open);
             try { await item.run(module); } finally { await module.close(); }
+            count++; say('PASS ' + count + ': ' + item.name);
+            await new Promise<void>((resolve) => setTimeout(resolve, 0));
+          }
+          for (const item of collectArchiveCases(assert)) {
+            const owners: FormaService[] = [];
+            try { await item.run(async () => {
+              const prefix = 'archive-' + count + '-' + owners.length + '-';
+              const owner = nativeFixture(open, Array.from({length: 100}, (_, id) => prefix + id)).service;
+              owners.push(owner); return owner;
+            }); }
+            finally { for (const owner of owners) await owner.close(); }
             count++; say('PASS ' + count + ': ' + item.name);
             await new Promise<void>((resolve) => setTimeout(resolve, 0));
           }

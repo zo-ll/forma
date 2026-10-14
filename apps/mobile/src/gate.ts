@@ -1,6 +1,6 @@
 import {AppState} from 'react-native';
 import {FormaError, resolveCalendarRange} from '@forma/core';
-import type {Workout, WorkoutSet} from '@forma/core';
+import type {Note, NoteFieldConfirmation, Workout, WorkoutSet} from '@forma/core';
 import {parsePreferences} from '@forma/mobile-host';
 import type {MobileHost} from '@forma/mobile-host';
 import {deviceAdapters} from './adapters/device';
@@ -17,6 +17,9 @@ interface SavedGate {
   liveStarted: Workout;
   finishedCurrent: Workout;
   liveCurrent: Workout;
+  noteCreated: Note;
+  noteCurrent: Note;
+  noteConfirmation: NoteFieldConfirmation;
 }
 function cycle(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -37,6 +40,8 @@ export async function runHostGate(host: MobileHost, mode: string, runId: string)
     check(failure instanceof FormaError && failure.code === code && (field === undefined || failure.field === field), 'Expected typed error ' + code + ' on ' + field);
   };
   const request = (suffix: string) => 'hostgate.' + runId + '.' + suffix;
+  const noteText = 'Forma host note ' + runId + ' café 💤';
+  const noteFields = {pain: [], sleep: {durationMin: 0, quality: null}, personalBest: null} as const;
   try {
     if (!deviceAdapters.isHostGate()) throw new Error('Gate requires the isolated native build.');
     await host.start();
@@ -55,6 +60,27 @@ export async function runHostGate(host: MobileHost, mode: string, runId: string)
       await rejects(() => service.workouts.history({dateFrom: 'not-a-date'}), 'INVALID_INPUT', 'dateFrom');
       const before = await service.workouts.list(); host.background(); await host.resume();
       same(await service.workouts.list(), before, 'Host resume changed records.');
+      const note = await service.notes.create({requestId: request('note.create'), date: '2026-10-14', text: noteText});
+      same((await service.notes.searchText({query: noteText})).items, [note], 'Actual Forma FTS5 source mismatch.');
+      const confirmation = await service.notes.confirmFields({requestId: request('note.confirm'), noteId: note.id, expectedRevision: 1, fields: noteFields});
+      const currentNote = await service.notes.get(note.id);
+      same((await service.notes.fields(note.id)).confirmation, confirmation, 'Forma note confirmation mismatch.');
+      const deleted = await service.notes.create({requestId: request('note.deleted'), date: note.date, text: 'Forma deleted note ' + runId});
+      await service.notes.delete({requestId: request('note.delete'), noteId: deleted.id, expectedRevision: 1});
+      const exported = await service.archive.export();
+      check(exported.counts.notes >= 1 && exported.counts.noteConfirmations >= 1 && exported.counts.reservedNoteIds >= 2, 'Notes archive counts missing.');
+      await service.notes.update({requestId: request('note.edit'), noteId: note.id, expectedRevision: 2, text: 'Forma changed note ' + runId});
+      check((await service.notes.searchText({query: noteText})).items.length === 0, 'Old FTS text survived an edit.');
+      const preview = await service.archive.inspect({text: exported.text});
+      const epoch = host.snapshot().recordsEpoch;
+      await host.replaceRecords(owner => owner.archive.restore({requestId: request('note.restore'), text: exported.text,
+        expectedDigest: preview.digest, expectedHistoryRevision: preview.currentHistoryRevision}));
+      same(await service.notes.get(note.id), currentNote, 'Archive did not preserve exact note.');
+      same((await service.notes.fields(note.id)).confirmation, confirmation, 'Archive did not preserve confirmation.');
+      same((await service.notes.searchText({query: noteText})).items, [currentNote], 'Archive FTS source mismatch.');
+      same(await service.notes.create({requestId: request('note.create'), date: note.date, text: noteText}), note, 'Original note receipt changed.');
+      check(host.snapshot().recordsEpoch === epoch + 1, 'Restore did not invalidate host record views.');
+      await rejects(() => service.notes.get(deleted.id), 'NOT_FOUND', 'noteId');
       const pending = service.workouts.create({requestId: request('drain'), date: '2026-10-12'});
       const closing = host.close();
       check((await pending).date === '2026-10-12', 'Accepted write did not drain.'); await closing;
@@ -71,6 +97,9 @@ export async function runHostGate(host: MobileHost, mode: string, runId: string)
       const set = await service.workouts.addSet({requestId: request('set'), workoutId: created.id, exerciseId: 'leg-curls', reps: 10, weightKg: 20, loadConvention: 'entered'});
       const liveStarted = await service.workouts.start({requestId: request('start'), date: '2026-10-13', notes: 'Forma host gate ' + runId});
       await service.workouts.addSet({requestId: request('live.set'), workoutId: liveStarted.id, exerciseId: 'leg-extensions', reps: 8, weightKg: 30});
+      const noteCreated = await service.notes.create({requestId: request('note.create'), date: '2026-10-14', text: noteText});
+      const noteConfirmation = await service.notes.confirmFields({requestId: request('note.confirm'), noteId: noteCreated.id, expectedRevision: 1, fields: noteFields});
+      const noteCurrent = await service.notes.get(noteCreated.id);
       const finishedCurrent = await service.workouts.get(created.id);
       const liveCurrent = await service.workouts.get(liveStarted.id);
       check(finishedCurrent.sets.length === 1, 'Finished synthetic record not saved.');
@@ -81,7 +110,9 @@ export async function runHostGate(host: MobileHost, mode: string, runId: string)
       await host.resume();
       same(await service.workouts.get(created.id), finishedCurrent, 'Finished record changed across actual background/resume.');
       same(await service.workouts.get(liveStarted.id), liveCurrent, 'Live record changed across actual background/resume.');
-      const marker: SavedGate = {runId, created, set, liveStarted, finishedCurrent, liveCurrent};
+      same(await service.notes.get(noteCurrent.id), noteCurrent, 'Exact note changed across background/resume.');
+      same((await service.notes.fields(noteCurrent.id)).confirmation, noteConfirmation, 'Note confirmation changed across background/resume.');
+      const marker: SavedGate = {runId, created, set, liveStarted, finishedCurrent, liveCurrent, noteCreated, noteCurrent, noteConfirmation};
       check(deviceAdapters.gateSnapshots.write(JSON.stringify(marker)), 'Expected snapshots were not confirmed on disk.');
       // Leave the native database open. The runner force-stops this process next.
     } else if (mode === 'verify') {
@@ -92,6 +123,11 @@ export async function runHostGate(host: MobileHost, mode: string, runId: string)
       // Read BEFORE any replay. Missing primary records must fail, never be recreated.
       same(await service.workouts.get(saved.created.id), saved.finishedCurrent, 'Exact finished record did not survive process restart.');
       same(await service.workouts.get(saved.liveStarted.id), saved.liveCurrent, 'Exact live record did not survive process restart.');
+      same(await service.notes.get(saved.noteCurrent.id), saved.noteCurrent, 'Exact note did not survive restart.');
+      same((await service.notes.fields(saved.noteCurrent.id)).confirmation, saved.noteConfirmation, 'Confirmation did not survive restart.');
+      same((await service.notes.searchText({query: noteText})).items, [saved.noteCurrent], 'FTS did not survive restart.');
+      same(await service.notes.create({requestId: request('note.create'), date: saved.noteCreated.date, text: noteText}), saved.noteCreated, 'Original note create receipt changed.');
+      same(await service.notes.confirmFields({requestId: request('note.confirm'), noteId: saved.noteCreated.id, expectedRevision: 1, fields: noteFields}), saved.noteConfirmation, 'Original confirmation receipt changed.');
       same(await service.workouts.create({requestId: request('create'), date: '2026-10-12', notes: 'Forma host gate ' + runId}), saved.created, 'Original create receipt changed.');
       same(await service.workouts.addSet({requestId: request('set'), workoutId: saved.created.id, exerciseId: 'leg-curls', reps: 10, weightKg: 20, loadConvention: 'entered'}), saved.set, 'Original set receipt changed.');
       same(await service.workouts.start({requestId: request('start'), date: '2026-10-13', notes: 'Forma host gate ' + runId}), saved.liveStarted, 'Original session receipt changed.');

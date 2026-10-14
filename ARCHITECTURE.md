@@ -5,8 +5,9 @@ This document describes the implemented workout service.
 [The notes contract](docs/notes-contract.md) describes the portable notes module.
 Node and Android factories now compose `FormaService.notes` on the same store, receipt namespace, lifetime, and restore exclusion.
 `createNotesModule()` remains a standalone owner for an injected notes store.
-The [storage checkpoint](docs/notes-storage-contract.md) adds durable confirmations and literal FTS5 search.
-Archive integration is incomplete. Archive operations fail closed when any reserved note ID exists.
+The [storage extension](docs/notes-storage-contract.md) adds durable confirmations and literal FTS5 search.
+Version-2 archives now replace notes, confirmations, reserved IDs, workouts, and exact receipts atomically.
+Legacy version-1 restore explicitly empties notes. A separate global archive revision protects confirmation across modules.
 Node and Android-shim tests do not prove device behavior.
 [The field contract](docs/note-fields-contract.md) extends it with unconfirmed suggestions and explicit field confirmation.
 Confirmation advances note revision. Ordinary note edits and deletion clear the confirmation atomically.
@@ -335,6 +336,8 @@ It preserves all existing records, receipts, and released migrations.
 Version 6 adds notes, deleted-ID reservations, confirmations, and a separate persistent notes history revision.
 Version 7 adds an external-content FTS5 table with atomic primary-record triggers.
 FTS5 absence fails startup and rolls back the migrations. Note text remains unchanged.
+Version 8 adds the global archive revision and triggers for every replaceable table.
+Workout and notes query revisions remain independent. Restore advances both, including empty replacement.
 
 `WorkoutStore.read()` supplies a coherent read view.
 `WorkoutStore.write()` supplies an atomic write transaction.

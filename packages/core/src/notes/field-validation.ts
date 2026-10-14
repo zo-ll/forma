@@ -60,7 +60,7 @@ function locationKey(field: PainField): string {
 }
 
 /** A complete, detached replacement. Missing keys never silently erase a field. */
-export function validateNoteFields(value: unknown): NoteFields {
+function parseNoteFields(value: unknown, legacyOverlap: boolean): NoteFields {
   objectInput(value, ['pain', 'sleep', 'personalBest']);
   const fields = value as NoteFields;
   if (!Array.isArray(fields.pain) || fields.pain.length > NOTE_FIELD_LIMITS.maxPainEntries) {
@@ -70,7 +70,10 @@ export function validateNoteFields(value: unknown): NoteFields {
   for (let i = 0; i < pain.length; i++) {
     for (let j = 0; j < i; j++) {
       const a = pain[i]!; const b = pain[j]!;
-      if (locationKey(a) === locationKey(b)
+      const sameLocation = legacyOverlap ? a.bodyPart === b.bodyPart
+        && (a.otherBodyPart?.trim().toLowerCase() ?? null) === (b.otherBodyPart?.trim().toLowerCase() ?? null)
+        : locationKey(a) === locationKey(b);
+      if (sameLocation
         && (a.side === b.side || ['bilateral', 'unspecified'].includes(a.side)
           || ['bilateral', 'unspecified'].includes(b.side))) {
         invalid('pain', 'Pain fields must not repeat or overlap a location.');
@@ -102,12 +105,18 @@ export function validateNoteFields(value: unknown): NoteFields {
   return { pain, sleep, personalBest };
 }
 
+/** Strict rules for every new confirmation. */
+export function validateNoteFields(value: unknown): NoteFields { return parseNoteFields(value, false); }
+
+/** Read-only compatibility with the released #19 validator. Never use to authorize a new write. */
+export function readReleasedNoteFields(value: unknown): NoteFields { return parseNoteFields(value, true); }
+
 export const noteFieldConfirmationResult: ResultCodec<NoteFieldConfirmation> = {
   parse(value) {
     objectInput(value, ['formatVersion', 'source', 'confirmedAt', 'fields']);
     const result = value as NoteFieldConfirmation;
     if (result.formatVersion !== 1) invalid('formatVersion', 'The confirmation format is not supported.');
     return { formatVersion: 1, source: noteSource(result.source), confirmedAt: utcTimestamp(result.confirmedAt),
-      fields: validateNoteFields(result.fields) };
+      fields: readReleasedNoteFields(result.fields) };
   },
 };

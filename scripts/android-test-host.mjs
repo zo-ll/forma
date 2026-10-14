@@ -46,7 +46,7 @@ function prepare() {
   console.log(run('npm', ['install'], host));
   copyFileSync(join(root, 'scripts/android/App.tsx'), join(host, 'App.tsx'));
   write(join(host, 'forma-build.json'), JSON.stringify({
-    ...repositoryState(), reactNative: '0.87.1', opSqlite: '18.2.5', fixtureCount: 175,
+    ...repositoryState(), reactNative: '0.87.1', opSqlite: '18.2.5', fixtureCount: 185,
   }, null, 2));
   write(join(host, 'metro.config.js'), `const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
 const path = require('node:path');

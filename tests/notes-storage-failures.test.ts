@@ -55,25 +55,24 @@ test('cached notes APIs cannot bypass restore exclusion or close during restore'
   await Promise.all(blocked.map(pending => assert.rejects(pending, errorCode('CONFLICT', 'restore'))));
   await restoring;
   assert.deepEqual((await notes.history()).items, []);
-  const second = target.archive.restore({ requestId: 'second', text, expectedDigest: digest, expectedHistoryRevision: 1 });
+  const second = target.archive.restore({ requestId: 'second', text, expectedDigest: digest, expectedHistoryRevision: (await target.archive.inspect({ text })).currentHistoryRevision });
   const closing = target.close();
   await assert.rejects(notes.history(), errorCode('SERVICE_CLOSED'));
   await second; await closing;
 });
 
-test('unfinished notes archive support fails closed, including after deleting the last note', async (t) => {
+test('notes archive support includes current notes and deleted-ID reservations', async (t) => {
   const databasePath = await path(t);
   const service = openNodeForma({ databasePath }); t.after(() => service.close());
   const empty = await service.archive.export();
   const note = await service.notes.create({ requestId: 'create', date: '2026-10-14', text: 'must not be omitted' });
-  const before = await service.notes.history();
-  await assert.rejects(service.archive.export(), errorCode('STORAGE_FAILURE', 'archive.notes'));
-  await assert.rejects(service.archive.inspect({ text: empty.text }), errorCode('STORAGE_FAILURE', 'archive.notes'));
-  await assert.rejects(service.archive.restore({ requestId: 'replace', text: empty.text, expectedDigest: empty.digest, expectedHistoryRevision: 0 }),
-    errorCode('STORAGE_FAILURE', 'archive.notes'));
-  assert.deepEqual(await service.notes.history(), before);
+  assert.equal((await service.archive.export()).counts.notes, 1);
+  const preview = await service.archive.inspect({ text: empty.text });
+  assert.equal(preview.current.reservedNoteIds, 1);
   await service.notes.delete({ requestId: 'delete', noteId: note.id, expectedRevision: 1 });
-  await assert.rejects(service.archive.export(), errorCode('STORAGE_FAILURE', 'archive.notes'));
+  const exported = await service.archive.export();
+  assert.equal(exported.counts.notes, 0);
+  assert.equal(exported.counts.reservedNoteIds, 1);
 });
 
 test('FTS migration failure restores the previous schema, rows, and version; retry succeeds', async (t) => {
@@ -89,8 +88,8 @@ test('FTS migration failure restores the previous schema, rows, and version; ret
   assert.equal(db.prepare('PRAGMA user_version').get()?.user_version, 5);
   assert.equal(db.prepare("SELECT name FROM sqlite_master WHERE name = 'note_ids'").get(), undefined);
   assert.deepEqual(db.prepare('SELECT * FROM exercises ORDER BY catalog_position').all(), catalog);
-  assert.deepEqual(runSqliteMigrations(driver, SQLITE_MIGRATIONS), [6, 7]);
-  assert.equal(db.prepare('PRAGMA user_version').get()?.user_version, 7);
+  assert.deepEqual(runSqliteMigrations(driver, SQLITE_MIGRATIONS), [6, 7, 8]);
+  assert.equal(db.prepare('PRAGMA user_version').get()?.user_version, 8);
 });
 
 test('stored DTO corruption fails typed and a valid stale confirmation is suppressed', async (t) => {

@@ -7,6 +7,9 @@
  */
 
 export interface ArchiveCountsView {
+  readonly notes?: number;
+  readonly noteConfirmations?: number;
+  readonly reservedNoteIds?: number;
   readonly workouts: number;
   readonly sets: number;
   readonly receipts: number;
@@ -14,6 +17,7 @@ export interface ArchiveCountsView {
 }
 
 export interface ArchivePreview {
+  readonly missingModules?: readonly string[];
   readonly digest: string;
   readonly createdAt: string;
   readonly byteLength: number;
@@ -98,14 +102,14 @@ export interface ArchiveFlow {
 export const RESTORE_SLOT = 'archive.restore';
 
 export const EXPORT_WARNING = [
-  'The archive contains all your workout records in plain text.',
+  'The archive contains all your workout records, notes, confirmed fields, and reserved note IDs in plain text.',
   'It also contains the saved command receipts. These receipts can contain data from deleted records.',
   'Forma does not encrypt the file. Any person or app with access to the file can read it.',
   'The checksum detects damage. It does not prove who made the file.',
 ].join(' ');
 
 export const RESTORE_WARNING = [
-  'Restore replaces all workouts, sets, and saved command receipts on this phone.',
+  'Restore replaces all workouts, sets, notes, confirmed fields, reserved note IDs, and saved command receipts on this phone.',
   'Records that are not in the archive will be removed, including an active workout.',
   'Export the current records first if you need them.',
 ].join(' ');
@@ -132,6 +136,8 @@ function plural(count: number, word: string): string {
 
 export function describeCounts(counts: ArchiveCountsView): string {
   return plural(counts.workouts, 'workout') + ', ' + plural(counts.sets, 'set') + ', ' + plural(counts.receipts, 'receipt')
+    + (counts.notes === undefined ? '' : ', ' + plural(counts.notes, 'note') + ', '
+      + plural(counts.noteConfirmations ?? 0, 'note confirmation') + ', ' + plural(counts.reservedNoteIds ?? 0, 'reserved note ID'))
     + (counts.inProgress > 0 ? ', 1 active workout' : '');
 }
 
