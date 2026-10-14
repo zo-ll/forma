@@ -36,9 +36,9 @@ Restore removed one owned scratch workout and preserved every original primary D
 Only one new durable restore receipt remained. Exact restored data survived process restart.
 A real stale History draft cleared after restore.
 
-At the last native check, the phone had 21 original workouts, three sets, 7,069 receipts, no active workout, and usable Home.
+At the #12 native check, the phone had 21 original workouts, three sets, 7,069 receipts, no active workout, and usable Home.
 The user controls the phone. Recheck live state before any mutation.
-The coordinator will request a new exclusive window for #14.
+The coordinator must obtain a new exclusive window before another phone operation.
 One valid plaintext backup remains in local Downloads. It includes deleted-record command snapshots.
 The temporary scale fixtures are gone. The scale marker is a cleaned tombstone.
 Do not recreate scale fixtures or use normal gate seed modes without permission.
@@ -51,9 +51,33 @@ Private evidence on the original host:
 
 Keep raw archives, records, device addresses, keys, APKs, screenshots, and logs outside this public repository.
 
+## Issue #14 result
+
+The native gate remains unapproved.
+The clean CI APK from source `5911450` passed actual upgrade preservation and all three catalog picker checks.
+Its installed hash is `c7f2c7aa0943a8543f1ff908ff560c69d97b0cb6f488d1210c6180a3b8b36976`.
+Background, real process restart, set correction, finish, and filtered History navigation preserved the expected records.
+A pre-existing active workout blocked the first window. The user then authorized a temporary finish and exact restoration.
+Final restoration preserved every original catalog record, primary DTO, and raw receipt, with only one legitimate new restore receipt.
+The exact restored snapshot survived another real process restart. The original active workout returned unchanged.
+The phone returned to usable Home. No further phone operation has authorization without a new exclusive window.
+
+Two rapid Save taps created two identical sets with separate request IDs.
+An independent DeepSeek review confirmed a medium defect in the screen's action intent.
+The core correctly accepts deliberate identical sets. Do not add value-based deduplication to the core.
+The focused correction requires new intent after success. A field change or explicit value confirmation permits the next Save.
+The ledger shares an attempt for repeated pending commands. An unconfirmed retry reuses the original receipt.
+The focused source candidate passed all 708 tests, the mobile typecheck, and the 64-file boundary check.
+Three new regressions failed against the old screen. All five new cases passed against the correction.
+Source review, a fresh build, and another native pass must approve the correction separately.
+Progress facts and source navigation, the full History matrix, owned deletion/discard, themes, and accessibility remain incomplete.
+
+Private evidence: `~/.local/state/forma/issue-14/NATIVE-RESULT.md` and `review-native-result.md`.
+Do not treat the old #12 live counts as the current dataset.
+
 ## Checks and build
 
-The complete local CI candidate passed 703 tests and the mobile typecheck.
+The #13 local CI candidate passed 703 tests and the mobile typecheck.
 The boundary checks, dependency policy, and workflow lint also passed.
 The cold [GitHub run](https://github.com/zo-ll/forma/actions/runs/38539417810) passed both jobs at exact source `210b828`.
 The downloaded APK hash matched clean metadata. The source review covered 11/11 files with one low artifact-rerun finding.

@@ -8,6 +8,7 @@ import * as core from '@forma/core';
 import type { WorkoutSet } from '@forma/core';
 import * as formsModule from '../apps/mobile/src/forms/index.js';
 import type { CommandLedger, DraftStore } from '../apps/mobile/src/forms/index.js';
+import { memoryFixture } from './helpers.js';
 
 interface Element {
   readonly type: unknown;
@@ -36,6 +37,11 @@ function hookRuntime() {
         own[slot] = typeof value === 'function' ? (value as (current: unknown) => unknown)(own[slot]) : value;
       };
       return [own[slot], set];
+    },
+    useRef(initial: unknown) {
+      const slot = index++;
+      if (!(slot in slots)) slots[slot] = {current: initial};
+      return slots[slot];
     },
     // The screens under test use mount effects only.
     useEffect(effect: () => void) {
@@ -143,7 +149,8 @@ function readRecorder() {
 
 // Entry: the restored-notice Clear action.
 
-function setForm(store: ReturnType<typeof forms>, previous: WorkoutSet | null) {
+function setForm(store: ReturnType<typeof forms>, previous: WorkoutSet | null,
+  service?: core.FormaService, exerciseId = 'incline') {
   const runtime = hookRuntime();
   const exports = loadScreen('Entry.tsx', runtime.react, {
     '../ui/controls': {...CONTROLS, describeError: () => ({field: null, code: 'X', message: ''})},
@@ -153,8 +160,11 @@ function setForm(store: ReturnType<typeof forms>, previous: WorkoutSet | null) {
     './Home': {},
   });
   const workout = {id: 'w1', date: '2026-10-13', updatedAt: 'r1', sets: previous ? [previous] : []};
-  const ctx = {forms: store, palette: {}, host: {}, snapshot: {phase: 'ready'}, push: () => {}};
-  const props = {ctx, workout, exerciseId: 'incline', exerciseName: 'Incline', previous,
+  const ctx = {forms: store, palette: {}, host: {service: () => {
+    assert.ok(service, 'A Save test must supply the real service');
+    return service;
+  }}, snapshot: {phase: 'ready'}, push: () => {}};
+  const props = {ctx, workout, exerciseId, exerciseName: 'Incline', previous,
     nextIndex: previous ? 2 : 1, onSettled: () => {}};
   // A new mount is a return to the entry screen after Home.
   return () => runtime.mount(exports.SetForm as (props: object) => Element, props);
@@ -229,6 +239,135 @@ test('Clear keeps an unconfirmed set command and its request identity', async ()
   screen = resumed.render();
   assert.deepEqual(store.commands.pending(slot), before);
   assert.match(screen.text, /The last save is unconfirmed/);
+});
+
+// Accepted Save intent must survive settlement, a new render, and a new mount.
+const REAL_EXERCISE = 'incline-dumbbell-press';
+const REAL_SLOT = formsModule.addSetSlot('w1', REAL_EXERCISE);
+function enteredDraft(store: ReturnType<typeof forms>) {
+  store.drafts.set(`set:w1:${REAL_EXERCISE}`, {
+    reps: '6', weight: '20', rpe: '8.5', loadConvention: 'per-hand', implementCount: 2,
+  });
+}
+const press = (screen: ReturnType<typeof view>, label: string) =>
+  (screen.byLabel(label).props.onPress as () => void)();
+async function settle(store: ReturnType<typeof forms>) {
+  const attempt = store.commands.current<WorkoutSet>(REAL_SLOT);
+  if (attempt) await attempt;
+}
+
+test('a queued Save callback after a confirmed result cannot add the set again', async t => {
+  const {service} = memoryFixture(t, ['w1']);
+  await service.workouts.start({requestId: 'screen-start', date: '2026-10-13', splitDayId: 'upper'});
+  const store = forms();
+  enteredDraft(store);
+  const mounted = setForm(store, null, service, REAL_EXERCISE)();
+  const before = mounted.render();
+  press(before, 'Save set');
+  await settle(store);
+  assert.equal(store.commands.pending(REAL_SLOT), null, 'The first receipt is confirmed, not still pending');
+  // React can still dispatch the callback that existed before settlement.
+  press(before, 'Save set');
+  await settle(store);
+  assert.equal((await service.workouts.get('w1')).sets.length, 1);
+});
+
+test('a new form needs new intent and can deliberately save identical consecutive sets', async t => {
+  const {service} = memoryFixture(t, ['w1']);
+  await service.workouts.start({requestId: 'screen-start', date: '2026-10-13', splitDayId: 'upper'});
+  const store = forms();
+  enteredDraft(store);
+  press(setForm(store, null, service, REAL_EXERCISE)().render(), 'Save set');
+  await settle(store);
+  const first = (await service.workouts.get('w1')).sets[0]!;
+  const mounted = setForm(store, first, service, REAL_EXERCISE)();
+  let screen = mounted.render();
+  assert.equal(reps(screen), '6');
+  assert.equal(screen.byLabel('Weight · kg').props.value, '20');
+  // Even a stale event delivered to a disabled control must not send a command.
+  press(screen, 'Save set');
+  await settle(store);
+  assert.equal((await service.workouts.get('w1')).sets.length, 1);
+  assert.ok(screen.byLabel('Save set').props.disabledReason);
+  press(screen, 'Confirm values for set 2');
+  screen = mounted.render();
+  assert.equal(screen.byLabel('Save set').props.disabledReason, null);
+  press(screen, 'Save set');
+  await settle(store);
+  const saved = (await service.workouts.get('w1')).sets;
+  assert.equal(saved.length, 2);
+  assert.notEqual(saved[0]!.id, saved[1]!.id);
+  assert.deepEqual(saved.map(({reps, weightKg, loadConvention, implementCount, rpe}) =>
+    ({reps, weightKg, loadConvention, implementCount, rpe})), Array(2).fill({
+    reps: 6, weightKg: 20, loadConvention: 'per-hand', implementCount: 2, rpe: 8.5,
+  }));
+});
+
+test('an edit supplies next-set intent without a separate confirmation', async t => {
+  const {service} = memoryFixture(t, ['w1']);
+  await service.workouts.start({requestId: 'screen-start', date: '2026-10-13', splitDayId: 'upper'});
+  const first = await service.workouts.addSet({requestId: 'first-set', workoutId: 'w1', exerciseId: REAL_EXERCISE,
+    reps: 6, weightKg: 20, loadConvention: 'per-hand', implementCount: 2, rpe: 8.5});
+  const store = forms();
+  const mounted = setForm(store, first, service, REAL_EXERCISE)();
+  let screen = mounted.render();
+  (screen.byLabel('Reps').props.onChange as (text: string) => void)('7');
+  screen = mounted.render();
+  assert.equal(screen.byLabel('Save set').props.disabledReason, null);
+  press(screen, 'Save set');
+  await settle(store);
+  assert.deepEqual((await service.workouts.get('w1')).sets.map(set => set.reps), [6, 7]);
+});
+
+test('same-render field edits supply the exact current next-set intent', async t => {
+  const {service} = memoryFixture(t, ['w1']);
+  await service.workouts.start({requestId: 'screen-start', date: '2026-10-13', splitDayId: 'upper'});
+  const first = await service.workouts.addSet({requestId: 'first-set', workoutId: 'w1', exerciseId: REAL_EXERCISE,
+    reps: 6, weightKg: 20, loadConvention: 'per-hand', implementCount: 2, rpe: 8.5});
+  const store = forms();
+  const mounted = setForm(store, first, service, REAL_EXERCISE)();
+  const before = mounted.render();
+  (before.byLabel('Reps').props.onChange as (text: string) => void)('7');
+  (before.byLabel('Weight · kg').props.onChange as (text: string) => void)('30');
+  // The Save callback from that same render must use both new field values.
+  press(before, 'Save set');
+  await settle(store);
+  const saved = (await service.workouts.get('w1')).sets;
+  assert.equal(saved.length, 2);
+  assert.equal(saved[1]!.reps, 7);
+  assert.equal(saved[1]!.weightKg, 30);
+  const screen = mounted.render();
+  assert.equal(reps(screen), '7');
+  assert.equal(screen.byLabel('Weight · kg').props.value, '30');
+});
+
+test('a lost Save answer still retries the original receipt without another set', async t => {
+  const {service} = memoryFixture(t, ['w1']);
+  await service.workouts.start({requestId: 'screen-start', date: '2026-10-13', splitDayId: 'upper'});
+  const keys: string[] = [];
+  let lose = true;
+  const hostService = {...service, workouts: {...service.workouts, addSet: async (input: core.AddSetInput) => {
+    keys.push(input.requestId);
+    const saved = await service.workouts.addSet(input);
+    if (lose) throw new Error('The answer was lost after the commit');
+    return saved;
+  }}};
+  const store = forms();
+  enteredDraft(store);
+  const mounted = setForm(store, null, hostService, REAL_EXERCISE)();
+  const before = mounted.render();
+  press(before, 'Save set');
+  await assert.rejects(settle(store));
+  assert.equal(store.commands.pending(REAL_SLOT)?.unconfirmed, true);
+  lose = false;
+  // A return after the committed result became visible must still replay the old request.
+  const committed = (await service.workouts.get('w1')).sets[0]!;
+  const resumed = setForm(store, committed, hostService, REAL_EXERCISE)();
+  press(resumed.render(), 'Save set');
+  await settle(store);
+  assert.deepEqual(keys, ['req-1', 'req-1']);
+  assert.equal((await service.workouts.get('w1')).sets.length, 1);
+  assert.equal(store.commands.pending(REAL_SLOT), null);
 });
 
 // History: typed but unapplied dates.

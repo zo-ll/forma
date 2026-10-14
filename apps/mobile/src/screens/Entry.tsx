@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {Modal, Pressable, ScrollView, Text, TextInput, View} from 'react-native';
 import type {AddSetInput, Exercise, LoadConvention, PreviousSetsResult, SplitDay, Workout, WorkoutSet} from '@forma/core';
 import {EMPTY_SET_DRAFT, addSetSlot, draftHasValues, parseSetDraft} from '../forms/index';
@@ -204,6 +204,10 @@ export function SetForm({ctx, workout, exerciseId, exerciseName, previous, nextI
   });
   // A new exercise defaults to unknown load; a later set starts from the previous set of this exercise.
   const [draft, setDraft] = useState<SetDraft>(() => forms.drafts.get<SetDraft>(draftKey) ?? (previous ? draftFromSet(previous) : EMPTY_SET_DRAFT));
+  const [armed, setArmed] = useState(() => previous === null || forms.drafts.get<SetDraft>(draftKey) !== null);
+  // Consume action intent before the request. A fast receipt must not arm another Save.
+  const intent = useRef({armed, draft});
+  const arm = (value: boolean) => {intent.current.armed = value; setArmed(value);};
   const [problems, setProblems] = useState<readonly FieldProblem[]>([]);
   const [failure, setFailure] = useState<unknown>(null);
   type SetCommand = Omit<AddSetInput, 'requestId'>;
@@ -215,19 +219,22 @@ export function SetForm({ctx, workout, exerciseId, exerciseName, previous, nextI
   const unconfirmed = forms.commands.pending(slot)?.unconfirmed === true;
 
   const show = (next: SetDraft) => {
+    intent.current.draft = next;
     setDraft(next);
     setProblems([]);
     setFailure(null);
     setNotice(null);
   };
   const change = (patch: Partial<SetDraft>) => {
-    const next = {...draft, ...patch};
+    const next = {...intent.current.draft, ...patch};
+    arm(true);
     show(next);
     forms.drafts.set(draftKey, next);
   };
   // Clear returns to the defaults of a new form. A stored copy of them would restore the notice later.
   // The pending command for this slot stays in the ledger.
   const clear = () => {
+    arm(true);
     setRestored(false);
     show(previous ? draftFromSet(previous) : EMPTY_SET_DRAFT);
     forms.drafts.clear(draftKey);
@@ -240,6 +247,7 @@ export function SetForm({ctx, workout, exerciseId, exerciseName, previous, nextI
   };
 
   const attach = (attempt: Promise<WorkoutSet>, sent: SetCommand) => {
+    arm(false);
     setPending(sent);
     attempt.then(set => {
       setPending(null);
@@ -249,6 +257,7 @@ export function SetForm({ctx, workout, exerciseId, exerciseName, previous, nextI
       setNotice(`✓ Set ${nextIndex} saved on this phone.`);
       onSettled(set.id);
     }, error => {
+      arm(true);
       setPending(null);
       setFailure(error);
       onSettled(null);
@@ -264,9 +273,10 @@ export function SetForm({ctx, workout, exerciseId, exerciseName, previous, nextI
   const save = () => {
     // Attach to this exercise's accepted command instead of another save.
     if (forms.commands.busy(slot)) {setNotice('This set is still saving. Try again when it finishes.'); return;}
+    if (!intent.current.armed) return;
     setFailure(null);
     setNotice(null);
-    const parsed = parseSetDraft(draft);
+    const parsed = parseSetDraft(intent.current.draft);
     if (!parsed.ok) {setProblems(parsed.problems); return;}
     const {rpe, loadConvention, implementCount, ...numbers} = parsed.value;
     const input: SetCommand = {
@@ -306,8 +316,16 @@ export function SetForm({ctx, workout, exerciseId, exerciseName, previous, nextI
     {failure != null && localOnly && <Text style={[shared.code, {color: palette.muted}]}>{describeError(failure).code}</Text>}
     {unconfirmed && !busy && <Muted palette={palette}>The last save is unconfirmed. Save set again sends the same request, so it cannot add the set twice.</Muted>}
     {notice && <Text accessibilityLiveRegion="polite" style={{color: palette.accent}}>{notice}</Text>}
+    {!armed && !busy && live && <View style={{gap: 6}}>
+      <Muted palette={palette}>Change a value or confirm these values to save another set.</Muted>
+      <Button palette={palette} label={`Confirm values for set ${nextIndex}`} onPress={() => {
+        arm(true);
+        forms.drafts.set(draftKey, intent.current.draft);
+      }}/>
+    </View>}
     <Button palette={palette} primary label="Save set" busyLabel={busy ? 'Saving set…' : null}
-      disabledReason={live ? null : 'The local service is closed. Restart the app to add more.'} onPress={save}/>
+      disabledReason={!live ? 'The local service is closed. Restart the app to add more.'
+        : !armed && !busy ? 'Confirm or change these values before another save.' : null} onPress={save}/>
     <LoadPicker palette={palette} visible={picking} title={draft.weight.trim() ? `How is ${draft.weight.trim()} kg measured?` : 'How is the weight measured?'} initial={choice}
       onCancel={() => setPicking(false)} onDone={next => {setPicking(false); change(next);}}/>
   </View>;
