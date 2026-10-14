@@ -8,6 +8,12 @@ export interface NotesStoreQuery {
   readonly limit: number;
 }
 
+export interface NotesSearchQuery extends NotesStoreQuery {
+  readonly query: string;
+  /** Used only to validate a cursor anchor against the same FTS query. */
+  readonly noteId?: string;
+}
+
 export interface NotesStorePage {
   readonly items: readonly NoteRecord[];
   readonly hasMore: boolean;
@@ -20,6 +26,8 @@ export interface NotesReader extends RequestReader {
   hasNoteId(noteId: string): Promise<boolean>;
   getNotesHistoryRevision(): Promise<number>;
   listNotes(input: NotesStoreQuery): Promise<NotesStorePage>;
+  /** Optional for standalone portable stores. Durable Forma adapters provide FTS5. */
+  searchNotes?(input: NotesSearchQuery): Promise<NotesStorePage>;
 }
 
 export interface NotesWriter extends NotesReader, RequestWriter {

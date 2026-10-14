@@ -130,6 +130,9 @@ export interface WorkoutApi extends WorkoutHistoryApi {
 }
 
 export interface ArchiveCounts {
+  readonly notes: number;
+  readonly noteConfirmations: number;
+  readonly reservedNoteIds: number;
   readonly workouts: number;
   readonly sets: number;
   readonly receipts: number;
@@ -150,12 +153,14 @@ export interface InspectArchiveInput {
 
 export interface ArchiveInspection {
   readonly digest: string;
-  readonly formatVersion: 1;
+  readonly formatVersion: 1 | 2;
+  readonly missingModules: readonly string[];
   readonly createdAt: string;
   readonly byteLength: number;
   readonly modules: readonly string[];
   readonly archive: ArchiveCounts;
   readonly current: ArchiveCounts;
+  /** Opaque global archive token. Not a workout or notes query revision. */
   readonly currentHistoryRevision: number;
 }
 
@@ -179,6 +184,7 @@ export interface ArchiveApi {
 }
 
 export interface FormaService {
+  readonly notes: import('./notes/types.js').NotesApi;
   readonly exercises: ExerciseApi;
   readonly splitDays: SplitDayApi;
   readonly workouts: WorkoutApi;

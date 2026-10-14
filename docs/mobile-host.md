@@ -24,6 +24,17 @@ A missing record gets defaults. Corrupt or newer records remain intact and produ
 Native `commit()` false means unconfirmed; it does not prove rollback.
 The UI retains the last confirmed theme and reports this uncertainty.
 
+## Issue #20 source extension — physical checks pending
+
+The shared service now includes durable notes and literal FTS5 search.
+Version-2 archives atomically replace workouts, notes, confirmations, reservations, and exact receipts.
+The host records epoch invalidates note drafts and sources through the same existing records-replacement path.
+The actual Forma hostgate has 22 fixture, 8 seed, and 13 verify assertions in source.
+Added cases check FTS text/source identity, confirmation, deleted IDs, archive replacement, exact notes after reopen, and original receipts.
+A local Node binding simulation checks the actual gate JavaScript and exact assertion counts.
+That simulation is not physical Android or process-restart proof. No new device run occurred.
+Earlier native evidence below applies only to its recorded source.
+
 ## Evidence and limits
 
 - 614 root Node tests pass, including portable lifecycle/preferences and result-protocol regressions.

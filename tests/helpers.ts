@@ -1,11 +1,14 @@
 import {
   createFormaService, DEFAULT_EXERCISES, DEFAULT_SPLIT_DAYS,
-  FormaError, normalizeExerciseAlias, compareHistoryPositions, WORKOUT_HISTORY_LIMITS,
+  FormaError, normalizeExerciseAlias, compareNotePositions, compareHistoryPositions, WORKOUT_HISTORY_LIMITS,
 } from '@forma/core';
 import type { FormaService, RequestReceipt, Workout, WorkoutReader, WorkoutStore, WorkoutWriter } from '@forma/core';
+import { MemoryNotesStore } from './notes-memory.js';
+import type { NotesWriter } from '@forma/core';
 import type { TestContext } from 'node:test';
 
 export class MemoryWorkoutStore implements WorkoutStore {
+  readonly notesStore = new MemoryNotesStore();
   readonly workouts = new Map<string, Workout>();
   readonly receipts = new Map<string, RequestReceipt>();
   writes = 0;
@@ -13,12 +16,18 @@ export class MemoryWorkoutStore implements WorkoutStore {
   closeCalls = 0;
   replacements = 0;
   historyRevision = 0;
+  archiveRevision = 0;
   private tail: Promise<void> = Promise.resolve();
   private accepting = true;
   private closePromise: Promise<void> | undefined;
 
-  private view(): WorkoutWriter {
-    return {
+  private view(notes: NotesWriter): WorkoutWriter {
+    const writer: WorkoutWriter = {
+      ...notes,
+      getArchiveRevision: async () => this.archiveRevision,
+      readArchiveNotes: async () => structuredClone({ records: [...this.notesStore.state.notes.values()].sort(compareNotePositions),
+        confirmations: [...this.notesStore.state.confirmations.values()].sort((a,b) => a.source.noteId < b.source.noteId ? -1 : 1),
+        reservedIds: [...this.notesStore.state.reservedIds].sort() }),
       listExercises: async () => structuredClone(DEFAULT_EXERCISES),
       getExercise: async (id) => structuredClone(DEFAULT_EXERCISES.find((exercise) => exercise.id === id) ?? null),
       findExerciseByAlias: async (alias) => structuredClone(DEFAULT_EXERCISES.find(
@@ -60,11 +69,17 @@ export class MemoryWorkoutStore implements WorkoutStore {
       countArchiveRecords: async () => {
         const workouts = [...this.workouts.values()];
         return {
+          notes: this.notesStore.state.notes.size, noteConfirmations: this.notesStore.state.confirmations.size,
+          reservedNoteIds: this.notesStore.state.reservedIds.size,
           workouts: workouts.length, sets: workouts.reduce((sum, workout) => sum + workout.sets.length, 0),
           receipts: this.receipts.size, inProgress: workouts.filter((workout) => workout.status === 'in-progress').length,
         };
       },
-      replaceArchiveRecords: async ({ workouts, receipts }) => {
+      replaceArchiveRecords: async ({ workouts, receipts, notes }) => {
+        this.notesStore.state.notes = new Map((notes?.records ?? []).map(note => [note.id, structuredClone(note)]));
+        this.notesStore.state.confirmations = new Map((notes?.confirmations ?? []).map(value => [value.source.noteId, structuredClone(value)]));
+        this.notesStore.state.reservedIds = new Set(notes?.reservedIds ?? []);
+        this.notesStore.state.revision++;
         this.replacements++;
         this.workouts.clear();
         this.receipts.clear();
@@ -78,6 +93,13 @@ export class MemoryWorkoutStore implements WorkoutStore {
         this.workouts.set(workout.id, structuredClone(workout));
       },
     };
+    const mutations = new Set(['saveWorkout', 'deleteWorkout', 'saveNote', 'deleteNote', 'saveNoteConfirmation',
+      'clearNoteConfirmation', 'saveRequestReceipt', 'replaceArchiveRecords']);
+    return Object.fromEntries(Object.entries(writer).map(([name, fn]) => [name, async (...args: unknown[]) => {
+      const result = await (fn as (...args: unknown[]) => Promise<unknown>)(...args);
+      if (mutations.has(name)) this.archiveRevision++;
+      return result;
+    }])) as unknown as WorkoutWriter;
   }
 
   private enqueue<T>(run: () => Promise<T>): Promise<T> {
@@ -88,25 +110,34 @@ export class MemoryWorkoutStore implements WorkoutStore {
   }
 
   read<T>(run: (reader: WorkoutReader) => Promise<T>): Promise<T> {
-    return this.enqueue(() => run(this.view()));
+    return this.enqueue(async () => {
+      const notes = this.notesStore.view(false);
+      try { return await run(this.view(notes.writer)); }
+      finally { notes.expire(); }
+    });
   }
 
   write<T>(run: (writer: WorkoutWriter) => Promise<T>): Promise<T> {
     return this.enqueue(async () => {
       this.writes++;
+      const beforeNotes = structuredClone(this.notesStore.state);
+      const notes = this.notesStore.view(true);
       const before = structuredClone(this.workouts);
       const beforeReceipts = structuredClone(this.receipts);
       const beforeRevision = this.historyRevision;
+      const beforeArchiveRevision = this.archiveRevision;
       try {
-        return await run(this.view());
+        return await run(this.view(notes.writer));
       } catch (cause) {
+        Object.assign(this.notesStore.state, beforeNotes);
         this.historyRevision = beforeRevision;
+        this.archiveRevision = beforeArchiveRevision;
         this.workouts.clear();
         for (const [id, workout] of before) this.workouts.set(id, workout);
         this.receipts.clear();
         for (const [id, receipt] of beforeReceipts) this.receipts.set(id, receipt);
         throw cause;
-      }
+      } finally { notes.expire(); }
     });
   }
 

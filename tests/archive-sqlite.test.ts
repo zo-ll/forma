@@ -129,10 +129,11 @@ test('new archive members obey read-only and expired-view rules', async (t) => {
   let expired: WorkoutWriter | undefined;
   await store.write(async (writer) => { expired = writer; });
   for (const run of [() => expired!.listRequestReceipts(), () => expired!.countArchiveRecords(),
+    () => expired!.readArchiveNotes(), () => expired!.getArchiveRevision(),
     () => expired!.replaceArchiveRecords({ workouts: [], receipts: [] })]) {
     await assert.rejects(run(), errorCode('STORAGE_FAILURE'));
   }
-  assert.deepEqual(await store.read((reader) => reader.countArchiveRecords()), { workouts: 0, sets: 0, receipts: 0, inProgress: 0 });
+  assert.deepEqual(await store.read((reader) => reader.countArchiveRecords()), { notes: 0, noteConfirmations: 0, reservedNoteIds: 0, workouts: 0, sets: 0, receipts: 0, inProgress: 0 });
 });
 
 test('export reads one coherent snapshot between queued writes', async (t) => {
@@ -142,7 +143,7 @@ test('export reads one coherent snapshot between queued writes', async (t) => {
   const second = service.workouts.create({ requestId: 'second', date: '2026-10-02' });
   await Promise.all([first, second]);
   const exported = await exporting;
-  assert.deepEqual(exported.counts, { workouts: 1, sets: 0, receipts: 1, inProgress: 0 });
+  assert.deepEqual(exported.counts, { notes: 0, noteConfirmations: 0, reservedNoteIds: 0, workouts: 1, sets: 0, receipts: 1, inProgress: 0 });
   assert.match(exported.text, /"requestId":"first"/);
   assert.doesNotMatch(exported.text, /"requestId":"second"/);
 });

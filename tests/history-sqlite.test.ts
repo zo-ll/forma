@@ -83,7 +83,7 @@ test('schema 4 upgrade preserves primary records and receipts and starts history
   assert.equal(statistics.groups[0]?.volume.value, 360);
   inspect(path, (db) => {
     assert.deepEqual(['workouts', 'sets', 'request_receipts'].map((name) => db.prepare('SELECT * FROM ' + name).all()), before);
-    assert.equal(db.prepare('PRAGMA user_version').get()?.user_version, 5);
+    assert.equal(db.prepare('PRAGMA user_version').get()?.user_version, SQLITE_MIGRATIONS.length);
     assert.equal(db.prepare('SELECT count(*) AS count FROM exercises').get()?.count, 19);
   });
 });
@@ -102,7 +102,7 @@ test('a failed history migration rolls back its table, triggers, index, and vers
     } }, SQLITE_MIGRATIONS), errorCode('STORAGE_FAILURE'));
     assert.equal(driver.getVersion(), 4); assert.deepEqual(db.prepare('SELECT * FROM workouts').all(), before);
     assert.equal(db.prepare("SELECT count(*) AS count FROM sqlite_master WHERE name = 'workout_history_state' OR name = 'workouts_history' OR name LIKE 'history_%'").get()?.count, 0);
-    assert.deepEqual(runSqliteMigrations(driver, SQLITE_MIGRATIONS), [5]);
+    assert.deepEqual(runSqliteMigrations(driver, SQLITE_MIGRATIONS), SQLITE_MIGRATIONS.slice(4).map((m) => m.version));
   } finally { db.close(); }
 });
 

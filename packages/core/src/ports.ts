@@ -1,3 +1,6 @@
+import type { NoteRecord } from './notes/types.js';
+import type { NoteFieldConfirmation } from './notes/field-types.js';
+import type { NotesReader, NotesWriter } from './notes/ports.js';
 import type { ArchiveCounts, Exercise, ListWorkoutsInput, Workout, SplitDay } from './types.js';
 import type { HistoryStorePage, HistoryStoreQuery } from './workouts/history-types.js';
 
@@ -26,7 +29,7 @@ export interface RequestWriter extends RequestReader {
   saveRequestReceipt(receipt: RequestReceipt): Promise<void>;
 }
 
-export interface WorkoutReader extends RequestReader {
+export interface WorkoutReader extends NotesReader {
   listExercises(): Promise<readonly Exercise[]>;
   getExercise(exerciseId: string): Promise<Exercise | null>;
   findExerciseByAlias(normalizedAlias: string): Promise<Exercise | null>;
@@ -40,15 +43,25 @@ export interface WorkoutReader extends RequestReader {
   /** Every receipt in requestId order, with its stored strings unchanged. */
   listRequestReceipts(): Promise<readonly RequestReceipt[]>;
   countArchiveRecords(): Promise<ArchiveCounts>;
+  getArchiveRevision(): Promise<number>;
+  readArchiveNotes(): Promise<ArchiveNotesRecords>;
 }
 
 /** The primary records and receipts that an archive restore writes. */
+export interface ArchiveNotesRecords {
+  readonly records: readonly NoteRecord[];
+  readonly confirmations: readonly NoteFieldConfirmation[];
+  readonly reservedIds: readonly string[];
+}
+
 export interface ArchiveRecords {
+  /** Omission means empty notes, never keep existing notes. */
+  readonly notes?: ArchiveNotesRecords;
   readonly workouts: readonly Workout[];
   readonly receipts: readonly RequestReceipt[];
 }
 
-export interface WorkoutWriter extends WorkoutReader, RequestWriter {
+export interface WorkoutWriter extends WorkoutReader, NotesWriter {
   saveWorkout(workout: Workout): Promise<void>;
   deleteWorkout(workoutId: string): Promise<void>;
   /** Delete all workouts, sets, and receipts, insert these rows exactly, and advance the history revision. */

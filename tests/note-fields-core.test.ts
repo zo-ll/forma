@@ -78,7 +78,9 @@ test('invalid field inputs fail before the receipt lookup or mutation', async (t
 test('pain fields reject duplicates and overlapping sides but permit left and right', async (t) => {
   const module = fixture(t);
   const note = await module.notes.create({ requestId: 'one', date: '2026-10-14', text: 'original' });
-  for (const other of [leftKnee(), { ...leftKnee(), side: 'bilateral' as const }, { ...leftKnee(), side: 'unspecified' as const }]) {
+  for (const other of [leftKnee(), { ...leftKnee(), side: 'bilateral' as const }, { ...leftKnee(), side: 'unspecified' as const },
+    { ...leftKnee(), bodyPart: 'other' as const, otherBodyPart: ' KNEE ' },
+    { ...leftKnee(), bodyPart: 'other' as const, otherBodyPart: 'knees' }]) {
     await assert.rejects(module.notes.confirmFields({
       requestId: 'bad', noteId: note.id, expectedRevision: 1, fields: fieldsWithPain([leftKnee(), other]),
     }), errorCode('INVALID_INPUT', 'pain'));

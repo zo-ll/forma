@@ -13,6 +13,7 @@ import * as flowModule from '../apps/mobile/src/archive/flow.js';
 import type { ArchiveFiles, ArchiveFlow, ArchiveService, OpenResult, SaveResult } from '../apps/mobile/src/archive/flow.js';
 import { createCommandLedger } from '../apps/mobile/src/forms/index.js';
 import type { CommandLedger } from '../apps/mobile/src/forms/index.js';
+import { signedArchive } from './fixtures/archive-cases.js';
 import { MemoryWorkoutStore, TEST_TIME } from './helpers.js';
 
 interface Element { readonly type: unknown; readonly props: Record<string, unknown>; readonly children: readonly unknown[]; }
@@ -192,7 +193,7 @@ test('export shows the privacy warning first and reports save, cancel, and parti
     [{ status: 'cancelled', byteLength: 0, partialFileRemoved: false }, /Export cancelled\. The records did not change\. If the file app made an empty file, delete it\./],
     [{ status: 'failed', byteLength: 10, partialFileRemoved: true }, /removed the incomplete file/],
     [{ status: 'failed', byteLength: 10, partialFileRemoved: false }, /incomplete file can remain/],
-    ['mismatch', /Archive saved: 0 workouts, 0 sets, 0 receipts, \d+ bytes\./],
+    ['mismatch', /Archive saved: 0 workouts, 0 sets, 0 receipts, 0 notes, 0 note confirmations, 0 reserved note IDs, \d+ bytes\./],
   ];
   for (const [outcome, notice] of outcomes) {
     s.files.save = outcome === 'mismatch'
@@ -230,7 +231,7 @@ test('restore previews, keeps records on cancel, and replaces them after explici
   let sheet = ui.render().sheet('Replace all records on this phone?');
   assert.equal(sheet.visible, true);
   for (const phrase of ['replaces all workouts', 'including an active workout', 'Export the current records first',
-    'Archive from 2026-10-12T09:00:00.000Z: 1 workout, 1 set, 2 receipts, 1 active workout', 'This phone now: 1 workout, 0 sets, 1 receipt']) {
+    'Archive from 2026-10-12T09:00:00.000Z: 1 workout, 1 set, 2 receipts, 0 notes, 0 note confirmations, 0 reserved note IDs, 1 active workout', 'This phone now: 1 workout, 0 sets, 1 receipt']) {
     assert.match(sheet.body, new RegExp(phrase));
   }
   sheet.onKeep();
@@ -242,11 +243,33 @@ test('restore previews, keeps records on cancel, and replaces them after explici
   await settled(flow);
   ui.render().sheet('Replace all records on this phone?').onConfirm();
   await settled(flow);
-  assert.match(ui.render().text, /Restore finished: 1 workout, 1 set, 2 receipts, 1 active workout\./);
+  assert.match(ui.render().text, /Restore finished: 1 workout, 1 set, 2 receipts, 0 notes, 0 note confirmations, 0 reserved note IDs, 1 active workout\./);
   assert.equal(s.store.replacements, 1);
   assert.equal((await s.host.service().workouts.inProgress())?.id, 'src-1');
   assert.equal(s.host.snapshot().recordsEpoch, 1);
   assert.equal(s.ledger.pending(flowModule.RESTORE_SLOT), null);
+});
+
+test('legacy archive warning names notes loss and confirmation uses the global revision', async (t) => {
+  const root = JSON.parse(await archiveText(t)); root.formatVersion = 1; delete root.modules.notes;
+  const text = signedArchive(root);
+  const s = await setup(t);
+  const note = await s.host.service().notes.create({requestId: 'note', date: '2026-10-14', text: 'private note'});
+  const flow = s.flow(); const ui = screen(flow);
+  s.files.open = async () => ({status: 'opened', text});
+  ui.render().button('Restore from archive').onPress(); await settled(flow);
+  let sheet = ui.render().sheet('Replace all records on this phone?');
+  assert.match(sheet.body, /All current notes, confirmations, and reserved note IDs will become empty/);
+  assert.match(sheet.body, /1 note, 0 note confirmations, 1 reserved note ID/);
+  await s.host.service().notes.update({requestId: 'changed-note', noteId: note.id, expectedRevision: 1, text: 'changed'});
+  sheet.onConfirm(); await settled(flow);
+  assert.equal(s.store.replacements, 0);
+  sheet = ui.render().sheet('Replace all records on this phone?');
+  assert.match(sheet.body, /changed after the first preview/);
+  sheet.onConfirm(); await settled(flow);
+  assert.equal(s.store.replacements, 1);
+  assert.equal((await s.host.service().notes.history()).items.length, 0);
+  assert.equal(s.host.snapshot().recordsEpoch, 1);
 });
 
 test('a change after preview asks for a new confirmation with zero replacement', async (t) => {

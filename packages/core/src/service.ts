@@ -4,6 +4,7 @@ import { createExerciseApi } from './exercises/service.js';
 import { createSplitDayApi } from './split-days/service.js';
 import type { FormaDependencies } from './ports.js';
 import type { FormaService } from './types.js';
+import { createNotesApi } from './notes/service.js';
 import { createWorkoutApi } from './workouts/service.js';
 
 export function createFormaService(dependencies: FormaDependencies): FormaService {
@@ -20,6 +21,7 @@ export function createFormaService(dependencies: FormaDependencies): FormaServic
     exercises: createExerciseApi(guarded, ensureOpen),
     splitDays: createSplitDayApi(guarded, ensureOpen),
     workouts: createWorkoutApi(guarded, clock, ids, ensureOpen),
+    notes: createNotesApi({ store: guarded, clock, ids }, ensureOpen),
     archive: createArchiveApi(store, exclusion, clock, ensureOpen),
     close() {
       if (!closePromise) {

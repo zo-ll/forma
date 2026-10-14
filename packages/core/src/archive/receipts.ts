@@ -1,3 +1,6 @@
+import { noteFieldConfirmationResult, readReleasedNoteFields } from '../notes/field-validation.js';
+import { noteId, noteKind, noteRevision, noteText } from '../notes/validation.js';
+import { noteResult, noteDeleteResult } from '../notes/results.js';
 import type { ResultCodec } from '../requests/service.js';
 import { canonicalJson } from '../requests/service.js';
 import type { ArchiveRestoreResult } from '../types.js';
@@ -10,11 +13,15 @@ import {
 type Fields = Record<string, unknown>;
 
 function counts(value: unknown): void {
-  objectInput(value, ['workouts', 'sets', 'receipts', 'inProgress']);
+  objectInput(value, ['workouts', 'sets', 'receipts', 'inProgress', 'notes', 'noteConfirmations', 'reservedNoteIds']);
   const record = value as Fields;
   for (const key of ['workouts', 'sets', 'receipts', 'inProgress']) {
     const count = record[key];
     if (typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0) invalid(key, key + ' must be a count.');
+  }
+  const extras = ['notes', 'noteConfirmations', 'reservedNoteIds'];
+  if (extras.some(key => Object.hasOwn(record, key))) {
+    for (const key of extras) historyRevision(record[key], key);
   }
   if ((record.inProgress as number) > 1) invalid('inProgress', 'At most one workout can be in progress.');
 }
@@ -40,7 +47,8 @@ export const restoreResult: ResultCodec<ArchiveRestoreResult> = {
     const result = record.counts as ArchiveRestoreResult['counts'];
     return {
       digest: archiveDigest(record.digest, 'digest'),
-      counts: { workouts: result.workouts, sets: result.sets, receipts: result.receipts, inProgress: result.inProgress },
+      counts: { workouts: result.workouts, sets: result.sets, receipts: result.receipts, inProgress: result.inProgress,
+        notes: result.notes ?? 0, noteConfirmations: result.noteConfirmations ?? 0, reservedNoteIds: result.reservedNoteIds ?? 0 },
     };
   },
 };
@@ -145,6 +153,34 @@ const OPERATIONS: Readonly<Record<string, Operation>> = Object.freeze({
     },
     result: voidResult,
   },
+  'notes.create': {
+    signature(value) {
+      const row = fields(value, ['date', 'text', 'kind'], []);
+      calendarDate(row.date, 'date'); noteText(row.text); noteKind(row.kind);
+    }, result: noteResult,
+  },
+  'notes.update': {
+    signature(value) {
+      const row = fields(value, ['noteId', 'expectedRevision'], ['date', 'text', 'kind']);
+      noteId(row.noteId); noteRevision(row.expectedRevision); changed(row, ['date', 'text', 'kind']);
+      present(row, 'date', v => calendarDate(v, 'date')); present(row, 'text', noteText); present(row, 'kind', noteKind);
+    }, result: noteResult,
+  },
+  'notes.delete': {
+    signature(value) {
+      const row = fields(value, ['noteId', 'expectedRevision'], []);
+      noteId(row.noteId); noteRevision(row.expectedRevision);
+    }, result: noteDeleteResult,
+  },
+  'notes.confirmFields': {
+    signature(value) {
+      const row = fields(value, ['noteId', 'expectedRevision', 'fields'], []);
+      noteId(row.noteId); noteRevision(row.expectedRevision);
+      if (canonicalJson(readReleasedNoteFields(row.fields)) !== canonicalJson(row.fields)) {
+        invalid('fields', 'The confirmation fields are not normalized.');
+      }
+    }, result: noteFieldConfirmationResult,
+  },
   'archive.restore': {
     signature(value) {
       const record = fields(value, ['digest', 'expectedHistoryRevision'], []);
@@ -170,5 +206,21 @@ export function checkReceiptContent(operation: string, inputSignature: string, r
   }
   known.signature(signature);
   if (canonicalJson(signature) !== inputSignature) invalid('inputSignature', 'The receipt signature is not in canonical form.');
-  known.result.parse(parseJson(resultJson, 'resultJson'));
+  const result = known.result.parse(parseJson(resultJson, 'resultJson'));
+  const input = signature as Fields;
+  if (operation === 'notes.confirmFields') {
+    const confirmation = noteFieldConfirmationResult.parse(result);
+    if (confirmation.source.noteId !== input.noteId || confirmation.source.revision !== (input.expectedRevision as number) + 1
+      || canonicalJson(confirmation.fields) !== canonicalJson(input.fields)) invalid('result', 'The confirmation differs from its command.');
+  }
+  if (operation === 'notes.create' || operation === 'notes.update') {
+    const note = noteResult.parse(result);
+    if (operation === 'notes.create' && note.revision !== 1) invalid('result', 'A create snapshot starts at revision 1.');
+    if (operation === 'notes.update' && (note.id !== input.noteId || note.revision !== (input.expectedRevision as number) + 1)) {
+      invalid('result', 'The edited snapshot differs from its command.');
+    }
+    for (const key of ['date', 'text', 'kind'] as const) {
+      if (Object.hasOwn(input, key) && input[key] !== note[key]) invalid('result', 'The note snapshot differs from its command.');
+    }
+  }
 }

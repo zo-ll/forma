@@ -2,7 +2,7 @@ import { FormaError } from '../errors.js';
 import type { Clock } from '../ports.js';
 import { canonicalJson, withRequest } from '../requests/service.js';
 import { invalid, objectInput, utcTimestamp } from '../validation.js';
-import { noteFieldConfirmationResult, validateNoteFields } from './field-validation.js';
+import { noteFieldConfirmationResult, readReleasedNoteFields, validateNoteFields } from './field-validation.js';
 import { suggestNoteFields } from './field-rules.js';
 import type { NoteFieldConfirmation } from './field-types.js';
 import type { NotesStore } from './ports.js';
@@ -40,7 +40,10 @@ export function createNoteFieldsApi(
       objectInput(input, ['requestId', 'noteId', 'expectedRevision', 'fields']);
       const id = noteId(input.noteId);
       const expectedRevision = noteRevision(input.expectedRevision);
-      const fields = validateNoteFields(input.fields);
+      // Released cross-alias inputs may replay only an existing exact receipt.
+      const fields = readReleasedNoteFields(input.fields);
+      let newInputFailure: unknown;
+      try { validateNoteFields(fields); } catch (cause) { newInputFailure = cause; }
       const fieldsSignature = canonicalJson(fields);
       const resultCodec = {
         parse(value: unknown) {
@@ -54,6 +57,7 @@ export function createNoteFieldsApi(
       };
       return withRequest(store, input.requestId, 'notes.confirmFields', { noteId: id, expectedRevision, fields },
         resultCodec, async (writer) => {
+          if (newInputFailure !== undefined) throw newInputFailure;
           const note = await requiredNote(writer, id);
           expectRevision(note, expectedRevision);
           if (note.revision === Number.MAX_SAFE_INTEGER) invalid('revision', 'The note revision is exhausted.');

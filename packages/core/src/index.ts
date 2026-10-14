@@ -1,6 +1,8 @@
 export { createFormaService } from './service.js';
 export { createNotesModule } from './notes/service.js';
 export { NOTE_LIMITS } from './notes/validation.js';
+export { noteFieldConfirmationResult, validateNoteFields } from './notes/field-validation.js';
+export { noteFromRecord } from './notes/validation.js';
 export { BODY_PARTS, NOTE_FIELD_LIMITS } from './notes/field-validation.js';
 export { suggestNoteFields } from './notes/field-rules.js';
 export type {
@@ -11,10 +13,10 @@ export type {
 export { compareNotePositions } from './notes/history.js';
 export type {
   CreateNoteInput, Note, NoteCommandInput, NoteHistoryFilter, NoteHistoryInput, NoteHistoryPage,
-  NoteKind, NotePosition, NoteRecord, NoteSource, NotesApi, NotesModule, UpdateNoteInput,
+  NoteKind, NotePosition, NoteRecord, NoteSource, NoteSearchInput, NoteSearchFilter, NoteSearchPage, NotesApi, NotesModule, UpdateNoteInput,
 } from './notes/types.js';
 export type {
-  NotesDependencies, NotesReader, NotesStore, NotesStorePage, NotesStoreQuery, NotesWriter,
+  NotesDependencies, NotesReader, NotesSearchQuery, NotesStore, NotesStorePage, NotesStoreQuery, NotesWriter,
 } from './notes/ports.js';
 export { FormaError } from './errors.js';
 export type { FormaErrorCode } from './errors.js';
@@ -37,7 +39,7 @@ export { ARCHIVE_FORMAT_VERSION, ARCHIVE_LIMITS } from './archive/format.js';
 export { sha256Utf8 } from './archive/sha256.js';
 export type { ResultCodec } from './requests/service.js';
 export type {
-  ArchiveRecords, Clock, FormaDependencies, IdGenerator, RequestReader, RequestReceipt, RequestWriter,
+  ArchiveNotesRecords, ArchiveRecords, Clock, FormaDependencies, IdGenerator, RequestReader, RequestReceipt, RequestWriter,
   WorkoutReader, WorkoutStore, WorkoutWriter,
 } from './ports.js';
 export type {

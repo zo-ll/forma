@@ -16,6 +16,7 @@ export function ArchiveSettings({palette, flow, ready}: {palette: Palette; flow:
   const preview = view.step === 'restoreConfirm' ? view.preview : null;
   const restoreBody = preview === null ? '' : [
     RESTORE_WARNING,
+    preview.missingModules?.includes('notes') ? 'This version-1 archive has no notes module. All current notes, confirmations, and reserved note IDs will become empty.' : '',
     `Archive from ${preview.createdAt}: ${describeCounts(preview.archive)}.`,
     `This phone now: ${describeCounts(preview.current)}.`,
     view.step === 'restoreConfirm' && view.changed ? 'The records on this phone changed after the first preview.' : '',
@@ -26,7 +27,7 @@ export function ArchiveSettings({palette, flow, ready}: {palette: Palette; flow:
     <View style={styles.section}>
       <Text accessibilityRole="header" style={[styles.header, {color: palette.text}]}>Local archive</Text>
       <View style={styles.block}>
-        <Muted palette={palette}>Export saves all workout records to a plaintext file. Restore replaces all records on this phone with an archive.</Muted>
+        <Muted palette={palette}>Export saves all workout records, notes, and confirmed fields to a plaintext file. Restore replaces all records on this phone with an archive.</Muted>
       </View>
       {/* The notice wrapper stays mounted. Its text can wrap to several lines. */}
       <View style={styles.block} collapsable={false}>

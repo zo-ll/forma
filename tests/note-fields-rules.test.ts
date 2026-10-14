@@ -7,7 +7,11 @@ import { errorCode } from './helpers.js';
 const source = { module: 'notes', noteId: 'note-1', revision: 1 } as const;
 const suggest = (text: string) => suggestNoteFields({ source, text });
 
-const painCases: readonly [string, PainState, BodySide, number | null][] = [
+const painCases: readonly (readonly [string, PainState, BodySide, number | null])[] = [
+  ...['I think', 'I believe', 'I suspect', 'probably', 'possibly', 'seems like', 'appears to be', 'he has', 'she has', 'they have', 'we have']
+    .map((prefix) => [prefix + ' left knee pain', 'uncertain', 'left', null] as const),
+  ['left and right knees hurt', 'present', 'bilateral', null],
+  ['right and left knees hurt', 'present', 'bilateral', null],
   ['left knee felt fine', 'absent', 'left', null],
   ['no left knee pain', 'absent', 'left', null],
   ['left knee has no pain', 'absent', 'left', null],
@@ -49,7 +53,8 @@ for (const [text, state, side, severity] of painCases) {
   });
 }
 
-const sleepCases: readonly [string, SleepField | null, 'pending' | 'uncertain'][] = [
+const sleepCases: readonly (readonly [string, SleepField | null, 'pending' | 'uncertain'])[] = [
+  ...['I will', 'I am going to', 'I intend to'].map((prefix) => [prefix + ' sleep 8 hours', null, 'uncertain'] as const),
   ['slept 7 hours', { durationMin: 420, quality: null }, 'pending'],
   ['slept 7.5h', { durationMin: 450, quality: null }, 'pending'],
   ['slept 7 hours 30 minutes', { durationMin: 450, quality: null }, 'pending'],

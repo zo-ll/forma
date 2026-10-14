@@ -1,6 +1,6 @@
 import { AndroidSqliteWorkoutStore } from '@forma/adapters/android';
 import type { OpSqliteDatabase, OpSqliteOpener } from '@forma/adapters/android';
-import { createFormaService } from '@forma/core';
+import { createFormaService, createNotesModule } from '@forma/core';
 import type { FormaService, WorkoutWriter } from '@forma/core';
 import { runSqliteMigrations, SQLITE_MIGRATIONS } from '@forma/adapters/sqlite';
 import type { MigrationDriver } from '@forma/adapters/sqlite';
@@ -26,6 +26,13 @@ export function nativeFixture(open: OpSqliteOpener, ids?: readonly string[], nam
     ids: { next: () => { const id = ids?.[next]; next++; return id ?? 'native-id-' + next; } } });
   return { service, store, native, name };
 }
+/** A standalone owner, not a second lifetime attached to nativeFixture().service. */
+export function nativeNotesFixture(open: OpSqliteOpener) {
+  const store = AndroidSqliteWorkoutStore.open({ databaseName: nativeDatabaseName(), openDatabase: open });
+  let next = 0;
+  return createNotesModule({ store, clock: { nowUtc: () => TEST_TIME }, ids: { next: () => 'native-note-' + ++next } });
+}
+
 function driver(db: OpSqliteDatabase): MigrationDriver {
   return {
     getVersion: () => Number(db.executeSync('PRAGMA user_version').rows[0]?.user_version),
@@ -46,7 +53,7 @@ export const NATIVE_STORAGE_CASES: readonly NativeStorageCase[] = [
       assert.equal(f.native.executeSync('PRAGMA foreign_keys').rows[0]?.foreign_keys, 1);
       assert.equal(f.native.executeSync('PRAGMA journal_mode').rows[0]?.journal_mode, 'wal');
       assert.equal(f.native.executeSync('PRAGMA busy_timeout').rows[0]?.timeout, 5000);
-      assert.equal(f.native.executeSync('PRAGMA user_version').rows[0]?.user_version, 5);
+      assert.equal(f.native.executeSync('PRAGMA user_version').rows[0]?.user_version, SQLITE_MIGRATIONS.length);
       const version = String(f.native.executeSync('SELECT sqlite_version() AS version').rows[0]?.version).split('.').map(Number);
       assert((version[0] ?? 0) > 3 || (version[0] === 3 && (version[1] ?? 0) >= 37));
     } finally { await f.service.close(); }
@@ -185,7 +192,7 @@ export const NATIVE_STORAGE_CASES: readonly NativeStorageCase[] = [
       assert.equal(db.executeSync("SELECT notes FROM workouts WHERE id = 'keep'").rows[0]?.notes, 'Must survive');
       assert.equal(db.executeSync("SELECT count(*) AS count FROM sqlite_master WHERE name = 'workout_history_state' OR name LIKE 'history_%'").rows[0]?.count, 0);
     });
-    const f = nativeFixture(open, undefined, name); try { assert.equal(f.native.executeSync('PRAGMA user_version').rows[0]?.user_version, 5); } finally { await f.service.close(); }
+    const f = nativeFixture(open, undefined, name); try { assert.equal(f.native.executeSync('PRAGMA user_version').rows[0]?.user_version, SQLITE_MIGRATIONS.length); } finally { await f.service.close(); }
   } },
   { name: 'native newer schema rejection occurs before a changing pragma', async run(open) {
     const name = nativeDatabaseName();
