@@ -69,10 +69,23 @@ The focused correction requires new intent after success. A field change or expl
 The ledger shares an attempt for repeated pending commands. An unconfirmed retry reuses the original receipt.
 The focused source candidate passed all 708 tests, the mobile typecheck, and the 64-file boundary check.
 Three new regressions failed against the old screen. All five new cases passed against the correction.
-Source review, a fresh build, and another native pass must approve the correction separately.
+The source at `92ea79d` passed independent 4/4 review and both CI jobs with 708 tests.
+Its verified installed APK hash is `55932d6c9eafd85bf5b9fe6551de7b854e21a2ffb9971cb14b75258d86b03ed3`.
+The later native subset passed two rapid Save taps and deliberate identical sets.
+A three-tap burst left the next Save enabled without a deliberate new action. Its touch path remains unproven.
+The independent critic recorded a medium evidence gap. The complete gate and the burst case remain unapproved.
+Final restoration again preserved the complete fresh original snapshot and its active workout, with one new restore receipt.
+That exact snapshot survived a process restart. The phone returned to usable Home.
+
+The next source correction moves confirmation before the Previous sets panel, outside the Save section.
+Its 18 affected screen tests, mobile typecheck, and boundary check passed.
+New tests cover control order, the closed-service state, and two callbacks before settlement.
+Source order does not prove native bounds. This candidate needs exact-head review, a fresh build, and native proof.
+Driver failures prevented Progress, deletion/discard, theme, and service-close tests in the last window.
+Correct and test the driver without phone operations before another request.
 Progress facts and source navigation, the full History matrix, owned deletion/discard, themes, and accessibility remain incomplete.
 
-Private evidence: `~/.local/state/forma/issue-14/NATIVE-RESULT.md` and `review-native-result.md`.
+Private evidence: `~/.local/state/forma/issue-14/NATIVE-RESULT.md`, `recheck-92ea79d/RESULT.md`, and `review-recheck-result.md`.
 Do not treat the old #12 live counts as the current dataset.
 
 ## Checks and build

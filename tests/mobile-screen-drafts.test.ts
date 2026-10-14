@@ -89,6 +89,7 @@ function view(tree: Element) {
     text: text.join(' '),
     has: (match: (props: Record<string, unknown>) => boolean) => elements.some(element => match(element.props)),
     byLabel: (label: string) => find(props => props.label === label),
+    labelPosition: (label: string) => elements.indexOf(find(props => props.label === label)),
     byAccessibility: (label: string) => find(props => props.accessibilityLabel === label),
     byType: (type: string) => {
       const found = elements.find(element => element.type === type);
@@ -150,7 +151,7 @@ function readRecorder() {
 // Entry: the restored-notice Clear action.
 
 function setForm(store: ReturnType<typeof forms>, previous: WorkoutSet | null,
-  service?: core.FormaService, exerciseId = 'incline') {
+  service?: core.FormaService, exerciseId = 'incline', phase = 'ready') {
   const runtime = hookRuntime();
   const exports = loadScreen('Entry.tsx', runtime.react, {
     '../ui/controls': {...CONTROLS, describeError: () => ({field: null, code: 'X', message: ''})},
@@ -163,7 +164,7 @@ function setForm(store: ReturnType<typeof forms>, previous: WorkoutSet | null,
   const ctx = {forms: store, palette: {}, host: {service: () => {
     assert.ok(service, 'A Save test must supply the real service');
     return service;
-  }}, snapshot: {phase: 'ready'}, push: () => {}};
+  }}, snapshot: {phase}, push: () => {}};
   const props = {ctx, workout, exerciseId, exerciseName: 'Incline', previous,
     nextIndex: previous ? 2 : 1, onSettled: () => {}};
   // A new mount is a return to the entry screen after Home.
@@ -256,6 +257,34 @@ async function settle(store: ReturnType<typeof forms>) {
   if (attempt) await attempt;
 }
 
+test('a closed service hides confirmation and disables Save', () => {
+  const screen = setForm(forms(), INCLINE, undefined, 'incline', 'closed')().render();
+  assert.equal(screen.byLabel('Save set').props.disabledReason, 'The local service is closed. Restart the app to add more.');
+  assert.equal(screen.has(props => props.label === 'Confirm values for set 2'), false);
+});
+
+test('two screen Save callbacks before settlement send only one command', async t => {
+  const {service} = memoryFixture(t, ['w1']);
+  await service.workouts.start({requestId: 'screen-start', date: '2026-10-13', splitDayId: 'upper'});
+  let release!: () => void;
+  const gate = new Promise<void>(done => {release = done;});
+  const keys: string[] = [];
+  const hostService = {...service, workouts: {...service.workouts, addSet: async (input: core.AddSetInput) => {
+    keys.push(input.requestId);
+    await gate;
+    return service.workouts.addSet(input);
+  }}};
+  const store = forms();
+  enteredDraft(store);
+  const screen = setForm(store, null, hostService, REAL_EXERCISE)().render();
+  press(screen, 'Save set');
+  press(screen, 'Save set');
+  assert.deepEqual(keys, ['req-1']);
+  release();
+  await settle(store);
+  assert.equal((await service.workouts.get('w1')).sets.length, 1);
+});
+
 test('a queued Save callback after a confirmed result cannot add the set again', async t => {
   const {service} = memoryFixture(t, ['w1']);
   await service.workouts.start({requestId: 'screen-start', date: '2026-10-13', splitDayId: 'upper'});
@@ -301,6 +330,15 @@ test('a new form needs new intent and can deliberately save identical consecutiv
     ({reps, weightKg, loadConvention, implementCount, rpe})), Array(2).fill({
     reps: 6, weightKg: 20, loadConvention: 'per-hand', implementCount: 2, rpe: 8.5,
   }));
+});
+
+test('next-set confirmation precedes the fields instead of the Save section', () => {
+  const screen = setForm(forms(), INCLINE)().render();
+  const confirm = screen.labelPosition('Confirm values for set 2');
+  assert.ok(confirm < screen.labelPosition('Reps'));
+  assert.ok(confirm < screen.labelPosition('Weight · kg'));
+  assert.ok(confirm < screen.labelPosition('Save set'));
+  // Source order alone does not prove native bounds or gesture targets.
 });
 
 test('an edit supplies next-set intent without a separate confirmation', async t => {

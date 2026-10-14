@@ -290,6 +290,14 @@ export function SetForm({ctx, workout, exerciseId, exerciseName, previous, nextI
   const localOnly = failure != null && describeError(failure).field !== null
     && ['reps', 'weightKg', 'rpe'].includes(describeError(failure).field ?? '');
   return <View style={{gap: 10, marginTop: 6}}>
+    {/* Keep confirmation outside the Save section when the form changes after a receipt. */}
+    {!armed && !busy && live && <View collapsable={false} style={{gap: 6}}>
+      <Muted palette={palette}>Change a value or confirm these values to save another set.</Muted>
+      <Button palette={palette} label={`Confirm values for set ${nextIndex}`} onPress={() => {
+        arm(true);
+        forms.drafts.set(draftKey, intent.current.draft);
+      }}/>
+    </View>}
     <PreviousSets ctx={ctx} exerciseId={exerciseId} beforeDate={workout.date} refreshKey={workout.updatedAt}/>
     {restored && <View style={[shared.notice, {borderColor: palette.accent, borderStyle: 'dashed'}]}>
       <Text style={{color: palette.text, fontWeight: '600'}}>↺ Unsaved values restored</Text>
@@ -316,13 +324,6 @@ export function SetForm({ctx, workout, exerciseId, exerciseName, previous, nextI
     {failure != null && localOnly && <Text style={[shared.code, {color: palette.muted}]}>{describeError(failure).code}</Text>}
     {unconfirmed && !busy && <Muted palette={palette}>The last save is unconfirmed. Save set again sends the same request, so it cannot add the set twice.</Muted>}
     {notice && <Text accessibilityLiveRegion="polite" style={{color: palette.accent}}>{notice}</Text>}
-    {!armed && !busy && live && <View style={{gap: 6}}>
-      <Muted palette={palette}>Change a value or confirm these values to save another set.</Muted>
-      <Button palette={palette} label={`Confirm values for set ${nextIndex}`} onPress={() => {
-        arm(true);
-        forms.drafts.set(draftKey, intent.current.draft);
-      }}/>
-    </View>}
     <Button palette={palette} primary label="Save set" busyLabel={busy ? 'Saving set…' : null}
       disabledReason={!live ? 'The local service is closed. Restart the app to add more.'
         : !armed && !busy ? 'Confirm or change these values before another save.' : null} onPress={save}/>

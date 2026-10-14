@@ -72,6 +72,8 @@ Each exercise has a separate add-set slot within the workout.
 A repeated tap during an attempt returns that attempt.
 After a confirmed Save, another Save requires a field change or explicit confirmation of the copied values.
 The form keeps the last saved values as defaults. The ledger still accepts deliberate identical consecutive sets.
+Confirmation appears before the Previous sets panel, outside the Save section.
+Native checks must verify actual bounds and touch targets after a rapid burst. Source order does not prove those bounds.
 The screen consumes action intent before another callback can send a command. A failure permits a retry with the original request key.
 A definitive `INVALID_INPUT`, `NOT_FOUND`, or `CONFLICT` frees the slot.
 Any other failure keeps the key and input. A retry with the same input reuses the key.
