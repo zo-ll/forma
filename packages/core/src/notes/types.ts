@@ -1,3 +1,5 @@
+import type { ConfirmNoteFieldsInput, NoteFieldConfirmation, NoteFieldsView } from './field-types.js';
+
 export type NoteKind = 'general' | 'pain' | 'sleep' | 'personal-best';
 
 export interface NoteSource {
@@ -72,6 +74,8 @@ export interface NotesApi {
   update(input: UpdateNoteInput): Promise<Note>;
   delete(input: NoteCommandInput): Promise<void>;
   history(input?: NoteHistoryInput): Promise<NoteHistoryPage>;
+  fields(noteId: string): Promise<NoteFieldsView>;
+  confirmFields(input: ConfirmNoteFieldsInput): Promise<NoteFieldConfirmation>;
 }
 
 export interface NotesModule {

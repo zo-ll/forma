@@ -1,9 +1,10 @@
 import { compareNotePositions, FormaError } from '@forma/core';
-import type { NoteRecord, NotesReader, NotesStore, NotesWriter, RequestReceipt } from '@forma/core';
+import type { NoteFieldConfirmation, NoteRecord, NotesReader, NotesStore, NotesWriter, RequestReceipt } from '@forma/core';
 import { cloneValue } from './fixtures/contract-helpers.js';
 
 export interface MemoryNotesState {
   notes: Map<string, NoteRecord>;
+  confirmations: Map<string, NoteFieldConfirmation>;
   reservedIds: Set<string>;
   receipts: Map<string, RequestReceipt>;
   revision: number;
@@ -20,7 +21,14 @@ export class MemoryNotesStore implements NotesStore {
   private closePromise: Promise<void> | undefined;
 
   constructor(state?: MemoryNotesState) {
-    this.state = state ?? { notes: new Map(), reservedIds: new Set(), receipts: new Map(), revision: 0 };
+    this.state = state ?? { notes: new Map(), confirmations: new Map(), reservedIds: new Set(), receipts: new Map(), revision: 0 };
+  }
+
+  private advanceRevision(): void {
+    if (!Number.isSafeInteger(this.state.revision) || this.state.revision < 0 || this.state.revision === Number.MAX_SAFE_INTEGER) {
+      throw new FormaError('STORAGE_FAILURE', 'The notes history revision is exhausted or invalid.');
+    }
+    this.state.revision++;
   }
 
   private view(writable: boolean): { writer: NotesWriter; expire(): void } {
@@ -33,6 +41,7 @@ export class MemoryNotesStore implements NotesStore {
       expire: () => { active = false; },
       writer: {
         getNote: async (id) => { check(); return cloneValue(this.state.notes.get(id) ?? null); },
+        getNoteConfirmation: async (id) => { check(); return cloneValue(this.state.confirmations.get(id) ?? null); },
         hasNoteId: async (id) => { check(); return this.state.reservedIds.has(id); },
         getNotesHistoryRevision: async () => { check(); return this.state.revision; },
         getRequestReceipt: async (id) => { check(); return cloneValue(this.state.receipts.get(id) ?? null); },
@@ -48,14 +57,23 @@ export class MemoryNotesStore implements NotesStore {
         },
         saveNote: async (note) => {
           check(true);
+          this.advanceRevision();
           this.saves++;
           this.state.notes.set(note.id, cloneValue(note));
           this.state.reservedIds.add(note.id);
-          this.state.revision++;
         },
+        saveNoteConfirmation: async (confirmation) => {
+          check(true);
+          const source = confirmation.source;
+          if (this.state.notes.get(source.noteId)?.revision !== source.revision) {
+            throw new FormaError('CONFLICT', 'The confirmation source is obsolete.');
+          }
+          this.state.confirmations.set(source.noteId, cloneValue(confirmation));
+        },
+        clearNoteConfirmation: async (id) => { check(true); this.state.confirmations.delete(id); },
         deleteNote: async (id) => {
           check(true);
-          if (this.state.notes.delete(id)) this.state.revision++;
+          if (this.state.notes.has(id)) { this.advanceRevision(); this.state.notes.delete(id); }
         },
         saveRequestReceipt: async (receipt) => {
           check(true);
@@ -86,6 +104,7 @@ export class MemoryNotesStore implements NotesStore {
       this.writes++;
       const before = {
         notes: new Map([...this.state.notes].map(([id, note]) => [id, cloneValue(note)])),
+        confirmations: new Map([...this.state.confirmations].map(([id, confirmation]) => [id, cloneValue(confirmation)])),
         reservedIds: new Set(this.state.reservedIds),
         receipts: new Map([...this.state.receipts].map(([id, receipt]) => [id, cloneValue(receipt)])),
         revision: this.state.revision,

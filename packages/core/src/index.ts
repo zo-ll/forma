@@ -1,6 +1,13 @@
 export { createFormaService } from './service.js';
 export { createNotesModule } from './notes/service.js';
 export { NOTE_LIMITS } from './notes/validation.js';
+export { BODY_PARTS, NOTE_FIELD_LIMITS } from './notes/field-validation.js';
+export { suggestNoteFields } from './notes/field-rules.js';
+export type {
+  BodyPart, BodySide, ConfirmNoteFieldsInput, FieldSuggestion, NoteFieldConfirmation, NoteFields,
+  NoteFieldsView, NoteFieldSuggestions, PainField, PainState, PersonalBestField, SleepField,
+  SleepQuality, SuggestionGroup, SuggestionReason, SuggestNoteFieldsInput, TextEvidence,
+} from './notes/field-types.js';
 export { compareNotePositions } from './notes/history.js';
 export type {
   CreateNoteInput, Note, NoteCommandInput, NoteHistoryFilter, NoteHistoryInput, NoteHistoryPage,

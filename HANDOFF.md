@@ -130,6 +130,19 @@ Screen-reader focus, large fonts, and comprehensive performance checks remain un
 Large fonts and TalkBack require separate permission.
 Private reports: `~/.local/state/forma/issue-14/window-1c48410/RESULT.md` and `~/.local/state/forma/issue-14/approval/FINAL-VERDICT.md`.
 
+## Notes continuation — issues #18–19
+
+Issue #18 merged through PR #54 at `e6352ff`.
+The separate core-only module has no SQLite or Android host integration.
+The user approved the #19 field vocabulary, pain scale, sleep fields, personal-best claims, and explicit confirmation rules.
+See [the field contract](docs/note-fields-contract.md).
+
+The #19 source candidate adds English suggestions and revision-checked field confirmation.
+Suggestions remain unconfirmed. Every ordinary edit clears prior confirmation in the same transaction.
+Confirmation advances the note revision. Old note receipt DTOs remain unchanged.
+The next storage work is #20. It must preserve fields, revisions, ID reservations, receipts, and atomic archive replacement.
+Screens remain #21. No notes feature is installed on the phone. No device operation has authorization.
+
 ## Checks and build
 
 The #13 local CI candidate passed 703 tests and the mobile typecheck.

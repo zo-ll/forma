@@ -20,6 +20,26 @@ A source identifies one exact revision.
 The calendar day assigned to a note by the user.
 It does not change when the user's timezone changes.
 
+**Field suggestion**:
+A proposed meaning of note text that the user has not confirmed.
+It is not a fact for history questions.
+
+**Confirmed note fields**:
+The meanings that the user explicitly accepted for one note revision.
+A later note edit invalidates that acceptance.
+
+**Pain absence**:
+An explicit statement that a body part has no pain.
+A missing pain statement is not pain absence.
+
+**Uncertain pain**:
+A pain statement whose meaning is not established.
+It is neither confirmed pain presence nor confirmed pain absence.
+
+**Personal-best claim**:
+A statement that the user reached a personal best.
+It is not a calculated best-load or best-reps fact.
+
 **Previous sets**:
 The sets for an exercise in the latest finished workout before a specified workout date.
 

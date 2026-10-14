@@ -2,6 +2,7 @@ import { FormaError } from '../errors.js';
 import { withRequest } from '../requests/service.js';
 import { calendarDate, invalid, objectInput, utcTimestamp } from '../validation.js';
 import { noteHistory } from './history.js';
+import { createNoteFieldsApi } from './fields.js';
 import type { NotesDependencies } from './ports.js';
 import { expectRevision, requiredNote } from './records.js';
 import { noteDeleteResult, noteResult } from './results.js';
@@ -17,6 +18,7 @@ export function createNotesModule({ store, clock, ids }: NotesDependencies): Not
   }
   return {
     notes: {
+      ...createNoteFieldsApi(store, clock, ensureOpen),
       async create(input) {
         ensureOpen();
         objectInput(input, ['requestId', 'date', 'text', 'kind']);
@@ -64,6 +66,7 @@ export function createNotesModule({ store, clock, ids }: NotesDependencies): Not
               revision: current.revision + 1, createdAt: current.createdAt, updatedAt: utcTimestamp(clock.nowUtc()),
             };
             await writer.saveNote(record);
+            await writer.clearNoteConfirmation(id);
             return noteFromRecord(record);
           });
       },
@@ -77,6 +80,7 @@ export function createNotesModule({ store, clock, ids }: NotesDependencies): Not
           noteDeleteResult, async (writer) => {
             expectRevision(await requiredNote(writer, id), expectedRevision);
             await writer.deleteNote(id);
+            await writer.clearNoteConfirmation(id);
           });
       },
 
