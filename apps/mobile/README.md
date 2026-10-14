@@ -76,6 +76,7 @@ The source review covered all 55 changed files with zero actionable findings.
 Seed includes a real Android background/resume cycle. Verify reads exact records before replay.
 Missing records cannot be recreated to disguise a failed restart.
 
-This gate is not the complete workout UI/device gate #14. Nutrition still waits for #14.
+This historical gate is separate from [workout acceptance #14](../../docs/verification/android-workout-1c48410.md), which passed its written checklist.
+Nutrition remains deferred and requires new authorization.
 The dependency audit reports 20 high entries from one unresolved build-tooling DoS advisory.
 The affected `braces` package is absent from the embedded bundle. See [audit limits](../../docs/mobile-host.md).

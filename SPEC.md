@@ -27,7 +27,7 @@ The user excluded nutrition #15–17, meal photos #34, and nutrition-specific as
 - Test the core without React Native.
 
 The app has no nutrition module, standalone notes module, or models.
-The complete workout device gate #14 remains open.
+The workout device gate #14 passed its [written checklist](docs/verification/android-workout-1c48410.md).
 Workout notes remain a field of a workout record.
 The catalog has no edit API in this milestone.
 
