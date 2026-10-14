@@ -1,5 +1,7 @@
+import type {BodyPart, BodySide, Note, NoteFields, NoteKind, PainState, SleepQuality} from '@forma/core';
+
 /**
- * Form state for the workout screens. This module has no imports, so the Node
+ * Form state for the workout and notes screens. This module has no runtime imports, so the Node
  * suite and the React Native bundle use the same file.
  *
  * It owns request identity for UI commands and the parsing of typed text.
@@ -154,6 +156,54 @@ export interface FieldProblem {
 export type Parsed<T> =
   | {readonly ok: true; readonly value: T}
   | {readonly ok: false; readonly problems: readonly FieldProblem[]};
+
+
+export interface NoteDraft {
+  readonly date: string;
+  readonly text: string;
+  readonly kind: NoteKind;
+  readonly expectedRevision: number | null;
+}
+export function noteDraft(note: Note | null, date: string): NoteDraft {
+  return note ? {date: note.date, text: note.text, kind: note.kind, expectedRevision: note.revision}
+    : {date, text: '', kind: 'general', expectedRevision: null};
+}
+export interface PainDraft {
+  readonly bodyPart: BodyPart;
+  readonly otherBodyPart: string;
+  readonly side: BodySide;
+  readonly state: PainState;
+  readonly severity: string;
+}
+export interface FieldsDraft {
+  readonly expectedRevision: number;
+  readonly pain: readonly PainDraft[];
+  readonly minutes: string;
+  readonly quality: SleepQuality | null;
+  readonly claim: string;
+}
+export function fieldsDraft(revision: number, fields: NoteFields | null): FieldsDraft {
+  return {expectedRevision: revision, pain: fields?.pain.map(p => ({...p, otherBodyPart: p.otherBodyPart ?? '', severity: p.severity === null ? '' : String(p.severity)})) ?? [],
+    minutes: fields?.sleep?.durationMin == null ? '' : String(fields.sleep.durationMin), quality: fields?.sleep?.quality ?? null,
+    claim: fields?.personalBest?.claimText ?? ''};
+}
+/** Parse optional keyboard values only. Core owns range and contradiction validation. */
+export function parseFieldsDraft(draft: FieldsDraft): Parsed<NoteFields> {
+  const minutes = parseOptionalDecimal(draft.minutes, 'fields.sleep.durationMin', 'sleep minutes');
+  const pain = draft.pain.map((p, i) => parseOptionalDecimal(p.severity, `fields.pain[${i}].severity`, 'severity'));
+  const problems = [minutes, ...pain].flatMap(p => p.ok ? [] : p.problems);
+  if (!minutes.ok || pain.some(p => !p.ok)) return {ok: false, problems};
+  return {ok: true, value: {
+    pain: draft.pain.map((p, i) => ({bodyPart: p.bodyPart, otherBodyPart: p.bodyPart === 'other' ? p.otherBodyPart : null,
+      side: p.side, state: p.state, severity: pain[i]!.ok ? pain[i]!.value : null})),
+    sleep: minutes.value === null && draft.quality === null ? null : {durationMin: minutes.value, quality: draft.quality},
+    personalBest: draft.claim.trim() === '' ? null : {claimText: draft.claim},
+  }};
+}
+export function noteKey(name: string, id?: string, revision?: number): string {
+  return `notes:${JSON.stringify([name, id ?? null, revision ?? null])}`;
+}
+
 
 const WHOLE = /^\d+$/;
 const DECIMAL = /^-?\d+(?:[.,]\d+)?$/;

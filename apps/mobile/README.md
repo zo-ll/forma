@@ -1,6 +1,9 @@
 # Forma mobile host
 
 Issue #9 adds the client foundation. Issues #10 and #11 add the workout record, history, and progress screens.
+Issue #21 adds notes entry, history, exact-source detail, editing, deletion confirmation, and structured field confirmation.
+See [mobile notes ownership and limits](../../docs/mobile-notes.md).
+Physical notes restart and UI checks remain pending. The starting issue #20 archive checkpoint is not final.
 See [the design board mapping](../../docs/design-board-phase1.md) for the approved screens and decisions.
 The host uses React Native 0.87.1 and the tested OP-SQLite 18.2.5 adapter.
 
@@ -13,7 +16,8 @@ The host uses React Native 0.87.1 and the tested OP-SQLite 18.2.5 adapter.
 - `App.tsx`: tab and stack navigation, theme, settings, and typed error display.
 - `src/screens/`: Home, start, entry, set edit, summary, details, history, and progress screens. Screens use the service for records.
   Progress also reads the device adapter and calls the core calendar resolver for relative date ranges.
-- `src/forms/`: saved request keys, host-lifetime drafts, and keyboard parsing. It has no imports.
+- `src/forms/`: saved request keys, host-lifetime drafts, and keyboard parsing. It has no runtime imports.
+- Notes screens use `FormaService.notes`. Suggestions stay separate from confirmed fields. They do not call models.
 
 Background keeps the service open. Resume recomputes today through the core.
 It does not change saved workout dates. Explicit close drains accepted work.

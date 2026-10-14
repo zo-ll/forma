@@ -16,11 +16,13 @@ import {Summary} from './src/screens/Summary';
 import {EditDetails} from './src/screens/EditDetails';
 import {SetEdit} from './src/screens/SetEdit';
 import {History} from './src/screens/History';
+import {Notes, NoteCreate, NoteDetail, NoteEdit} from './src/screens/Notes';
+import {NoteFields} from './src/screens/NoteFields';
 import {Progress} from './src/screens/Progress';
 import {ArchiveSettings} from './src/screens/Archive';
 import {ConfirmSheet} from './src/ui/controls';
 
-type Route = 'Home' | 'History' | 'Progress' | 'Settings';
+type Route = 'Home' | 'History' | 'Notes' | 'Progress' | 'Settings';
 function errorText(error: unknown): string {
   return error instanceof FormaError ? `${error.field ? error.field + ': ' : ''}${error.message} (${error.code})`
     : 'The operation failed. Restart the app if the problem continues.';
@@ -94,12 +96,16 @@ function Shell({host}: {host: MobileHost}) {
     </Pressable>;
   return <SafeAreaView style={[styles.screen, {backgroundColor: colors.background}]}>
     <StatusBar barStyle={dark ? 'light-content' : 'dark-content'}/>
-    {!top && <View style={styles.navigation}>{(['Home', 'History', 'Progress', 'Settings'] as const).map(item =>
+    {!top && <View style={styles.navigation}>{(['Home', 'History', 'Notes', 'Progress', 'Settings'] as const).map(item =>
       <React.Fragment key={item}>{action(item, () => {setRoute(item); setVisits(count => count + 1);}, route === item)}</React.Fragment>)}</View>}
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       {(top || route !== 'Home') && (failure || snapshot.error) && <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={[styles.error, {color: colors.text}]}>
         {failure ?? errorText(snapshot.error)}</Text>}
       {!ready && (top || route !== 'Home') && <Text style={{color: colors.text}}>{snapshot.phase === 'closed' ? 'Local service closed. Restart the app to open it.' : `Local service: ${snapshot.phase}`}</Text>}
+      {top?.name === 'NoteCreate' && <NoteCreate key={`note-create-${snapshot.recordsEpoch}`} ctx={ctx}/>}
+      {top?.name === 'NoteDetail' && <NoteDetail key={JSON.stringify(top.source)} ctx={ctx} source={top.source}/>}
+      {top?.name === 'NoteEdit' && <NoteEdit key={JSON.stringify(top.source)} ctx={ctx} source={top.source}/>}
+      {top?.name === 'NoteFields' && <NoteFields key={JSON.stringify(top.source)} ctx={ctx} source={top.source}/>}
       {top?.name === 'SplitPicker' && <SplitPicker ctx={ctx}/>}
       {top?.name === 'ExerciseOrder' && <ExerciseOrder key={top.splitDayId} ctx={ctx} splitDayId={top.splitDayId}/>}
       {top?.name === 'Entry' && <Entry key={top.workoutId} ctx={ctx} workoutId={top.workoutId}/>}
@@ -108,6 +114,7 @@ function Shell({host}: {host: MobileHost}) {
       {top?.name === 'SetEdit' && <SetEdit key={top.setId} ctx={ctx} workoutId={top.workoutId} setId={top.setId}/>}
       {!top && route === 'Home' && <Home ctx={ctx} refreshKey={String(visits)}/>}
       {!top && route === 'History' && ready && <History key={`history-${snapshot.recordsEpoch}`} ctx={ctx}/>}
+      {!top && route === 'Notes' && ready && <Notes key={`notes-${snapshot.recordsEpoch}-${visits}`} ctx={ctx}/>}
       {!top && route === 'Progress' && ready && <Progress key={`progress-${snapshot.recordsEpoch}`} ctx={ctx}/>}
       {!top && route === 'Settings' && <View style={[styles.card, {backgroundColor: colors.card}]}>
         <Text accessibilityRole="header" style={[styles.title, {color: colors.text}]}>Local preferences</Text>
