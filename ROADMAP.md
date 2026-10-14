@@ -163,6 +163,10 @@ A personal-best claim in note text does not replace code-derived workout facts.
 Issues: [#22](https://github.com/zo-ll/forma/issues/22) through [#30](https://github.com/zo-ll/forma/issues/30).
 Resolve artifact precision and device limits in [#23](https://github.com/zo-ll/forma/issues/23) before production inference.
 
+Source #22 now adds [portable optional inference](docs/inference-contract.md), bounded fake-tested embedding/generation, cancellation, and source-safe restore invalidation.
+Default mobile and Node services still report missing models. No real artifact or precision policy is approved.
+File import (#24), persistent vectors (#26), and native/model gates remain deferred.
+
 ### Public contracts
 
 | Proposed capability | Contract |

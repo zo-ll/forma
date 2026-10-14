@@ -1,4 +1,12 @@
 export { createFormaService } from './service.js';
+export { INFERENCE_LIMITS } from './inference/types.js';
+export { createInferenceCancellation } from './inference/cancellation.js';
+export { embeddingProfilesCompatible } from './inference/validation.js';
+export type {
+  EmbedInput, EmbedNoteInput, EmbeddingProfile, EmbeddingResult, GenerateNoteInput, GenerationProfile,
+  GenerationResult, InferenceApi, InferenceCancellation, InferenceCancellationToken, InferenceCapabilities,
+  InferenceCapability, InferenceRuntime, ModelProfile, RuntimeEmbedding, RuntimeGeneration, RuntimeIdentity,
+} from './inference/types.js';
 export { createNotesModule } from './notes/service.js';
 export { NOTE_LIMITS } from './notes/validation.js';
 export { noteFieldConfirmationResult, validateNoteFields } from './notes/field-validation.js';

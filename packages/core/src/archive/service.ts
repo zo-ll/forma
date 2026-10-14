@@ -11,6 +11,8 @@ import { archiveDigest, historyRevision, restoreResult } from './receipts.js';
 export interface RestoreExclusion {
   /** The store for public APIs. New operations fail with CONFLICT on restore during a restore. */
   readonly store: WorkoutStore;
+  ensureAvailable(): void;
+  invalidateDerived(): void;
   begin(): void;
   end(): void;
 }
@@ -19,7 +21,7 @@ function restoreConflict(): FormaError {
   return new FormaError('CONFLICT', 'A restore is running. Try again after it ends.', { field: 'restore' });
 }
 
-export function createRestoreExclusion(store: WorkoutStore): RestoreExclusion {
+export function createRestoreExclusion(store: WorkoutStore, onBegin: () => void = () => undefined): RestoreExclusion {
   let active = false;
   return {
     store: {
@@ -27,6 +29,8 @@ export function createRestoreExclusion(store: WorkoutStore): RestoreExclusion {
       write: (run) => active ? Promise.reject(restoreConflict()) : store.write(run),
       close: () => store.close(),
     },
+    ensureAvailable() { if (active) throw restoreConflict(); },
+    invalidateDerived: onBegin,
     begin() {
       if (active) throw restoreConflict();
       active = true;
@@ -103,7 +107,7 @@ export function createArchiveApi(
       // Begin and queue in one synchronous step. Accepted operations drain first in the store FIFO.
       exclusion.begin();
       try {
-        return await withRequest(store, requestId, 'archive.restore', { digest: archive.digest, expectedHistoryRevision },
+        const pending = withRequest(store, requestId, 'archive.restore', { digest: archive.digest, expectedHistoryRevision },
           restoreResult, async (writer) => {
             if (await writer.getArchiveRevision() !== expectedHistoryRevision) {
               throw new FormaError('CONFLICT', 'The records changed after the inspection. Inspect the archive again.', {
@@ -114,6 +118,9 @@ export function createArchiveApi(
             await writer.replaceArchiveRecords({ workouts: archive.workouts, receipts: archive.receipts, notes: archive.notes });
             return { digest: archive.digest, counts: archive.counts };
           });
+        // Queue the record write before cancellation listeners can re-enter close.
+        exclusion.invalidateDerived();
+        return await pending;
       } finally {
         exclusion.end();
       }

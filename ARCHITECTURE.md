@@ -16,6 +16,23 @@ The [mobile Notes screens](docs/mobile-notes.md) now use these APIs for primary 
 Durable notes, literal FTS5, version-2 archives, and these screens exist in source.
 Physical #20/#21 acceptance remains pending. Earlier workout and native harness evidence does not prove notes.
 
+## Optional inference — issue #22
+
+`FormaService.inference` composes one optional injected runtime. See [the contract](docs/inference-contract.md).
+Default factories report missing embedding and generation. No real model or SDK is included.
+Ready means a validated configured adapter declaration, not native proof or production approval.
+Profiles keep artifact hash, runtime/version/backend, weight/runtime/output precision, dimensions, prefixes, and normalization separate.
+The embedding boundary rejects float16 and quantized weights. #23 still owns artifact and precision approval.
+One active call and four queued jobs are bounded independently of the storage FIFO.
+Source-linked jobs read exact saved note revisions and reject obsolete results after edits or deletion.
+Restore cancels derived waits and advances a private inference epoch without waiting for uncooperative native calls.
+Record signatures, receipts, global archive tokens, and atomic replacement remain unchanged.
+Cancellation ends the derived wait; it does not prove native work stopped or a primary write rolled back.
+Each runtime has one service owner. Close cancels waits and closes storage independently of runtime success.
+Runtime cleanup waits for accepted runtime work. Unknown cleanup retains ownership; an ignored cancel can keep overall close pending.
+No nutrition, history question, extraction, vector persistence, import, or mobile inference UI is added.
+Portable fake tests and build-only evidence do not establish model quality, memory, latency, or device behavior.
+
 ## Ownership
 
 `@forma/core` owns workout validation, exercise resolution, set order, and request replay.
@@ -359,7 +376,7 @@ The current adapter does not coordinate several connections within one process.
 
 The service owns its injected store and closes it with `close()`.
 Do not share the same store between services with independent lifetimes.
-A close waits for accepted operations.
+A close waits for accepted storage operations. Optional runtime work drains separately as described above.
 After a close starts, the service rejects new operations.
 Repeated calls to `close()` use the same promise.
 
@@ -374,6 +391,9 @@ Repeated calls to `close()` use the same promise.
 | `CONFLICT` | An ID already exists, or a request key identifies different input |
 | `SERVICE_CLOSED` | The service or store no longer accepts operations |
 | `STORAGE_FAILURE` | Storage cannot complete the operation |
+| `INFERENCE_UNAVAILABLE` | The optional capability is missing or failed |
+| `INFERENCE_FAILURE` | An optional adapter result or cleanup failed |
+| `CANCELLED` | A derived inference wait ended; native work can still be active |
 
 The Node adapter converts native database errors to `FormaError`.
 The error retains its original cause for local diagnostics.

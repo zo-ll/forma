@@ -184,6 +184,7 @@ export interface ArchiveApi {
 }
 
 export interface FormaService {
+  readonly inference: import('./inference/types.js').InferenceApi;
   readonly notes: import('./notes/types.js').NotesApi;
   readonly exercises: ExerciseApi;
   readonly splitDays: SplitDayApi;

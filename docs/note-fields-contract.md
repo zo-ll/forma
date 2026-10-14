@@ -94,7 +94,7 @@ Physical native Android checks remain pending.
 Issue #21 supplies the [structured confirmation UI](mobile-notes.md) in source.
 Copying a suggestion changes only a draft. Confirmation requires a deliberate action.
 Physical notes UI and restart acceptance remain pending. Earlier workout/native evidence does not prove these fields.
-Inference remains absent.
+Field extraction by inference remains absent. The optional [inference boundary](inference-contract.md) does not confirm fields.
 The rule corrections retain explicit confirmation. Hedge, third-person, and future phrasing stays uncertain.
 Coordinated left/right phrases preserve both sides as bilateral.
 Known body-part aliases in `otherBodyPart` cannot bypass location overlap checks.

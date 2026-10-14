@@ -79,4 +79,5 @@ export interface FormaDependencies {
   readonly store: WorkoutStore;
   readonly clock: Clock;
   readonly ids: IdGenerator;
+  readonly inference?: import('./inference/types.js').InferenceRuntime;
 }
