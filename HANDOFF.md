@@ -4,10 +4,16 @@
 
 Issue #12 merged through [PR #49](https://github.com/zo-ll/forma/pull/49).
 Its merge commit is `180d93e6cf878eec60e0e9cc6f65b2ed0cd9c16c`.
-Issue #13 adds continuous checks and a reproducible Android build.
+Issue #13 merged through [PR #50](https://github.com/zo-ll/forma/pull/50) at `bddc125`.
+Its exact candidate `210b828` passed all 703 tests and the cold Android CI build.
 See [the CI contract](docs/ci.md) and [the actual runs](https://github.com/zo-ll/forma/actions/workflows/ci.yml).
 Match the run's source head before you use its result as proof.
-After issue #13 merges, stop. Do not start #14, nutrition, or another feature without new permission.
+The user authorized all remaining non-nutrition issues on 2026-10-14.
+Next is #14, then notes #18–21, the local assistant #22–30, and privacy/release #31–32.
+Catalog management #33, voice notes #35, and iOS #36 follow the first Android release.
+Nutrition #15–17, meal photos #34, and nutrition-specific assistant tools remain deferred and open.
+Do not add placeholder nutrition modules or treat their exclusion as acceptance.
+Obtain an exclusive phone window before device operations. Native iOS proof requires a Mac and a named iOS device.
 
 ## Issue #12 result
 
@@ -30,8 +36,9 @@ Restore removed one owned scratch workout and preserved every original primary D
 Only one new durable restore receipt remained. Exact restored data survived process restart.
 A real stale History draft cleared after restore.
 
-The final phone has 21 original workouts, three sets, 7,069 receipts, no active workout, and usable Home.
-The user controls the phone. No phone operation is scheduled.
+At the last native check, the phone had 21 original workouts, three sets, 7,069 receipts, no active workout, and usable Home.
+The user controls the phone. Recheck live state before any mutation.
+The coordinator will request a new exclusive window for #14.
 One valid plaintext backup remains in local Downloads. It includes deleted-record command snapshots.
 The temporary scale fixtures are gone. The scale marker is a cleaned tombstone.
 Do not recreate scale fixtures or use normal gate seed modes without permission.
@@ -48,7 +55,8 @@ Keep raw archives, records, device addresses, keys, APKs, screenshots, and logs 
 
 The complete local CI candidate passed 703 tests and the mobile typecheck.
 The boundary checks, dependency policy, and workflow lint also passed.
-The actual cold GitHub run is the required merge proof; inspect its exact source head.
+The cold [GitHub run](https://github.com/zo-ll/forma/actions/runs/38539417810) passed both jobs at exact source `210b828`.
+The downloaded APK hash matched clean metadata. The source review covered 11/11 files with one low artifact-rerun finding.
 
 Use [docs/ci.md](docs/ci.md) for exact versions and fresh-checkout commands.
 `npm test` compiles and runs all current source tests. `npm run typecheck --prefix apps/mobile` checks the mobile application.
