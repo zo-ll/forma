@@ -17,12 +17,22 @@ See [the inference contract](docs/inference-contract.md) for public DTOs, precis
 Runtime calls stay outside the storage queue. Restore invalidates derived waits without waiting for native cancellation.
 Close starts storage cleanup independently; an ignored runtime cancellation can keep overall close pending.
 Issue #23 merged through PR #59 at `6d58145`. See [the approved model policy](docs/model-policy.md).
-Issue #24 adds local model file import, exact size/SHA-256 verification, private no-backup files, and Settings controls in source.
+Issue #24 merged through PR #60 at `243a5f5`, with source approval only.
+It adds local file import, exact size/SHA-256 verification, private no-backup files, and Settings controls.
 See [the import contract](docs/model-import-contract.md). Verified files do not enable inference.
 Native file JVM tests and source/controller/screen tests do not prove physical picker behavior.
 The #24 phone acceptance remains pending. It can precede model load checks in the #25 window.
-No native model, inference UI, vectors, extraction, history questions, or nutrition are included.
-Native inference #25–30 and privacy/release #31–32 remain later work.
+Issue #25 now has a typed Android adapter, LiteRT-LM 0.18.0 binding, exclusive ownership, serial resource release, and memory-pressure controls.
+See [the Android inference contract](docs/android-inference-contract.md) for explicit isolated modes and evidence limits.
+Normal launches still report missing models. The #25 exact-artifact phone check remains pending.
+The first #25 phone upgrade exposed a missing native FTS5 build option and failed the notes migration.
+The prior APK returned without a reset. A fresh archive comparison confirmed exact preservation of every original module.
+The FTS5 correction passed the actual upgrade and a native literal search. Every original archive module remained identical.
+The first CPU diagnostic attempt exposed a separate Activity whitelist omission. Android did not forward the inference launch mode.
+The source correction adds all three read-only modes, their exact run ID limits, and native regression tests.
+Approved embedding import passed, but actual SDK execution and the complete import checks still require device proof.
+No model binary, assistant UI, vectors, extraction, history questions, or nutrition is included.
+Issues #26–30 and privacy/release #31–32 remain later work.
 Catalog management #33, voice notes #35, and iOS #36 follow the first Android release.
 Nutrition #15–17, meal photos #34, and nutrition-specific assistant tools remain deferred and open.
 Do not add placeholder nutrition modules or treat their exclusion as acceptance.

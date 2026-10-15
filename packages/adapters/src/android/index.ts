@@ -4,6 +4,8 @@ import { AndroidSqliteWorkoutStore } from './sqlite-workout-store.js';
 import type { AndroidSqliteWorkoutStoreOptions } from './sqlite-workout-store.js';
 
 export { AndroidSqliteWorkoutStore } from './sqlite-workout-store.js';
+export { createAndroidInferenceRuntime, ANDROID_EMBEDDING_PROFILE, ANDROID_GENERATION_PROFILE } from './inference.js';
+export type { AndroidInferenceBinding } from './inference.js';
 export type { AndroidSqliteWorkoutStoreOptions, OpSqliteDatabase, OpSqliteOpener } from './sqlite-workout-store.js';
 export interface AndroidFormaOptions extends AndroidSqliteWorkoutStoreOptions {
   readonly clock: Clock;

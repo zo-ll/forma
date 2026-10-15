@@ -19,7 +19,7 @@ Physical #20/#21 acceptance remains pending. Earlier workout and native harness 
 ## Optional inference — issue #22
 
 `FormaService.inference` composes one optional injected runtime. See [the contract](docs/inference-contract.md).
-Default factories report missing embedding and generation. No real model or SDK is included.
+Default factories report missing embedding and generation. No model binary is included.
 Ready means a validated configured adapter declaration, not native proof or production approval.
 Profiles keep artifact hash, runtime/version/backend, weight/runtime/output precision, dimensions, prefixes, and normalization separate.
 Weight quantization is a separate field with approved values `none`, `int4-per-channel-qat`, and `mixed-2-4-8-bit-qat`.
@@ -34,7 +34,10 @@ Runtime cleanup waits for accepted runtime work. Unknown cleanup retains ownersh
 Issue #24 adds a host-owned [model import controller](docs/model-import-contract.md) and Settings controls.
 `FormaModelsModule` streams exact approved bytes into private no-backup storage, checks SHA-256, and publishes with one rename.
 This file queue is independent of SQLite. A verified file does not promote inference capabilities.
-No nutrition, history question, extraction, vector persistence, or inference control is added.
+Issue #25 adds the [Android inference binding](docs/android-inference-contract.md) and a typed adapter for explicit isolated checks.
+LiteRT-LM runs on a dedicated serial worker. One process lease owns at most one resident model.
+Memory pressure cancels work and queues release. Uncertain release retains ownership.
+Normal launches still report missing models. No nutrition, history question, extraction, or vector persistence is added.
 Portable fake tests and build-only evidence do not establish model quality, memory, latency, or device behavior.
 
 ## Ownership

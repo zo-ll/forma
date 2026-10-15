@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { createHash, randomUUID } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateHostResult, validateRestart } from './mobile-host-protocol.mjs';
+import { validateHostResult, validateRestart, validateSqliteBuildOptions } from './mobile-host-protocol.mjs';
 import { checkSourceBoundaries, validateMobileSources } from './check-boundaries.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -133,6 +133,7 @@ function build() {
   const mapPath = findHostgateSourcemap();
   const sources = (JSON.parse(read(mapPath)).sources ?? []);
   const required = validateMobileSources(sources);
+  const sqliteBuildOptions = validateSqliteBuildOptions(run('unzip', ['-p', apk, 'lib/arm64-v8a/libop-sqlite.so']));
 
   const result = {
     ...metadata,
@@ -141,6 +142,7 @@ function build() {
     sourceMap: mapPath,
     sourceMapEntries: sources.length,
     bundleRequired: required,
+    sqliteBuildOptions,
     builtAt: new Date().toISOString(),
   };
   ensureResultsDir();

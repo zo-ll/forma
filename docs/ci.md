@@ -15,8 +15,14 @@ It does not replace native device checks.
 
 `Cold Android ARM64 build` assembles `hostgateRelease` through the existing build command.
 The command checks the actual source map, required native modules, source identity, and APK hash.
-The job also runs `:app:testHostgateDebugUnitTest` for the native model file store.
-These JVM tests cover byte verification, atomic replacement, cancellation, bounded copy, and interrupted-file cleanup.
+It also checks the packaged ARM64 SQLite library for the required `ENABLE_FTS5` build option.
+The mobile package explicitly enables that option because the notes migration requires FTS5.
+The binary check proves the build option, not actual native query behavior.
+The job also runs `:app:testHostgateDebugUnitTest` for model files, launch options, inference ownership, and actual SDK configuration objects.
+The Activity uses the tested native whitelist for explicit diagnostic modes and their run ID limits.
+These JVM tests cover byte verification, atomic replacement, cancellation, serial release, memory pressure, and interrupted-file cleanup.
+The tests use Java 21 because the pinned LiteRT-LM SDK publishes Java 21 classes.
+Fake engines prove resource order, not native delegate execution.
 The job never calls the device runner, ADB, fixture modes, or record APIs.
 It uploads only its fresh APK and source/hash metadata. Artifact retention is seven days.
 The APK uses the public template debug key. It is not a production-signed release.

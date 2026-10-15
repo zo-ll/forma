@@ -24,7 +24,7 @@ class MainActivity : ReactActivity() {
           if (BuildConfig.HOST_GATE) {
             val mode = intent.getStringExtra("formaMode")
             val runId = intent.getStringExtra("formaRunId")
-            if (mode in setOf("fixtures", "seed", "verify") && runId != null && runId.matches(Regex("[A-Za-z0-9-]{1,128}"))) {
+            if (HostGateLaunchOptions.accepts(mode, runId)) {
               putString("formaMode", mode)
               putString("formaRunId", runId)
             }

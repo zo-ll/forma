@@ -36,13 +36,14 @@ internal class ModelImportToken {
 /** Only the native module supplies the private no-backup directory and approved artifact. */
 internal class ModelArtifactStore(
   private val directory: File,
+  private val recoverInterrupted: Boolean = true,
   private val rename: (File, File) -> Boolean = { source, target -> source.renameTo(target) },
 ) {
   init {
     if ((!directory.exists() && !directory.mkdirs()) || !directory.isDirectory) throw ModelFileFailure("FORMA_MODEL_STORAGE")
     val files = directory.listFiles() ?: throw ModelFileFailure("FORMA_MODEL_STORAGE")
     for (file in files) {
-      if (file.name.startsWith(".import-") && !file.delete()) throw ModelFileFailure("FORMA_MODEL_CLEANUP")
+      if (recoverInterrupted && file.name.startsWith(".import-") && !file.delete()) throw ModelFileFailure("FORMA_MODEL_CLEANUP")
     }
   }
   private fun destination(a: ModelArtifact): File {
@@ -73,6 +74,12 @@ internal class ModelArtifactStore(
       }
       ModelFileState(a.id, "verified", length)
     } catch (_: Exception) { ModelFileState(a.id, "failed", length) }
+  }
+
+  /** Read-only owners must disable recovery, because the import module can own a live temporary file. */
+  fun verifiedFile(a: ModelArtifact): File {
+    if (status(a).state != "verified") throw ModelFileFailure("FORMA_MODEL_INTEGRITY")
+    return destination(a)
   }
 
   fun import(a: ModelArtifact, input: InputStream, token: ModelImportToken) {

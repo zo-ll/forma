@@ -107,6 +107,17 @@ class ModelArtifactStoreTest {
     File(blocked, "child").writeText("blocked cleanup")
     fails("FORMA_MODEL_CLEANUP") { ModelArtifactStore(dir) }
   }
+  @Test fun inferenceReaderNeverDeletesALiveImportTemporaryFile() = withStore { dir, store, a ->
+    val live = File(dir, ".import-live.tmp"); live.writeText("live provider bytes")
+    val reader = ModelArtifactStore(dir, recoverInterrupted = false)
+    assertTrue(live.exists())
+    fails("FORMA_MODEL_INTEGRITY") { reader.verifiedFile(a) }
+    store.import(a, ByteArrayInputStream(bytes), ModelImportToken())
+    assertArrayEquals(bytes, reader.verifiedFile(a).readBytes())
+    reader.verifiedFile(a).writeBytes(ByteArray(bytes.size) { 7 })
+    fails("FORMA_MODEL_INTEGRITY") { reader.verifiedFile(a) }
+    assertTrue(live.exists())
+  }
   @Test fun catalogRejectsUnapprovedIdentity() {
     fails("FORMA_MODEL_ARTIFACT") { ApprovedModels.find("../../private-records") }
     assertEquals(2, ApprovedModels.all.size)

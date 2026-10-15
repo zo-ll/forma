@@ -10,10 +10,11 @@ class FormaDevicePackage : BaseReactPackage() {
   override fun getModule(name: String, context: ReactApplicationContext): NativeModule? = when (name) {
     FormaDeviceModule.NAME -> FormaDeviceModule(context)
     FormaModelsModule.NAME -> FormaModelsModule(context)
+    FormaInferenceModule.NAME -> FormaInferenceModule(context)
     else -> null
   }
   override fun getReactModuleInfoProvider(): ReactModuleInfoProvider = ReactModuleInfoProvider {
-    listOf(FormaDeviceModule.NAME, FormaModelsModule.NAME).associateWith { name ->
+    listOf(FormaDeviceModule.NAME, FormaModelsModule.NAME, FormaInferenceModule.NAME).associateWith { name ->
       ReactModuleInfo(name, name, false, false, false, true)
     }
   }
