@@ -25,6 +25,10 @@ The #24 phone acceptance remains pending. It can precede model load checks in th
 Issue #25 now has a typed Android adapter, LiteRT-LM 0.18.0 binding, exclusive ownership, serial resource release, and memory-pressure controls.
 See [the Android inference contract](docs/android-inference-contract.md) for explicit isolated modes and evidence limits.
 Normal launches still report missing models. The #25 exact-artifact phone check remains pending.
+The first #25 phone upgrade exposed a missing native FTS5 build option and failed the notes migration.
+The prior APK returned without a reset. A fresh archive comparison confirmed exact preservation of every original module.
+The source correction enables FTS5 and rejects APKs without its native build option.
+The corrected upgrade, actual model import, and inference checks still require device proof.
 No model binary, assistant UI, vectors, extraction, history questions, or nutrition is included.
 Issues #26–30 and privacy/release #31–32 remain later work.
 Catalog management #33, voice notes #35, and iOS #36 follow the first Android release.

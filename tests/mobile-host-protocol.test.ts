@@ -4,10 +4,18 @@ import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 
 const url = pathToFileURL(resolve('scripts/mobile-host-protocol.mjs')).href;
-const {validateHostResult, validateRestart} = await import(url) as {
+const {validateHostResult, validateRestart, validateSqliteBuildOptions} = await import(url) as {
+  validateSqliteBuildOptions: (library: unknown) => {fts5: true};
   validateHostResult: (value: unknown, metadata: object, mode: string, runId: string, count: number) => void;
   validateRestart: (seed: unknown, verify: unknown) => void;
 };
+test('the APK build rejects a SQLite library without the required FTS5 compile option', () => {
+  assert.deepEqual(validateSqliteBuildOptions('binary\0ENABLE_FTS5\0other'), {fts5: true});
+  for (const value of [undefined, null, {}, '', 'ENABLE_FTS5', 'ENABLE_FTS50\0', 'ENABLE_JSON1\0']) {
+    assert.throws(() => validateSqliteBuildOptions(value), /ENABLE_FTS5/);
+  }
+});
+
 const metadata = {sourceHead: 'head', sourceDigest: 'digest', dirty: false, fixtureCount: 12, reactNative: '0.87.1', opSqlite: '18.2.5'};
 const valid = {...metadata, mode: 'fixtures', runId: 'run', ok: true, count: 12};
 test('mobile host results require exact source, runtime, mode, identity and count', () => {

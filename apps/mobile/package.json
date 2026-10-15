@@ -27,6 +27,9 @@
     "@types/react": "19.2.14",
     "typescript": "6.0.3"
   },
+  "op-sqlite": {
+    "fts5": true
+  },
   "engines": {
     "node": ">=24.3.0"
   },

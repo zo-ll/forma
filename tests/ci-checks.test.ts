@@ -19,6 +19,11 @@ const core = resolve('packages/core/src');
 const graph = ['/node_modules/@op-engineering/op-sqlite/index.js', '/packages/mobile-host/dist/host.js',
   '/apps/mobile/src/native/NativeFormaDevice.ts', '/apps/mobile/src/gate.ts'];
 
+test('the Android client explicitly enables the FTS5 option required by the notes migration', () => {
+  const app = JSON.parse(readFileSync('apps/mobile/package.json', 'utf8')) as {'op-sqlite'?: {fts5?: boolean}};
+  assert.equal(app['op-sqlite']?.fts5, true);
+});
+
 test('core accepts only imports inside its own source owner', () => {
   assert.equal(validateSource("import type {X} from './types.js'; export {x} from './lib.js'", join(core, 'index.ts'), 'core'), 2);
   for (const text of [
