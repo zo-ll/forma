@@ -1,20 +1,11 @@
 package dev.forma.mobile
 
-import com.google.ai.edge.litertlm.ActivationDataType
-import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Content
-import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
-import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.EmbeddingEngine
-import com.google.ai.edge.litertlm.EmbeddingEngineConfig
-import com.google.ai.edge.litertlm.EmbeddingOptions
 import com.google.ai.edge.litertlm.Engine
-import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.InputData
 import com.google.ai.edge.litertlm.LogSeverity
-import com.google.ai.edge.litertlm.SamplerConfig
-import com.google.ai.edge.litertlm.ThinkingConfig
 import java.io.File
 
 /** This factory runs only on the inference worker. No URI, model path, or SDK handle reaches JS. */
@@ -32,16 +23,13 @@ internal fun liteRtInferenceBackend(noBackupDirectory: File): NativeInferenceBac
   }
 }
 internal class LiteRtEmbeddingModel(path: String, cache: String) : LoadedInferenceModel {
-  private val engine = EmbeddingEngine(EmbeddingEngineConfig(
-    modelPath = path, backend = Backend.CPU(), cacheDir = cache, maxInputLength = 2048,
-    activationDataType = ActivationDataType.FLOAT32,
-  ))
+  private val engine = EmbeddingEngine(LiteRtInferenceConfig.embedding(path, cache))
   override fun initialize() { engine.initialize() }
   override fun run(request: InferenceRequest, job: InferenceJob): NativeInferenceResult {
     job.check()
     // The SDK performs MRL truncation and L2 normalization. The core validates the resulting norm.
     val vector = engine.computeEmbedding(listOf(InputData.Text(request.text)),
-      EmbeddingOptions(normalize = true, outputSize = 256, insertSpecialTokens = true)).embedding
+      LiteRtInferenceConfig.embeddingOptions()).embedding
     job.check()
     if (vector.size != 256 || vector.any { !it.isFinite() }) throw InferenceFailure("FORMA_INFERENCE_OUTPUT")
     return NativeInferenceResult(InferenceKind.EMBEDDING, task = request.task, vector = vector.copyOf())
@@ -49,10 +37,7 @@ internal class LiteRtEmbeddingModel(path: String, cache: String) : LoadedInferen
   override fun close() { if (engine.isInitialized()) engine.close() }
 }
 internal class LiteRtGenerationModel(path: String, cache: String) : LoadedInferenceModel {
-  private val engine = Engine(EngineConfig(
-    modelPath = path, backend = Backend.GPU(), cacheDir = cache, maxNumTokens = 2048,
-    activationDataType = ActivationDataType.FLOAT32,
-  ))
+  private val engine = Engine(LiteRtInferenceConfig.generation(path, cache))
   private var conversation: Conversation? = null
   private var poisoned = false
   override fun initialize() { engine.initialize() }
@@ -60,11 +45,7 @@ internal class LiteRtGenerationModel(path: String, cache: String) : LoadedInfere
     if (poisoned || conversation != null) throw InferenceFailure("FORMA_INFERENCE_RESOURCE")
     job.check()
     // A new conversation owns each request. No history, tools, or automatic tool execution survives it.
-    val current = engine.createConversation(ConversationConfig(
-      systemInstruction = Contents.of(request.instruction!!), automaticToolCalling = false,
-      channels = emptyList(), maxOutputToken = 256, thinkingConfig = ThinkingConfig(enableThinking = false),
-      samplerConfig = SamplerConfig(topK = 1, topP = 1.0, temperature = 0.0), enableSpeculativeDecoding = false,
-    ))
+    val current = engine.createConversation(LiteRtInferenceConfig.conversation(request.instruction!!))
     conversation = current
     try {
       job.attach { current.cancelProcess() }

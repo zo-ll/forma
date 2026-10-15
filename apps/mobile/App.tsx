@@ -7,6 +7,8 @@ import type {MobileHost, MobileHostSnapshot} from '@forma/mobile-host';
 import {mobileArchiveFlow, mobileForms, mobileModelFlow, mobileRoot} from './src/root';
 import {deviceAdapters} from './src/adapters/device';
 import {runHostGate} from './src/gate';
+import {isInferenceGateMode} from './src/adapters/inference';
+import {runInferenceGate} from './src/inference-gate';
 import {DARK, LIGHT} from './src/ui/theme';
 import type {ScreenContext, StackScreen} from './src/screens/context';
 import {Home} from './src/screens/Home';
@@ -30,11 +32,12 @@ function errorText(error: unknown): string {
 }
 const gateRuns = new Set<string>();
 export default function App({formaMode, formaRunId}: {formaMode?: string; formaRunId?: string}) {
-  const host = mobileRoot();
+  const host = mobileRoot(formaMode);
   useEffect(() => {
     if (deviceAdapters.isHostGate() && formaMode && formaRunId && !gateRuns.has(formaRunId + formaMode)) {
       gateRuns.add(formaRunId + formaMode);
-      void runHostGate(host, formaMode, formaRunId);
+      if (isInferenceGateMode(formaMode)) void runInferenceGate(host, formaMode, formaRunId);
+      else void runHostGate(host, formaMode, formaRunId);
     }
   }, [host, formaMode, formaRunId]);
   return <SafeAreaProvider><Shell host={host}/></SafeAreaProvider>;

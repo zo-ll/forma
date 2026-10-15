@@ -53,6 +53,12 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
 }
+// LiteRT-LM publishes Java 21 classes. React Native otherwise selects Java 17 for JVM tests.
+tasks.withType(Test).configureEach {
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
 // Workspace packages and source metadata are outside Gradle's JS input tree.
 tasks.matching { it.name.startsWith("createBundle") && it.name.endsWith("JsAndAssets") }.configureEach {
     outputs.upToDateWhen { false }

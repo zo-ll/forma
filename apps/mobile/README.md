@@ -14,6 +14,11 @@ It does not enable inference. Model files stay outside record archives.
 See [the import contract](../../docs/model-import-contract.md) for lifecycle rules and evidence limits.
 The source and JVM tests do not prove physical picker behavior. The phone check remains pending.
 
+Issue #25 adds a typed local inference adapter and the LiteRT-LM 0.18.0 native binding.
+Normal launches do not enable a model. Only explicit isolated inference modes inject the runtime.
+See [the Android inference contract](../../docs/android-inference-contract.md) for modes, ownership, and acceptance gaps.
+Actual model execution and the float32 GPU candidate remain unverified on the phone.
+
 ## Ownership
 
 - `@forma/core`: domain rules, record commands, dates, and calculations.
@@ -27,6 +32,8 @@ The source and JVM tests do not prove physical picker behavior. The phone check 
 - Notes screens use `FormaService.notes`. Suggestions stay separate from confirmed fields. They do not call models.
 - `@forma/mobile-host` owns the model catalog and import controller. `FormaModelsModule` owns native document and model files.
 - `src/screens/Models.tsx` shows file status and controls. It does not load inference.
+- `src/adapters/inference.ts` composes explicit isolated modes. `FormaInferenceModule` owns the native inference worker.
+- `src/inference-gate.ts` checks portable inference without record writes. It never creates a synthetic note.
 
 Background keeps the service open. Resume recomputes today through the core.
 It does not change saved workout dates. Explicit close drains accepted work.
@@ -49,7 +56,8 @@ node scripts/mobile-host-device.mjs build
 
 The device runner builds only `hostgateRelease`, package `dev.forma.mobile.hostgate`.
 It embeds JavaScript and needs no Metro server, backend, accounts, or models.
-It has no INTERNET permission. It stores only synthetic records in a separate sandbox.
+It has no INTERNET permission. Its sandbox is separate from `dev.forma.mobile`.
+An existing hostgate sandbox can contain personal records. Obtain an exclusive phone window before device operations.
 
 ```sh
 adb devices -l

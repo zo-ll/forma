@@ -112,6 +112,8 @@ Issue #24 adds host-owned local file import, artifact verification, partial clea
 See [the import contract](model-import-contract.md). File verification does not enable an inference capability.
 Vector persistence/search belongs to #26: exact source revision and full profile metadata must bind every vector and coverage report.
 Core publishes no unused file/vector ports.
-Native inference adapters, model binaries/downloads, SDK dependencies, durable jobs, automatic indexing, fixed history tools, and #30 device acceptance remain deferred.
+Issue #25 adds an explicit experimental [Android adapter and native binding](android-inference-contract.md).
+It pins LiteRT-LM 0.18.0 outside the core. Normal app launches still report missing models.
+Model binaries/downloads, durable jobs, automatic indexing, fixed history tools, and #30 device acceptance remain deferred.
 Build-only and fake-adapter tests do not prove native release, latency, memory, or quality.
 Physical #20/#21 acceptance stays pending. Earlier #14 evidence proves neither notes nor models.

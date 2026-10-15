@@ -99,9 +99,50 @@ Neither path accesses the record store.
 
 The build pins LiteRT-LM `0.18.0` and Kotlin `2.4.0`.
 The SDK publishes Kotlin metadata `2.4.0`; the build does not bypass metadata checks.
+JVM tests use Java 21 because the SDK publishes Java 21 class files.
+`LiteRtInferenceConfigTest` inspects actual SDK configuration objects without a JNI load.
 The SDK [configuration source](https://github.com/google-ai-edge/LiteRT-LM/blob/b2f686e2ed4718fb84ec398a61dd59ca0f0aff27/kotlin/java/com/google/ai/edge/litertlm/Config.kt) documents explicit activation precision.
 It states that unsupported precision causes initialization failure.
 This is an API contract, not target-phone proof.
+
+## Isolated acceptance modes
+
+Only the `hostgate` flavor accepts an explicit inference launch mode.
+The app requires a cold process start because its composition root has one lifetime.
+Normal launch and the existing `fixtures`, `seed`, and `verify` modes do not enable inference.
+
+| `formaMode` | Capabilities |
+| --- | --- |
+| `inference-embedding` | CPU embedding only; query and document checks. |
+| `inference-generation` | GPU generation only; exact saved synthetic source. |
+| `inference-sequential` | Query, document, generation, then query; no joint residency. |
+
+`formaRunId` must contain 1–80 ASCII letters, digits, or hyphens.
+Generation requires exactly one saved note with this exact text:
+
+```text
+Forma inference synthetic source. Run RUN_ID
+```
+
+Replace `RUN_ID` with the same `formaRunId` value.
+The diagnostic never creates, edits, or deletes this note.
+It fails if the note is absent or ambiguous.
+The operator controls any fixture creation and later removal.
+
+Warning: Obtain a new exclusive phone window before any install, restart, import, fixture, or inference operation.
+Do not run the normal fixture modes against an existing dataset without separate permission.
+Preserve the complete current records and receipts before any authorized fixture change.
+
+The diagnostic reads records during each portable inference wait.
+It does not claim that this read overlaps a specific SDK execution stage.
+It reports wall-clock round-trip durations, vector dimensions and norm, output length, and configured backends.
+It does not log note text, generated text, source IDs, or paths.
+It closes the host before it emits `FORMA_INFERENCE_RESULT`.
+A failed native close prevents a successful result.
+
+These modes do not prove memory budgets, first-token latency, throughput, interruption behavior, or an effective delegate.
+The sequential mode does not prove the #30 joint-residency budget.
+The phone checklist must also cover native cancellation, memory pressure, React invalidation, and file-check latency.
 
 ## Source and device evidence
 

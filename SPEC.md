@@ -31,14 +31,16 @@ The user excluded nutrition #15–17, meal photos #34, and nutrition-specific as
 - Search notes with literal FTS5 and open exact source revisions.
 - Test the core without React Native.
 
-The app has no nutrition module or models.
+The app has no nutrition module or bundled models.
 The optional `FormaService.inference` boundary reports missing capabilities by default.
 Injected fake-tested adapters can embed text or generate untrusted text from exact saved note sources.
 No model writes facts, confirms fields, or enters the storage write queue.
 See [the inference contract](docs/inference-contract.md) for profile identity, bounds, cancellation, ownership, and restore safety.
 Issue #23 approves the model policy. Issue #24 adds local file import and verified file status in Settings.
 Import does not enable inference. Native import acceptance remains pending.
-Vector persistence, history questions, and native inference remain deferred.
+Issue #25 adds an explicit experimental [Android inference binding](docs/android-inference-contract.md) in source.
+Normal launches do not enable models. Actual artifact execution and the #30 device gate remain pending.
+Vector persistence and history questions remain deferred.
 `FormaService.notes` supports create, detail, revision-checked edits, deletion, bounded history, and literal search.
 See [the notes contract](docs/notes-contract.md) and [mobile Notes screens](docs/mobile-notes.md).
 Notes and fields share the store, receipts, lifetime, and restore exclusion with workouts.

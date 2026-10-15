@@ -168,7 +168,9 @@ Issue #23 approved the artifacts, the quantized weight schemes, and provisional 
 Default mobile and Node services still report missing models. Ready status is not production approval.
 Issue #24 adds [local model file import and status controls](docs/model-import-contract.md) in source.
 The importer verifies exact sizes and hashes before atomic file publication. It does not load an engine.
-Physical import, persistent vectors (#26), and native/model gates remain pending.
+Issue #25 adds a typed [Android inference adapter and native owner](docs/android-inference-contract.md) in source.
+It pins LiteRT-LM 0.18.0 and keeps models disabled outside explicit isolated checks.
+Physical import, exact artifact execution, persistent vectors (#26), and the #30 device gate remain pending.
 
 ### Public contracts
 

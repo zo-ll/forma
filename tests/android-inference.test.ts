@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
 import { createFormaService, createInferenceCancellation } from '@forma/core';
 import type { InferenceRuntime } from '@forma/core';
 import { ANDROID_EMBEDDING_PROFILE as ep, ANDROID_GENERATION_PROFILE as gp, createAndroidInferenceRuntime } from '@forma/adapters/android';
@@ -57,6 +58,15 @@ for (const flags of [{}, { embedding: true }, { generation: true }, { embedding:
     assert.equal(f.calls.filter(c => c[0] === 'close').length, flags.embedding || flags.generation ? 1 : 0);
   });
 }
+test('the SDK dependency and native response version match the portable profiles', () => {
+  const gradle = readFileSync('apps/mobile/android/app/build.gradle', 'utf8');
+  const native = readFileSync('apps/mobile/android/app/src/main/java/dev/forma/mobile/InferenceJson.kt', 'utf8');
+  const dependency = gradle.match(/implementation\("com\.google\.ai\.edge\.litertlm:litertlm-android:([^"]+)"\)/)?.[1];
+  const metadata = native.match(/\.put\("runtimeVersion", "([^"]+)"\)/)?.[1];
+  assert.equal(dependency, ep.runtime.version);
+  assert.equal(metadata, dependency);
+  assert.equal(gp.runtime.version, dependency);
+});
 test('profiles agree with the import catalog and contain no effective delegate claim', () => {
   for (const p of [ep, gp]) {
     const a = MODEL_ARTIFACTS.find(a => a.id === p.artifact.id)!;

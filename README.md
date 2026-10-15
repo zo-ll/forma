@@ -52,7 +52,9 @@ Physical Forma notes/FTS5/restart/archive proof remains pending.
 See [the notes contract](docs/notes-contract.md) for its storage port and current limits.
 
 `FormaService.inference` provides optional text embedding and source-linked note generation through injected adapters.
-Default services report both capabilities as missing. No real model or runtime SDK is included.
+Default services report both capabilities as missing. No model binary is included.
+The [Android inference binding](docs/android-inference-contract.md) pins LiteRT-LM 0.18.0 for explicit isolated checks.
+Its source tests do not prove artifact execution, model quality, or device budgets.
 Settings can import the two approved local files and show their verified status.
 Import does not enable inference. See [the import contract](docs/model-import-contract.md).
 Physical model import and native inference checks remain pending.

@@ -5,6 +5,8 @@ import type {MobileHost, ModelImportFlow} from '@forma/mobile-host';
 import {modelFiles} from './adapters/models';
 import {deviceAdapters} from './adapters/device';
 import {ARCHIVE_LIMITS} from '@forma/core';
+import type {InferenceRuntime} from '@forma/core';
+import {experimentalGateInference} from './adapters/inference';
 import {createArchiveFlow} from './archive/flow';
 import type {ArchiveFlow} from './archive/flow';
 import {createCommandLedger, createDraftStore} from './forms/index';
@@ -13,13 +15,16 @@ import type {CommandLedger, DraftStore} from './forms/index';
 const key = Symbol.for('forma.mobile.host.v1');
 const registry = globalThis as typeof globalThis & {[key: symbol]: unknown};
 /** The React instance owns one host, including across Fast Refresh component mounts. */
-export function mobileRoot(): MobileHost {
+export function mobileRoot(mode?: string): MobileHost {
   const existing = registry[key] as MobileHost | undefined;
   if (existing) return existing;
+  let inference: InferenceRuntime | undefined;
+  try { inference = experimentalGateInference(mode); } catch { /* Optional inference cannot prevent record service startup. */ }
   const host = createMobileHost({
     openService: () => openAndroidForma({
       databaseName: 'forma.sqlite', openDatabase: open,
       clock: deviceAdapters.clock, ids: deviceAdapters.ids,
+      ...(inference === undefined ? {} : {inference}),
     }),
     preferences: deviceAdapters.preferences,
     platform: deviceAdapters.platform,

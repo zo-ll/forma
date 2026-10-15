@@ -8,4 +8,4 @@ export interface Spec extends TurboModule {
   cancelInference(ownerId: string, sequence: number): Promise<boolean>;
   closeInference(ownerId: string): Promise<void>;
 }
-export default TurboModuleRegistry.getEnforcing<Spec>('FormaInference');
+export default TurboModuleRegistry.get<Spec>('FormaInference');
