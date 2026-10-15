@@ -36,7 +36,9 @@ The optional `FormaService.inference` boundary reports missing capabilities by d
 Injected fake-tested adapters can embed text or generate untrusted text from exact saved note sources.
 No model writes facts, confirms fields, or enters the storage write queue.
 See [the inference contract](docs/inference-contract.md) for profile identity, bounds, cancellation, ownership, and restore safety.
-File import, vector persistence, history questions, model policy approval, and native inference remain deferred.
+Issue #23 approves the model policy. Issue #24 adds local file import and verified file status in Settings.
+Import does not enable inference. Native import acceptance remains pending.
+Vector persistence, history questions, and native inference remain deferred.
 `FormaService.notes` supports create, detail, revision-checked edits, deletion, bounded history, and literal search.
 See [the notes contract](docs/notes-contract.md) and [mobile Notes screens](docs/mobile-notes.md).
 Notes and fields share the store, receipts, lifetime, and restore exclusion with workouts.

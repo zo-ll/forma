@@ -53,6 +53,9 @@ See [the notes contract](docs/notes-contract.md) for its storage port and curren
 
 `FormaService.inference` provides optional text embedding and source-linked note generation through injected adapters.
 Default services report both capabilities as missing. No real model or runtime SDK is included.
+Settings can import the two approved local files and show their verified status.
+Import does not enable inference. See [the import contract](docs/model-import-contract.md).
+Physical model import and native inference checks remain pending.
 Outputs remain untrusted. They never save facts, confirm fields, or write vectors.
 Cancellation and restore discard late replies without blocking record storage.
 See [the inference contract](docs/inference-contract.md) for ownership, limits, and deferred work.

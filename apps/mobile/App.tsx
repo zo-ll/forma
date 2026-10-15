@@ -4,7 +4,7 @@ import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import {FormaError} from '@forma/core';
 import {MOBILE_THEMES} from '@forma/mobile-host';
 import type {MobileHost, MobileHostSnapshot} from '@forma/mobile-host';
-import {mobileArchiveFlow, mobileForms, mobileRoot} from './src/root';
+import {mobileArchiveFlow, mobileForms, mobileModelFlow, mobileRoot} from './src/root';
 import {deviceAdapters} from './src/adapters/device';
 import {runHostGate} from './src/gate';
 import {DARK, LIGHT} from './src/ui/theme';
@@ -20,6 +20,7 @@ import {Notes, NoteCreate, NoteDetail, NoteEdit} from './src/screens/Notes';
 import {NoteFields} from './src/screens/NoteFields';
 import {Progress} from './src/screens/Progress';
 import {ArchiveSettings} from './src/screens/Archive';
+import {ModelSettings} from './src/screens/Models';
 import {ConfirmSheet} from './src/ui/controls';
 
 type Route = 'Home' | 'History' | 'Notes' | 'Progress' | 'Settings';
@@ -127,6 +128,7 @@ function Shell({host}: {host: MobileHost}) {
         {action('Close local service', () => setConfirmingClose(true), false, !ready)}
         <Text style={{color: colors.muted}}>Close drains accepted work. It does not delete records.</Text>
         <ArchiveSettings palette={colors} flow={mobileArchiveFlow()} ready={ready}/>
+        <ModelSettings palette={colors} flow={mobileModelFlow()} ready={ready}/>
       </View>}
     </ScrollView>
     <ConfirmSheet palette={colors} visible={confirmingClose} busy={closing}

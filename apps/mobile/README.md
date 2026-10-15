@@ -8,6 +8,12 @@ Physical notes FTS5, restart, archive, and UI checks remain pending. Earlier nat
 See [the design board mapping](../../docs/design-board-phase1.md) for the approved screens and decisions.
 The host uses React Native 0.87.1 and the tested OP-SQLite 18.2.5 adapter.
 
+Issue #24 adds local model import and status controls under Settings.
+The importer checks the exact approved size and SHA-256 in private no-backup storage.
+It does not enable inference. Model files stay outside record archives.
+See [the import contract](../../docs/model-import-contract.md) for lifecycle rules and evidence limits.
+The source and JVM tests do not prove physical picker behavior. The phone check remains pending.
+
 ## Ownership
 
 - `@forma/core`: domain rules, record commands, dates, and calculations.
@@ -19,6 +25,8 @@ The host uses React Native 0.87.1 and the tested OP-SQLite 18.2.5 adapter.
   Progress also reads the device adapter and calls the core calendar resolver for relative date ranges.
 - `src/forms/`: saved request keys, host-lifetime drafts, and keyboard parsing. It has no runtime imports.
 - Notes screens use `FormaService.notes`. Suggestions stay separate from confirmed fields. They do not call models.
+- `@forma/mobile-host` owns the model catalog and import controller. `FormaModelsModule` owns native document and model files.
+- `src/screens/Models.tsx` shows file status and controls. It does not load inference.
 
 Background keeps the service open. Resume recomputes today through the core.
 It does not change saved workout dates. Explicit close drains accepted work.

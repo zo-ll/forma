@@ -108,9 +108,10 @@ Core does not pretend that unknown native close released resources.
 
 ## Deferred boundaries
 
-File import belongs to #24: the host will own bounded local file access, artifact verification, partial cleanup, and explicit activation.
+Issue #24 adds host-owned local file import, artifact verification, partial cleanup, and atomic publication of verified files.
+See [the import contract](model-import-contract.md). File verification does not enable an inference capability.
 Vector persistence/search belongs to #26: exact source revision and full profile metadata must bind every vector and coverage report.
-These proposed boundaries publish no unused file/vector ports now.
-Native adapters, model binaries/downloads, SDK dependencies, production policies, durable jobs, automatic indexing, fixed history tools, and #30 device acceptance remain deferred.
+Core publishes no unused file/vector ports.
+Native inference adapters, model binaries/downloads, SDK dependencies, durable jobs, automatic indexing, fixed history tools, and #30 device acceptance remain deferred.
 Build-only and fake-adapter tests do not prove native release, latency, memory, or quality.
 Physical #20/#21 acceptance stays pending. Earlier #14 evidence proves neither notes nor models.
