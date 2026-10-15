@@ -5,9 +5,8 @@
 This is an optional, injected, local inference boundary. It is not a history assistant.
 Default services report missing embedding and generation capabilities.
 A ready declaration describes configured software only. It is not device proof or production approval.
-No artifact, hash, license, device budget, or quantized policy is approved here.
-Issue #23 must resolve the earlier BF16/float32 requirement and real joint memory use.
-Float16 embeddings and quantized embedding weights are unsupported in this slice.
+Issue #23 approves the artifacts, the quantized weight schemes, and provisional device budgets in [the model policy](model-policy.md).
+Float16 remains unsupported in every profile, in weights, runtime, and output.
 Nutrition stays absent. Future question routing must return unsupported or unavailable for nutrition, never zero facts.
 There is no question router, SQL tool, extraction, automatic confirmation, or inference UI here.
 
@@ -42,9 +41,11 @@ Errors do not expose adapter messages or private text in public DTOs.
 
 ## Profiles and validation
 
-Both profiles include ID, artifact ID and SHA-256, runtime ID and version, configured backend (cpu or gpu), weightQuantization (none only), weightPrecision, and runtimePrecision.
+Both profiles include ID, artifact ID and SHA-256, runtime ID and version, configured backend (cpu or gpu), weightQuantization, weightPrecision, and runtimePrecision.
 Weight precision and runtime precision are separate BF16 or float32 fields.
-Weight quantization is explicit and separate; this contract rejects every quantized claim.
+Weight quantization is explicit and separate from both precision fields.
+The approved values are `none`, `int4-per-channel-qat`, and `mixed-2-4-8-bit-qat`.
+See [the model policy](model-policy.md). Float16, `int4`, and unknown values fail validation.
 Generation has output precision text. Embedding has output precision float32, dimensions, queryPrefix, documentPrefix, and normalization (none or l2).
 All fields participate in exact compatibility, including profile ID and task-prefix rules.
 Reusing an ID with different metadata does not make profiles compatible.
@@ -54,7 +55,7 @@ Results must echo the entire configured profile and task. Core validates indepen
 No effective delegate, fallback backend, native handle, filesystem path, or runtime SDK enters core.
 Unknown keys and unsupported precision/backend claims fail validation.
 The portable backend vocabulary is cpu or gpu only; native delegate discovery is deferred.
-Quantized generation profiles are also unsupported in this conservative slice.
+The approved generation profile uses `mixed-2-4-8-bit-qat` weights.
 Hash shape validation is not artifact verification.
 
 Source limits (not device-proven budgets):
