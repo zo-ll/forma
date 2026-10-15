@@ -6,6 +6,7 @@ export type {
   EmbedInput, EmbedNoteInput, EmbeddingProfile, EmbeddingResult, GenerateNoteInput, GenerationProfile,
   GenerationResult, InferenceApi, InferenceCancellation, InferenceCancellationToken, InferenceCapabilities,
   InferenceCapability, InferenceRuntime, ModelProfile, RuntimeEmbedding, RuntimeGeneration, RuntimeIdentity,
+  WeightQuantization,
 } from './inference/types.js';
 export { createNotesModule } from './notes/service.js';
 export { NOTE_LIMITS } from './notes/validation.js';

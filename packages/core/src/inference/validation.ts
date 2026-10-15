@@ -1,6 +1,6 @@
 import { canonicalJson } from '../requests/service.js';
 import { invalid, objectInput } from '../validation.js';
-import type { EmbeddingProfile, GenerationProfile, InferenceCapabilities, ModelProfile } from './types.js';
+import type { EmbeddingProfile, GenerationProfile, InferenceCapabilities, ModelProfile, WeightQuantization } from './types.js';
 import { INFERENCE_LIMITS } from './types.js';
 
 export function boundedText(value: unknown, field: string, max: number, empty = false): string {
@@ -23,15 +23,20 @@ function base(value: Record<string, unknown>): ModelProfile {
   const runtime = record(value.runtime, ['id', 'version', 'backend']);
   if (typeof artifact.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(artifact.sha256)) invalid('profile', 'Invalid artifact hash.');
   if (runtime.backend !== 'cpu' && runtime.backend !== 'gpu') invalid('profile', 'Unsupported configured backend.');
-  if (value.weightQuantization !== 'none') invalid('profile', 'Quantized weights are not supported.');
   if (value.weightPrecision !== 'bf16' && value.weightPrecision !== 'float32') invalid('profile', 'Unsupported weight precision.');
   if (value.runtimePrecision !== 'bf16' && value.runtimePrecision !== 'float32') invalid('profile', 'Unsupported runtime precision.');
   return {
     id: boundedText(value.id, 'profile', 128),
     artifact: { id: boundedText(artifact.id, 'profile', 128), sha256: artifact.sha256 },
     runtime: { id: boundedText(runtime.id, 'profile', 128), version: boundedText(runtime.version, 'profile', 128), backend: runtime.backend },
-    weightQuantization: 'none', weightPrecision: value.weightPrecision, runtimePrecision: value.runtimePrecision,
+    weightQuantization: weightQuantization(value.weightQuantization), weightPrecision: value.weightPrecision, runtimePrecision: value.runtimePrecision,
   };
+}
+function weightQuantization(value: unknown): WeightQuantization {
+  if (value !== 'none' && value !== 'int4-per-channel-qat' && value !== 'mixed-2-4-8-bit-qat') {
+    invalid('profile', 'Unsupported weight quantization.');
+  }
+  return value;
 }
 const baseKeys = ['id', 'artifact', 'runtime', 'weightQuantization', 'weightPrecision', 'runtimePrecision', 'outputPrecision'];
 export function embeddingProfile(value: unknown): EmbeddingProfile {
