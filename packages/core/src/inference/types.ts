@@ -9,11 +9,12 @@ export interface RuntimeIdentity {
   readonly version: string;
   readonly backend: 'cpu' | 'gpu';
 }
+export type WeightQuantization = 'none' | 'int4-per-channel-qat' | 'mixed-2-4-8-bit-qat';
 export interface ModelProfile {
   readonly id: string;
   readonly artifact: { readonly id: string; readonly sha256: string };
   readonly runtime: RuntimeIdentity;
-  readonly weightQuantization: 'none';
+  readonly weightQuantization: WeightQuantization;
   readonly weightPrecision: 'bf16' | 'float32';
   readonly runtimePrecision: 'bf16' | 'float32';
 }

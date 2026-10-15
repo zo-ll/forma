@@ -22,7 +22,8 @@ Physical #20/#21 acceptance remains pending. Earlier workout and native harness 
 Default factories report missing embedding and generation. No real model or SDK is included.
 Ready means a validated configured adapter declaration, not native proof or production approval.
 Profiles keep artifact hash, runtime/version/backend, weight/runtime/output precision, dimensions, prefixes, and normalization separate.
-The embedding boundary rejects float16 and quantized weights. #23 still owns artifact and precision approval.
+Weight quantization is a separate field with approved values `none`, `int4-per-channel-qat`, and `mixed-2-4-8-bit-qat`.
+The boundary still rejects float16. Issue #23 approves the artifacts and budgets in [the model policy](docs/model-policy.md).
 One active call and four queued jobs are bounded independently of the storage FIFO.
 Source-linked jobs read exact saved note revisions and reject obsolete results after edits or deletion.
 Restore cancels derived waits and advances a private inference epoch without waiting for uncooperative native calls.

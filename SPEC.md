@@ -304,9 +304,11 @@ The first mobile version requires no backend.
 The separate validation repo records model and database experiments.
 Forma has no runtime dependency on that repo.
 
-Before model integration, resolve the earlier BF16/float32 requirement against the validated INT4 embedding artifact.
-Do not use float16 for the embedding model.
-Model memory and device behavior require separate acceptance checks.
+Issue #23 resolved the earlier BF16/float32 requirement against the validated INT4 embedding artifact.
+See [the model policy](docs/model-policy.md).
+INT4 QAT governs weight storage. BF16 or float32 governs runtime activations and outputs.
+Do not use float16 for the embedding model or any profile.
+Model memory and device behavior require the #30 acceptance checks.
 
 A future Telegram client requires a separate privacy decision.
 Telegram messages pass through its servers.

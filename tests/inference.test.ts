@@ -80,6 +80,8 @@ const malformedProfiles: [string, (p: Record<string, unknown>) => void][] = [
   ['excess dimensions', p => { p.dimensions = 4097; }], ['NaN dimensions', p => { p.dimensions = NaN; }],
   ['float16 output', p => { p.outputPrecision = 'float16'; }], ['float16 runtime', p => { p.runtimePrecision = 'float16'; }],
   ['INT4 quantization', p => { p.weightQuantization = 'int4'; }],
+  ['float16 quantization', p => { p.weightQuantization = 'float16'; }],
+  ['misspelled mixed quantization', p => { p.weightQuantization = 'mixed-2-4-8'; }],
   ['INT4 weights', p => { p.weightPrecision = 'int4'; }], ['bad hash', p => { p.artifact = { id: 'fake', sha256: 'unknown' }; }],
   ['backend claim', p => { p.runtime = { ...ep.runtime, backend: 'effective-npu' }; }],
   ['delegate claim', p => { p.runtime = { ...ep.runtime, effectiveDelegate: 'gpu' }; }],
@@ -102,6 +104,26 @@ for (const [label, change] of malformedProfiles) {
     await service.close();
   });
 }
+test('approved quantized profiles parse as ready', async () => {
+  const quantizedEmbedding: EmbeddingProfile = { ...clone(ep), weightQuantization: 'int4-per-channel-qat' };
+  const quantizedGeneration: GenerationProfile = { ...clone(gp), weightQuantization: 'mixed-2-4-8-bit-qat' };
+  for (const declaration of [
+    { embedding: { state: 'ready', profile: quantizedEmbedding }, generation: missing },
+    { embedding: missing, generation: { state: 'ready', profile: quantizedGeneration } },
+  ]) {
+    const f = fake();
+    f.runtime.capabilities = () => declaration as unknown as InferenceCapabilities;
+    const { service } = fixture(f.runtime);
+    const c = service.inference.capabilities();
+    assert.ok(c.embedding.state === 'ready' || c.generation.state === 'ready');
+    await service.close();
+  }
+});
+test('weight quantization is part of exact compatibility', () => {
+  const quantized = { ...clone(ep), weightQuantization: 'int4-per-channel-qat' } as EmbeddingProfile;
+  assert.equal(embeddingProfilesCompatible(ep, quantized), false);
+  assert.equal(embeddingProfilesCompatible(quantized, clone(quantized)), true);
+});
 for (const declaration of [null, {}, { embedding: missing }, { embedding: { state: 'ready', profile: null }, generation: missing },
   { embedding: { state: 'loading', profile: ep }, generation: missing },
   { embedding: { state: 'failed', profile: ep, reason: 'private failure text' }, generation: missing }]) {

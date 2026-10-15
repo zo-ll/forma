@@ -56,7 +56,7 @@ Default services report both capabilities as missing. No real model or runtime S
 Outputs remain untrusted. They never save facts, confirm fields, or write vectors.
 Cancellation and restore discard late replies without blocking record storage.
 See [the inference contract](docs/inference-contract.md) for ownership, limits, and deferred work.
-Ready adapter status is not production approval. #23 precision policy and #30 native model checks remain pending.
+Ready adapter status is not production approval. Issue #23 approved the artifacts, quantization schemes, and budgets in [the model policy](docs/model-policy.md). #30 native model checks remain pending.
 
 The core does not use React, Expo, a SQLite driver, or a model SDK.
 
@@ -147,8 +147,9 @@ Forma has no runtime dependency on it.
 
 The intended mobile client uses React Native and TypeScript.
 Android uses the physically verified OP-SQLite adapter.
-The initial inference candidates remain EmbeddingGemma 2 Text 270M on CPU
-and Gemma 4 E2B on GPU through LiteRT-LM.
+Issue #23 approved EmbeddingGemma 2 Text 270M on CPU and the Gemma 4 E2B GPU file.
+See [the model policy](docs/model-policy.md) for the exact artifacts, hashes, and budgets.
+No model is a default capability before the #30 joint memory check.
 These models do not form part of this milestone.
 
 The separate validation app's device tests do not prove Forma's service on Android.

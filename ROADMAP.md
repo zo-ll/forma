@@ -164,7 +164,8 @@ Issues: [#22](https://github.com/zo-ll/forma/issues/22) through [#30](https://gi
 Resolve artifact precision and device limits in [#23](https://github.com/zo-ll/forma/issues/23) before production inference.
 
 Source #22 now adds [portable optional inference](docs/inference-contract.md), bounded fake-tested embedding/generation, cancellation, and source-safe restore invalidation.
-Default mobile and Node services still report missing models. No real artifact or precision policy is approved.
+Issue #23 approved the artifacts, the quantized weight schemes, and provisional device budgets in [the model policy](docs/model-policy.md).
+Default mobile and Node services still report missing models. Ready status is not production approval.
 File import (#24), persistent vectors (#26), and native/model gates remain deferred.
 
 ### Public contracts
@@ -325,20 +326,21 @@ Its Android acceptance check passed through the disposable native storage host.
 | History, best facts, supported volume, and pagination semantics | Approved above for #7; Android query tests passed |
 | Nutrient quantity basis, precision, the rule to round values, and food-edit effects on saved meals | Deferred; new nutrition authorization before #15 |
 | Body-part vocabulary, typed field definitions, and user confirmation rules | Approved for #19 in [the field contract](docs/note-fields-contract.md); preserve in exact pain questions |
-| Approved weight quantization, runtime precision, and output precision | #23 and production inference |
-| Artifact URLs, hashes, licenses, tokenizer requirements, and runtime compatibility | #23 and model activation |
-| Memory, latency, context, and quality limits for the 8 GB phone | #23 and default model enablement |
+| Approved weight quantization, runtime precision, and output precision | Approved for #23 in [the model policy](docs/model-policy.md); preserve in #24, #25, and #30 |
+| Artifact URLs, hashes, licenses, tokenizer requirements, and runtime compatibility | Approved for #23 in [the model policy](docs/model-policy.md); verify on import in #24 |
+| Memory, latency, context, and quality limits for the 8 GB phone | Approved for #23; confirm or replace with measured values in #30 |
 | Storage protection, export risks, and historical receipt retention after deletion | #31 and release approval |
 | Forma package identity, signature keys, and private artifact delivery | #9, #13, and #32 |
 
 The earlier requirement for the text vector model requested BF16 or float32.
 Validation used an INT4 QAT artifact for EmbeddingGemma 2 Text 270M.
 Weight quantization and runtime or output precision are separate properties.
-This evidence does not approve a new precision policy.
-Do not use float16 for the text vector model.
+Issue #23 approved INT4 QAT weight storage with float32 runtime and output precision for that artifact.
+The BF16 or float32 rule still governs runtime activations and output vectors.
+Do not use float16 for the text vector model or any profile.
 
-The initial candidates remain EmbeddingGemma 2 Text 270M on CPU and Gemma 4 E2B on an approved configured backend through LiteRT-LM.
-They remain candidates rather than default production capabilities.
+Issue #23 keeps EmbeddingGemma 2 Text 270M on CPU as the approved embedder and Gemma 4 E2B as the approved generator candidate.
+The owner selected the GPU file for the generator. No model is a default capability before #30.
 No numerical budget follows from Gallery throughput or the phone's nominal RAM alone.
 
 ## Authorized enhancements after Android v1
