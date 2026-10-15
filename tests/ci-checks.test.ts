@@ -5,6 +5,7 @@ import {spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {resolve, join} from 'node:path';
+import ts from 'typescript';
 
 const {validateSource, validateMobileSources, checkSourceBoundaries} = await import(pathToFileURL(resolve('scripts/check-boundaries.mjs')).href) as {
   validateSource(text: string, path: string, owner: string, coreRoot?: string): number;
@@ -59,6 +60,24 @@ test('a real source-tree violation makes the checker process fail', () => {
     writeFileSync(join(base, 'apps/mobile/src/bad.ts'), "import {open} from '@forma/adapters/node';");
     assert.throws(() => checkSourceBoundaries(base), /Node import reached mobile/);
   } finally {rmSync(base, {recursive: true, force: true});}
+});
+
+test('mobile metadata imports retain types before the build runner creates its JSON file', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'forma-build-metadata-'));
+  try {
+    const source = join(directory, 'consumer.ts');
+    const declaration = join(directory, 'build-metadata.d.ts');
+    const input = "import metadata from './mobile-build.json'; const head: string = metadata.sourceHead;";
+    writeFileSync(source, input);
+    writeFileSync(declaration, readFileSync('apps/mobile/src/build-metadata.d.ts', 'utf8'));
+    const options: ts.CompilerOptions = {strict: true, noEmit: true, types: [], target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, resolveJsonModule: true};
+    const diagnostics = (files: string[]) => ts.getPreEmitDiagnostics(ts.createProgram(files, options));
+    assert.ok(diagnostics([source]).some(d => d.code === 2307), 'The fixture must have no generated metadata.');
+    assert.deepEqual(diagnostics([source, declaration]), []);
+    writeFileSync(source, input + ' const wrong: number = metadata.sourceHead;');
+    assert.ok(diagnostics([source, declaration]).some(d => d.code === 2322), 'The declaration must not erase metadata types.');
+  } finally {rmSync(directory, {recursive: true, force: true});}
 });
 
 const baseline = JSON.parse(readFileSync('scripts/dependency-audit-baseline.json', 'utf8')) as {
