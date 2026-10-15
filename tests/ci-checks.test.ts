@@ -24,6 +24,14 @@ test('the Android client explicitly enables the FTS5 option required by the note
   assert.equal(app['op-sqlite']?.fts5, true);
 });
 
+test('the hostgate Activity forwards launch options through the native whitelist owner', () => {
+  const activity = readFileSync('apps/mobile/android/app/src/main/java/dev/forma/mobile/MainActivity.kt', 'utf8');
+  assert.match(activity, /if \(BuildConfig\.HOST_GATE\)/);
+  assert.match(activity, /HostGateLaunchOptions\.accepts\(mode, runId\)/);
+  assert.match(activity, /putString\("formaMode", mode\)/);
+  assert.match(activity, /putString\("formaRunId", runId\)/);
+});
+
 test('core accepts only imports inside its own source owner', () => {
   assert.equal(validateSource("import type {X} from './types.js'; export {x} from './lib.js'", join(core, 'index.ts'), 'core'), 2);
   for (const text of [

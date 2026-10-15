@@ -18,7 +18,8 @@ The command checks the actual source map, required native modules, source identi
 It also checks the packaged ARM64 SQLite library for the required `ENABLE_FTS5` build option.
 The mobile package explicitly enables that option because the notes migration requires FTS5.
 The binary check proves the build option, not actual native query behavior.
-The job also runs `:app:testHostgateDebugUnitTest` for model files, inference ownership, and actual SDK configuration objects.
+The job also runs `:app:testHostgateDebugUnitTest` for model files, launch options, inference ownership, and actual SDK configuration objects.
+The Activity uses the tested native whitelist for explicit diagnostic modes and their run ID limits.
 These JVM tests cover byte verification, atomic replacement, cancellation, serial release, memory pressure, and interrupted-file cleanup.
 The tests use Java 21 because the pinned LiteRT-LM SDK publishes Java 21 classes.
 Fake engines prove resource order, not native delegate execution.

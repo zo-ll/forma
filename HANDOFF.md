@@ -27,8 +27,10 @@ See [the Android inference contract](docs/android-inference-contract.md) for exp
 Normal launches still report missing models. The #25 exact-artifact phone check remains pending.
 The first #25 phone upgrade exposed a missing native FTS5 build option and failed the notes migration.
 The prior APK returned without a reset. A fresh archive comparison confirmed exact preservation of every original module.
-The source correction enables FTS5 and rejects APKs without its native build option.
-The corrected upgrade, actual model import, and inference checks still require device proof.
+The FTS5 correction passed the actual upgrade and a native literal search. Every original archive module remained identical.
+The first CPU diagnostic attempt exposed a separate Activity whitelist omission. Android did not forward the inference launch mode.
+The source correction adds all three read-only modes, their exact run ID limits, and native regression tests.
+Approved embedding import passed, but actual SDK execution and the complete import checks still require device proof.
 No model binary, assistant UI, vectors, extraction, history questions, or nutrition is included.
 Issues #26–30 and privacy/release #31–32 remain later work.
 Catalog management #33, voice notes #35, and iOS #36 follow the first Android release.
