@@ -15,6 +15,8 @@ It does not replace native device checks.
 
 `Cold Android ARM64 build` assembles `hostgateRelease` through the existing build command.
 The command checks the actual source map, required native modules, source identity, and APK hash.
+The job also runs `:app:testHostgateDebugUnitTest` for the native model file store.
+These JVM tests cover byte verification, atomic replacement, cancellation, bounded copy, and interrupted-file cleanup.
 The job never calls the device runner, ADB, fixture modes, or record APIs.
 It uploads only its fresh APK and source/hash metadata. Artifact retention is seven days.
 The APK uses the public template debug key. It is not a production-signed release.
@@ -65,6 +67,7 @@ npm test
 npm run typecheck --prefix apps/mobile
 npm run check:dependencies
 node scripts/mobile-host-device.mjs build
+(cd apps/mobile/android && ./gradlew :app:testHostgateDebugUnitTest --no-daemon -PreactNativeArchitectures=arm64-v8a)
 ```
 
 Set `ANDROID_HOME` to the SDK directory. Install these packages before the build:

@@ -1,7 +1,8 @@
 import {open} from '@op-engineering/op-sqlite';
 import {openAndroidForma} from '@forma/adapters/android';
-import {createMobileHost} from '@forma/mobile-host';
-import type {MobileHost} from '@forma/mobile-host';
+import {createMobileHost, createModelImportFlow} from '@forma/mobile-host';
+import type {MobileHost, ModelImportFlow} from '@forma/mobile-host';
+import {modelFiles} from './adapters/models';
 import {deviceAdapters} from './adapters/device';
 import {ARCHIVE_LIMITS} from '@forma/core';
 import {createArchiveFlow} from './archive/flow';
@@ -44,6 +45,23 @@ export function mobileForms(): MobileForms {
   };
   registry[formsKey] = forms;
   return forms;
+}
+
+const modelKey = Symbol.for('forma.mobile.models.v1');
+/** File import survives navigation. It never loads inference or enters the records queue. */
+export function mobileModelFlow(): ModelImportFlow {
+  const existing = registry[modelKey] as ModelImportFlow | undefined;
+  if (existing) return existing;
+  const host = mobileRoot();
+  const flow = createModelImportFlow({
+    files: modelFiles, nextId: deviceAdapters.ids.next,
+    available: () => ['ready', 'background'].includes(host.snapshot().phase),
+  });
+  host.subscribe(() => {
+    if (['closing', 'closed', 'failed'].includes(host.snapshot().phase)) void flow.cancel();
+  });
+  registry[modelKey] = flow;
+  return flow;
 }
 
 const archiveKey = Symbol.for('forma.mobile.archive.v1');

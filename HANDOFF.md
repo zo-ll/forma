@@ -16,8 +16,13 @@ Default services still report missing models. Ready status is not production app
 See [the inference contract](docs/inference-contract.md) for public DTOs, precision limits, source safety, cancellation, and runtime ownership.
 Runtime calls stay outside the storage queue. Restore invalidates derived waits without waiting for native cancellation.
 Close starts storage cleanup independently; an ignored runtime cancellation can keep overall close pending.
-No native model, inference UI, import, vectors, extraction, history questions, or nutrition are included.
-Model policy #23, assistant #24–30, and privacy/release #31–32 remain later work.
+Issue #23 merged through PR #59 at `6d58145`. See [the approved model policy](docs/model-policy.md).
+Issue #24 adds local model file import, exact size/SHA-256 verification, private no-backup files, and Settings controls in source.
+See [the import contract](docs/model-import-contract.md). Verified files do not enable inference.
+Native file JVM tests and source/controller/screen tests do not prove physical picker behavior.
+The #24 phone acceptance remains pending. It can precede model load checks in the #25 window.
+No native model, inference UI, vectors, extraction, history questions, or nutrition are included.
+Native inference #25–30 and privacy/release #31–32 remain later work.
 Catalog management #33, voice notes #35, and iOS #36 follow the first Android release.
 Nutrition #15–17, meal photos #34, and nutrition-specific assistant tools remain deferred and open.
 Do not add placeholder nutrition modules or treat their exclusion as acceptance.

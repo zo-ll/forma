@@ -106,6 +106,9 @@ jobs:
           mkdir -p "$FORMA_CI_RESULTS/android"
           cp apps/mobile/android/app/build/outputs/apk/hostgate/release/app-hostgate-release.apk "$FORMA_CI_RESULTS/android/"
           cp /tmp/forma-mobile-host-results/build-results.json "$FORMA_CI_RESULTS/android/"
+      - name: Test native model files without a device
+        working-directory: apps/mobile/android
+        run: ./gradlew :app:testHostgateDebugUnitTest --no-daemon -PreactNativeArchitectures=arm64-v8a
       - name: Preserve the standalone test APK and its source identity
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

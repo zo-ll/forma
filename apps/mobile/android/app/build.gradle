@@ -49,6 +49,7 @@ android {
 dependencies {
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:hermes-android")
+    testImplementation("junit:junit:4.13.2")
 }
 // Workspace packages and source metadata are outside Gradle's JS input tree.
 tasks.matching { it.name.startsWith("createBundle") && it.name.endsWith("JsAndAssets") }.configureEach {

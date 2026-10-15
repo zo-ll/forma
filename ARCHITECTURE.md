@@ -31,7 +31,10 @@ Record signatures, receipts, global archive tokens, and atomic replacement remai
 Cancellation ends the derived wait; it does not prove native work stopped or a primary write rolled back.
 Each runtime has one service owner. Close cancels waits and closes storage independently of runtime success.
 Runtime cleanup waits for accepted runtime work. Unknown cleanup retains ownership; an ignored cancel can keep overall close pending.
-No nutrition, history question, extraction, vector persistence, import, or mobile inference UI is added.
+Issue #24 adds a host-owned [model import controller](docs/model-import-contract.md) and Settings controls.
+`FormaModelsModule` streams exact approved bytes into private no-backup storage, checks SHA-256, and publishes with one rename.
+This file queue is independent of SQLite. A verified file does not promote inference capabilities.
+No nutrition, history question, extraction, vector persistence, or inference control is added.
 Portable fake tests and build-only evidence do not establish model quality, memory, latency, or device behavior.
 
 ## Ownership

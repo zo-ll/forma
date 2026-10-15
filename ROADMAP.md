@@ -166,7 +166,9 @@ Resolve artifact precision and device limits in [#23](https://github.com/zo-ll/f
 Source #22 now adds [portable optional inference](docs/inference-contract.md), bounded fake-tested embedding/generation, cancellation, and source-safe restore invalidation.
 Issue #23 approved the artifacts, the quantized weight schemes, and provisional device budgets in [the model policy](docs/model-policy.md).
 Default mobile and Node services still report missing models. Ready status is not production approval.
-File import (#24), persistent vectors (#26), and native/model gates remain deferred.
+Issue #24 adds [local model file import and status controls](docs/model-import-contract.md) in source.
+The importer verifies exact sizes and hashes before atomic file publication. It does not load an engine.
+Physical import, persistent vectors (#26), and native/model gates remain pending.
 
 ### Public contracts
 
