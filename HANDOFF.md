@@ -1,42 +1,88 @@
 # Forma — current development handoff
 
-## Current scope
+## Latest checkpoint — 2026-10-15
 
-Issue #12 merged through [PR #49](https://github.com/zo-ll/forma/pull/49).
-Its merge commit is `180d93e6cf878eec60e0e9cc6f65b2ed0cd9c16c`.
-Issue #13 merged through [PR #50](https://github.com/zo-ll/forma/pull/50) at `bddc125`.
-Its exact candidate `210b828` passed all 703 tests and the cold Android CI build.
-See [the CI contract](docs/ci.md) and [the actual runs](https://github.com/zo-ll/forma/actions/workflows/ci.yml).
-Match the run's source head before you use its result as proof.
+The user ended work for the day and closed the phone window.
+Obtain a new exclusive window before any device operation.
+No driver or inference job remains active. The last observed phone screen was normal Home.
+No test note exists. Every original record and raw receipt matched the final UI archive comparison.
+Both approved model files remain on the phone. Normal launches do not enable inference.
+
+### Branches and exact approval
+
+The implementation branch is `issue/25-android-inference`.
+Its exact reviewed and phone-tested head is `6a5f40cf0402b400317e06e90fbf8b4bf410d604`.
+[PR #61](https://github.com/zo-ll/forma/pull/61) remains open and unmerged.
+DeepSeek approved all 43 files after fresh inspection. Both exact-head CI jobs passed.
+The local and independent checks passed 1,131 source tests and 39 JVM tests.
+The installed APK SHA-256 is `aa1bcd8757632e0df12d8c3a9d989588b408a1949e6cc348ec1cdc30ca845250`.
+
+This handoff uses the separate `docs/issue-25-phone-handoff` branch.
+It changes documentation only. The approved implementation branch remains unchanged.
+Approval and APK evidence apply to `6a5f40c`, not a new build from this documentation branch.
+Before implementation work, select the correct implementation branch.
+Do not merge or close an issue solely because the source review passed.
+Retain both critic windows until their issues close.
+
+### Actual phone results
+
+Forma imported both exact approved files through the Android picker.
+Separate native size/hash checks verified both stored files after a real process restart.
+Import left inference disabled. Confirmation cancel, picker cancel, and wrong-size rejection passed.
+The existing model survived rejection and a process restart with a pending picker.
+A new picker request settled correctly after that restart.
+Primary Home opened after an observed active generator import. The controller retained its result across navigation.
+That observation does not identify the native copy stage or prove isolated record-read overlap.
+
+The actual CPU SDK produced finite, normalized 256-component vectors for query and document tasks.
+Both record reads completed before their respective inference replies.
+A second explicit CPU run passed after the rejection and lifecycle checks.
+The first query/document round trips took 1,363/132 ms. The repeat took 1,045/194 ms.
+These values include file checks, engine work, and bridge costs. They are not isolated SDK benchmarks.
+
+The coordinator did not start GPU inference or create its synthetic source note.
+The conservative preflight required 3 GiB of available RAM. The phone did not meet that guard.
+The guard is not a measured generator requirement or proof of the separate 3 GB joint-memory budget.
+The coordinator restarted only Forma. No other app received a stop or data change.
+See [the partial model acceptance record](docs/verification/android-models-6a5f40c.md) for evidence limits and the next steps.
+
+### Resume safely
+
+1. Obtain new phone permission and the current connection address.
+2. Confirm the installed artifact before another test.
+3. Save a fresh UI archive before any update or fixture change.
+4. Recheck available RAM, battery, and temperature before GPU work.
+5. Confirm permission for the one synthetic note before its creation.
+6. Complete the explicit GPU and sequential diagnostics without a backend or precision fallback.
+7. Delete only the owned synthetic note after the tests.
+8. Compare every original record and raw receipt again.
+
+The original host retains private evidence under `~/.local/state/forma/issue-25/native/`.
+Read `RESUME.md` and `ACCEPTANCE.md` there before any device action.
+Durable source/build logs and metadata reside under `~/.local/state/forma/issue-25/checkpoint-2026-10-15/`.
+Do not rely on temporary files alone. Do not repeat a mutation batch after an interrupted reply.
+Keep archives, device addresses, keys, APKs, screenshots, logs, and model binaries outside this public repository.
+
+## Authorized scope
+
 The user authorized all remaining non-nutrition issues on 2026-10-14.
-Issue #14 passed its written acceptance checklist at runtime source `1c48410`.
-Notes #18–21 now have source implementations. Physical #20/#21 acceptance remains pending.
-Issue #22 now has a portable optional inference module and adversarial fake-adapter tests in source.
-Default services still report missing models. Ready status is not production approval.
-See [the inference contract](docs/inference-contract.md) for public DTOs, precision limits, source safety, cancellation, and runtime ownership.
-Runtime calls stay outside the storage queue. Restore invalidates derived waits without waiting for native cancellation.
-Close starts storage cleanup independently; an ignored runtime cancellation can keep overall close pending.
-Issue #23 merged through PR #59 at `6d58145`. See [the approved model policy](docs/model-policy.md).
-Issue #24 merged through PR #60 at `243a5f5`, with source approval only.
-It adds local file import, exact size/SHA-256 verification, private no-backup files, and Settings controls.
-See [the import contract](docs/model-import-contract.md). Verified files do not enable inference.
-Native file JVM tests and source/controller/screen tests do not prove physical picker behavior.
-The #24 phone acceptance remains pending. It can precede model load checks in the #25 window.
-Issue #25 now has a typed Android adapter, LiteRT-LM 0.18.0 binding, exclusive ownership, serial resource release, and memory-pressure controls.
-See [the Android inference contract](docs/android-inference-contract.md) for explicit isolated modes and evidence limits.
-Normal launches still report missing models. The #25 exact-artifact phone check remains pending.
-The first #25 phone upgrade exposed a missing native FTS5 build option and failed the notes migration.
-The prior APK returned without a reset. A fresh archive comparison confirmed exact preservation of every original module.
-The FTS5 correction passed the actual upgrade and a native literal search. Every original archive module remained identical.
-The first CPU diagnostic attempt exposed a separate Activity whitelist omission. Android did not forward the inference launch mode.
-The source correction adds all three read-only modes, their exact run ID limits, and native regression tests.
-Approved embedding import passed, but actual SDK execution and the complete import checks still require device proof.
-No model binary, assistant UI, vectors, extraction, history questions, or nutrition is included.
+Issue #14 passed its written checklist at runtime source `1c48410`.
+Notes #18–21 have source implementations. Full physical #20/#21 acceptance remains pending.
+Issue #22 supplies the portable optional inference module and fake-adapter tests.
+Issue #23 merged through PR #59 at `6d58145`. See [the model policy](docs/model-policy.md).
+Issue #24 source merged through PR #60 at `243a5f5`. Its issue remains open for complete physical acceptance.
+Issue #25 supplies the typed Android adapter, LiteRT-LM 0.18.0 binding, exclusive ownership, and serial resource release.
+Both #24 and #25 remain open. Their complete acceptance includes the remaining import, lifecycle, GPU, and budget checks.
+See the [import contract](docs/model-import-contract.md) and [Android inference contract](docs/android-inference-contract.md).
+A verified file or ready profile does not prove successful engine execution.
+Issue #30 still controls default enablement.
+
 Issues #26–30 and privacy/release #31–32 remain later work.
 Catalog management #33, voice notes #35, and iOS #36 follow the first Android release.
-Nutrition #15–17, meal photos #34, and nutrition-specific assistant tools remain deferred and open.
-Do not add placeholder nutrition modules or treat their exclusion as acceptance.
-Obtain an exclusive phone window before device operations. Native iOS proof requires a Mac and a named iOS device.
+Nutrition #15–17, meal photos #34, and nutrition-specific tools remain excluded.
+Do not add placeholder nutrition modules or count their absence as acceptance.
+Native iOS proof requires a Mac and a named iOS device.
+The sections below preserve earlier history. This checkpoint controls the next action.
 
 ## Issue #12 result
 
@@ -170,8 +216,10 @@ See [mobile notes ownership and limits](docs/mobile-notes.md).
 The #21 branch is integrated onto merged #20. Its local suite passed 970 tests.
 The focused Notes/archive callback and host tests passed 33 tests.
 Final exact-head review and CI remain separate checks.
-Physical Forma notes FTS5, restart, archive, and UI proof remain pending. No notes feature is installed on the phone.
-Earlier #14 and native harness evidence do not prove notes. No device operation has authorization.
+The #25 phone window later installed the notes implementation and passed FTS5 creation plus an empty literal search after the build correction.
+Full notes creation, confirmation, edit, deletion, archive, and UI acceptance remain pending.
+The model tests created no note. Earlier workout evidence does not prove notes behavior.
+The user ended the phone window. Obtain new permission before any further device operation.
 
 ## Checks and build
 
