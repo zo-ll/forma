@@ -118,6 +118,71 @@ for (const mode of modes) {
     assert.ok(embeddingCalls.every(c => c.text.startsWith(c.task === 'query' ? adapters.ANDROID_EMBEDDING_PROFILE.queryPrefix : adapters.ANDROID_EMBEDDING_PROFILE.documentPrefix)));
   });
 }
+function diagnostic(mode: typeof modes[number], duplicate = false) {
+  const source: core.NoteSource = {module: 'notes', noteId: 'synthetic-source', revision: 1};
+  const note: core.Note = {id: source.noteId, date: '2026-10-14', kind: 'general', revision: 1,
+    text: 'Forma inference synthetic source. Run test-run', createdAt: TEST_TIME, updatedAt: TEST_TIME, source};
+  const searches: unknown[] = [];
+  let generated = 0, reads = 0;
+  const state = {changeRecords: false};
+  const service = {
+    inference: {
+      capabilities: () => ({embedding: {state: mode === 'inference-generation' ? 'missing' : 'ready'},
+        generation: {state: mode === 'inference-embedding' ? 'missing' : 'ready'}}),
+      embed: async (input: {task: 'query' | 'document'}) => ({profile: adapters.ANDROID_EMBEDDING_PROFILE,
+        task: input.task, vector: [1, ...Array<number>(255).fill(0)]}),
+      generateNote: async () => {generated++; return {profile: adapters.ANDROID_GENERATION_PROFILE, text: 'Synthetic output', source};},
+    },
+    workouts: {list: async () => (++reads > 1 && state.changeRecords ? [{id: 'changed-record'}] : [])},
+    notes: {
+      async searchText(input: unknown) {
+        searches.push(input);
+        return searches.length === 1 ? {items: [{...note, text: note.text + ' extra'}], nextCursor: 'second-page'}
+          : searches.length === 2 ? {items: [note], nextCursor: 'third-page'}
+            : {items: duplicate ? [{...note, id: 'duplicate-source', source: {...source, noteId: 'duplicate-source'}}] : [], nextCursor: null};
+      },
+      get: async () => note,
+    },
+  };
+  const logs: string[] = [];
+  const loaded = evaluate('apps/mobile/src/inference-gate.ts', {
+    '@forma/core': core, '@forma/adapters/android': adapters, './adapters/device': {deviceAdapters: {isHostGate: () => true}}, '../mobile-build.json': {},
+  }, {console: {info: (line: string) => logs.push(line)}});
+  return {state, searches, generated: () => generated, async run() {
+    await loaded.runInferenceGate({start: async () => {}, service: () => service, close: async () => {}}, mode, 'test-run');
+    return JSON.parse(logs[0]!.slice('FORMA_INFERENCE_RESULT '.length)) as {
+      ok: boolean; results: {recordReadDuringWait: boolean}[];
+    };
+  }};
+}
+test('a fast inference result reports a missed overlap without a false diagnostic failure', async () => {
+  const f = diagnostic('inference-embedding');
+  const report = await f.run();
+  assert.equal(report.ok, true);
+  assert.equal(report.results.length, 2);
+  assert.ok(report.results.every(result => result.recordReadDuringWait === false));
+});
+test('the generation diagnostic checks every search page before it accepts one exact source', async () => {
+  const f = diagnostic('inference-generation');
+  assert.equal((await f.run()).ok, true);
+  assert.equal(f.generated(), 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(f.searches)), [
+    {query: 'Forma inference synthetic source. Run test-run'},
+    {query: 'Forma inference synthetic source. Run test-run', cursor: 'second-page'},
+    {query: 'Forma inference synthetic source. Run test-run', cursor: 'third-page'},
+  ]);
+});
+test('a duplicate exact source on a later page prevents generation', async () => {
+  const f = diagnostic('inference-generation', true);
+  assert.equal((await f.run()).ok, false);
+  assert.equal(f.generated(), 0);
+  assert.equal(f.searches.length, 3);
+});
+test('a fast inference result cannot hide changed primary records', async () => {
+  const f = diagnostic('inference-embedding');
+  f.state.changeRecords = true;
+  assert.equal((await f.run()).ok, false);
+});
 test('a diagnostic call outside the isolated build never touches or closes the primary service', async () => {
   const loaded = evaluate('apps/mobile/src/inference-gate.ts', {
     '@forma/core': core, '@forma/adapters/android': adapters, './adapters/device': { deviceAdapters: { isHostGate: () => false } }, '../mobile-build.json': {},

@@ -126,15 +126,20 @@ Forma inference synthetic source. Run RUN_ID
 
 Replace `RUN_ID` with the same `formaRunId` value.
 The diagnostic never creates, edits, or deletes this note.
-It fails if the note is absent or ambiguous.
+It checks every search page before it accepts one exact source.
+It fails if the note is absent or ambiguous, including a duplicate on a later page.
 The operator controls any fixture creation and later removal.
 
 Warning: Obtain a new exclusive phone window before any install, restart, import, fixture, or inference operation.
 Do not run the normal fixture modes against an existing dataset without separate permission.
 Preserve the complete current records and receipts before any authorized fixture change.
 
-The diagnostic reads records during each portable inference wait.
-It does not claim that this read overlaps a specific SDK execution stage.
+The diagnostic starts a record read for each portable inference call.
+Each result reports `recordReadDuringWait`.
+A false value means that the run does not prove a record read during an inference wait.
+A fast inference reply does not fail the functional check.
+A record change still fails the check.
+The observation does not identify a specific SDK execution stage.
 It reports wall-clock round-trip durations, vector dimensions and norm, output length, and configured backends.
 It does not log note text, generated text, source IDs, or paths.
 It closes the host before it emits `FORMA_INFERENCE_RESULT`.
