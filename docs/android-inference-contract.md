@@ -68,10 +68,47 @@ The adapter retains its slot until the original native promise settles.
 Close requests cancellation and waits for that promise before native close.
 A cancellation acknowledgement does not prove resource release.
 
+## Native ownership and memory
+
+`FormaInferenceModule` delegates to `InferenceCoordinator` on a dedicated serial worker.
+`SerialModelRuntime` retains at most one model handle.
+A role change closes the current model before the next model load.
+A failed resource release retains the handle and the process lease.
+A second React instance cannot acquire that lease.
+
+The worker rechecks file size and SHA-256 before each model load.
+The inference reader does not delete import temporary files.
+Models and compiled caches stay under `noBackupFilesDir`.
+Native SDK diagnostics are disabled because they can contain private input or paths.
+
+The generator creates a new conversation for each request.
+It disables tools, automatic tool execution, speculative decode, and thought output.
+The packaged model supplies the chat template.
+The native response respects the requested UTF-16 character limit without a split surrogate pair.
+
+Cancellation cannot preempt file verification, engine initialization, or synchronous embedding.
+Generation requests SDK cancellation when a live conversation exists.
+The worker discards a cancelled result only after the SDK call returns.
+A detached cancellation hook cannot access a closed conversation.
+
+Memory pressure cancels active work and queues model release after the current SDK call.
+It rejects further inference until process restart.
+It does not reload a model automatically.
+Module invalidation follows the same serial resource-release path.
+Neither path accesses the record store.
+
+The build pins LiteRT-LM `0.18.0` and Kotlin `2.4.0`.
+The SDK publishes Kotlin metadata `2.4.0`; the build does not bypass metadata checks.
+The SDK [configuration source](https://github.com/google-ai-edge/LiteRT-LM/blob/b2f686e2ed4718fb84ec398a61dd59ca0f0aff27/kotlin/java/com/google/ai/edge/litertlm/Config.kt) documents explicit activation precision.
+It states that unsupported precision causes initialization failure.
+This is an API contract, not target-phone proof.
+
 ## Source and device evidence
 
 Typed adapter tests use fake native DTOs.
-They prove the contract, not SDK execution.
-The native implementation and actual APK checks form separate verification units.
+Native ownership tests use fake engines and real serial workers.
+They prove contracts and resource order, not SDK execution.
+The native binding compiles against the actual pinned SDK.
+Actual APK execution remains a separate verification unit.
 No device result exists for issue #25 yet.
 Issues #24 and #25 remain open until their physical acceptance checks pass.
